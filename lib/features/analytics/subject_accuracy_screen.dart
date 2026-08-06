@@ -152,7 +152,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
           ),
           const SizedBox(height: AppTheme.spacingMd),
           SizedBox(
-            height: 200.0 + (deckAccuracies.length * 30).toDouble() as double,
+            height: 200.0 + (deckAccuracies.length * 30).toDouble(),
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,

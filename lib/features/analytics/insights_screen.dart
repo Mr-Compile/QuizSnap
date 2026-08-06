@@ -166,7 +166,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         type: InsightType.suggestion,
         title: 'Focus on Weak Areas',
         description: 'You have ${weakTopics.length} deck(s) with accuracy below 70%. Prioritize these in your study sessions.',
-        icon: Icons.target,
+        icon: Icons.flag,
         priority: InsightPriority.high,
       ));
     }
