@@ -135,12 +135,6 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
             allowedExtensions: ['pdf'],
           );
           break;
-        case 'docx':
-          result = await FilePicker.platform.pickFiles(
-            type: FileType.custom,
-            allowedExtensions: ['docx'],
-          );
-          break;
         case 'txt':
           result = await FilePicker.platform.pickFiles(
             type: FileType.custom,
@@ -165,8 +159,8 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
               builder: (context) => PdfPreviewScreen(file: file),
             ),
           );
-        } else {
-          // For DOCX and TXT, extract text and go to text preview
+        } else if (widget.fileType.toLowerCase() == 'txt') {
+          // For TXT, extract text and go to text preview
           try {
             final text = await DocumentExtractionService.extractFromFile(file);
             if (!mounted) return;

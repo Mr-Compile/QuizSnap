@@ -160,13 +160,6 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
               ),
               _buildImportCard(
                 context,
-                title: 'DOCX',
-                icon: Icons.description,
-                color: Colors.blue,
-                onTap: () => _showFilePicker(context, 'docx'),
-              ),
-              _buildImportCard(
-                context,
                 title: 'TXT',
                 icon: Icons.text_snippet,
                 color: Colors.green,

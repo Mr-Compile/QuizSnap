@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
-import 'package:docx/docx.dart' as docx;
 
 class DocumentExtractionService {
   /// Extract text from a PDF file
@@ -40,24 +39,6 @@ class DocumentExtractionService {
     }
   }
 
-  /// Extract text from a DOCX file
-  static Future<String> extractFromDocx(File file) async {
-    try {
-      final bytes = await file.readAsBytes();
-      final doc = docx.Document(bytes);
-      
-      final textBuffer = StringBuffer();
-      
-      for (final paragraph in doc.paragraphs) {
-        textBuffer.writeln(paragraph.text);
-      }
-      
-      return textBuffer.toString().trim();
-    } catch (e) {
-      throw Exception('Failed to extract text from DOCX: $e');
-    }
-  }
-
   /// Extract text from a TXT file
   static Future<String> extractFromTxt(File file) async {
     try {
@@ -74,8 +55,6 @@ class DocumentExtractionService {
     switch (extension) {
       case 'pdf':
         return extractFromPdf(file, pages: pages);
-      case 'docx':
-        return extractFromDocx(file);
       case 'txt':
         return extractFromTxt(file);
       default:

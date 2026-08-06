@@ -34,9 +34,7 @@ dependencies:
   
   # Document Processing (for Phase 2)
   file_picker: ^6.1.1
-  pdf: ^3.10.7
   syncfusion_flutter_pdf: ^24.1.41
-  docx: ^2.0.0
   camera: ^0.10.5+5
   google_mlkit_text_recognition: ^0.11.0
   permission_handler: ^11.0.1
@@ -46,6 +44,12 @@ dependencies:
   
   # Charts & Analytics
   fl_chart: ^0.66.0
+  
+  # Export & Backup
+  pdf: ^3.10.7
+  csv: ^5.0.2
+  share_plus: ^7.2.1
+  printing: ^5.11.0
 
 dev_dependencies:
   flutter_test:

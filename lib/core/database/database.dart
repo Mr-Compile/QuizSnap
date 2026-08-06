@@ -1,4 +1,9 @@
 import 'package:drift/drift.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
 
 part 'database.g.dart';
 
@@ -65,12 +70,38 @@ class FlashcardTags extends Table {
   Set<Column> get primaryKey => {flashcardId, tagId};
 }
 
-@DriftDatabase(tables: [Folders, Decks, Flashcards, Tags, FlashcardTags])
+@Dataclass(['sessionId'])
+class StudySessions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get deckId => integer().nullable().references(Decks, #id)();
+  IntColumn get cardsStudied => integer().withDefault(const Constant(0))();
+  IntColumn get cardsCorrect => integer().withDefault(const Constant(0))();
+  IntColumn get durationSeconds => integer().withDefault(const Constant(0))();
+  TextColumn get studyMode => text().withDefault(const Constant('review'))(); // 'review', 'quiz', 'flashcard'
+  DateTimeColumn get startedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get endedAt => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+@Dataclass(['resultId'])
+class QuizResults extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get deckId => integer().nullable().references(Decks, #id)();
+  IntColumn get totalQuestions => integer().withDefault(const Constant(0))();
+  IntColumn get correctAnswers => integer().withDefault(const Constant(0))();
+  RealColumn get score => real().withDefault(const Constant(0.0))();
+  IntColumn get durationSeconds => integer().withDefault(const Constant(0))();
+  TextColumn get quizType => text().withDefault(const Constant('practice'))(); // 'practice', 'exam'
+  DateTimeColumn get completedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+@DriftDatabase(tables: [Folders, Decks, Flashcards, Tags, FlashcardTags, StudySessions, QuizResults])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -84,6 +115,11 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(flashcards, flashcards.easeFactor);
           await m.addColumn(flashcards, flashcards.interval);
           await m.addColumn(flashcards, flashcards.repetitions);
+        }
+        if (from == 2 && to == 3) {
+          // Add analytics tables
+          await m.createTable(studySessions);
+          await m.createTable(quizResults);
         }
       },
     );
@@ -371,6 +407,235 @@ class AppDatabase extends _$AppDatabase {
         ..where((tbl) => tbl.deletedAt.isNull())
         ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]);
   }
+
+  // Study Session Queries
+  Future<int> createStudySession(StudySessionsCompanion session) =>
+      into(studySessions).insert(session);
+
+  Future<bool> updateStudySession(StudySession session) =>
+      update(studySessions).replace(session);
+
+  Future<List<StudySession>> getStudySessionsByDeck(int deckId) => select(studySessions)
+      ..where((tbl) => tbl.deckId.equals(deckId))
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.startedAt)]);
+
+  Future<List<StudySession>> getRecentStudySessions(int limit) => select(studySessions)
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.startedAt)])
+      ..limit(limit);
+
+  Future<List<StudySession>> getTodayStudySessions() {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    return select(studySessions)
+        ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfDay))
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.startedAt)]);
+  }
+
+  // Quiz Result Queries
+  Future<int> createQuizResult(QuizResultsCompanion result) =>
+      into(quizResults).insert(result);
+
+  Future<bool> updateQuizResult(QuizResult result) =>
+      update(quizResults).replace(result);
+
+  Future<List<QuizResult>> getQuizResultsByDeck(int deckId) => select(quizResults)
+      ..where((tbl) => tbl.deckId.equals(deckId))
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.completedAt)]);
+
+  Future<List<QuizResult>> getRecentQuizResults(int limit) => select(quizResults)
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.completedAt)])
+      ..limit(limit);
+
+  Future<List<QuizResult>> getTodayQuizResults() {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    return select(quizResults)
+        ..where((tbl) => tbl.completedAt.isBiggerOrEqualValue(startOfDay))
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.completedAt)]);
+  }
+
+  // Analytics aggregation queries
+  Future<int> getTotalDecks() => select(decks)
+      .where((tbl) => tbl.deletedAt.isNull())
+      .get()
+      .then((decks) => decks.length);
+
+  Future<int> getTotalFlashcards() => select(flashcards)
+      .where((tbl) => tbl.deletedAt.isNull())
+      .get()
+      .then((cards) => cards.length);
+
+  Future<int> getCardsStudiedToday() {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    return select(studySessions)
+        ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfDay))
+        .get()
+        .then((sessions) => sessions.fold<int>(
+            0, (sum, session) => sum + session.cardsStudied));
+  }
+
+  Future<int> getDueTodayCount() => select(flashcards)
+      ..where((tbl) => tbl.nextReviewAt.isSmallerThanValue(DateTime.now()))
+      ..where((tbl) => tbl.deletedAt.isNull())
+      .get()
+      .then((cards) => cards.length);
+
+  Future<int> getCurrentStreak() async {
+    // Calculate consecutive days with study activity
+    final sessions = await select(studySessions)
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.startedAt)])
+        .get();
+
+    if (sessions.isEmpty) return 0;
+
+    int streak = 0;
+    DateTime? checkDate = DateTime.now();
+
+    for (final session in sessions) {
+      final sessionDate = DateTime(
+        session.startedAt.year,
+        session.startedAt.month,
+        session.startedAt.day,
+      );
+
+      if (checkDate == null ||
+          sessionDate.isAtSameMomentAs(checkDate) ||
+          sessionDate.isAtSameMomentAs(checkDate.subtract(const Duration(days: 1)))) {
+        streak++;
+        checkDate = sessionDate.subtract(const Duration(days: 1));
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  Future<double> getAverageQuizScore() {
+    return select(quizResults)
+        .get()
+        .then((results) {
+          if (results.isEmpty) return 0.0;
+          final totalScore = results.fold<double>(
+              0.0, (sum, result) => sum + result.score);
+          return totalScore / results.length;
+        });
+  }
+
+  Future<List<DailyStudyActivity>> getDailyStudyActivity(int days) async {
+    final now = DateTime.now();
+    final startDate = now.subtract(Duration(days: days - 1));
+    final startOfDay = DateTime(startDate.year, startDate.month, startDate.day);
+
+    final sessions = await select(studySessions)
+        ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfDay))
+        ..orderBy([(tbl) => OrderingTerm.asc(tbl.startedAt)])
+        .get();
+
+    final Map<String, DailyStudyActivity> activityMap = {};
+
+    for (final session in sessions) {
+      final dateKey = '${session.startedAt.year}-${session.startedAt.month}-${session.startedAt.day}';
+      
+      if (!activityMap.containsKey(dateKey)) {
+        activityMap[dateKey] = DailyStudyActivity(
+          date: session.startedAt,
+          cardsStudied: 0,
+          studyTimeMinutes: 0,
+          accuracy: 0.0,
+        );
+      }
+
+      final activity = activityMap[dateKey]!;
+      activityMap[dateKey] = DailyStudyActivity(
+        date: activity.date,
+        cardsStudied: activity.cardsStudied + session.cardsStudied,
+        studyTimeMinutes: activity.studyTimeMinutes + (session.durationSeconds / 60).round(),
+        accuracy: session.cardsStudied > 0
+            ? ((activity.cardsStudied * activity.accuracy + session.cardsCorrect) / (activity.cardsStudied + session.cardsStudied)) * 100
+            : activity.accuracy,
+      );
+    }
+
+    // Fill in missing days
+    final List<DailyStudyActivity> activities = [];
+    for (int i = 0; i < days; i++) {
+      final date = startOfDay.add(Duration(days: i));
+      final dateKey = '${date.year}-${date.month}-${date.day}';
+      activities.add(activityMap[dateKey] ?? DailyStudyActivity(
+        date: date,
+        cardsStudied: 0,
+        studyTimeMinutes: 0,
+        accuracy: 0.0,
+      ));
+    }
+
+    return activities;
+  }
+
+  Future<List<MasteryDistribution>> getMasteryDistribution() async {
+    final cards = await select(flashcards)
+        .where((tbl) => tbl.deletedAt.isNull())
+        .get();
+
+    int mastered = 0; // interval > 21 days
+    int learning = 0; // interval between 1-21 days
+    int newCards = 0; // interval == 0
+
+    for (final card in cards) {
+      if (card.interval > 21) {
+        mastered++;
+      } else if (card.interval > 0) {
+        learning++;
+      } else {
+        newCards++;
+      }
+    }
+
+    return [
+      MasteryDistribution(level: 'Mastered', count: mastered, percentage: cards.isEmpty ? 0.0 : mastered / cards.length * 100),
+      MasteryDistribution(level: 'Learning', count: learning, percentage: cards.isEmpty ? 0.0 : learning / cards.length * 100),
+      MasteryDistribution(level: 'New', count: newCards, percentage: cards.isEmpty ? 0.0 : newCards / cards.length * 100),
+    ];
+  }
+
+  Future<List<DeckAccuracy>> getAccuracyByDeck() async {
+    final decks = await getAllDecks();
+    final List<DeckAccuracy> accuracies = [];
+
+    for (final deck in decks) {
+      final cards = await getFlashcardsByDeck(deck.id);
+      
+      if (cards.isEmpty) {
+        accuracies.add(DeckAccuracy(
+          deckId: deck.id,
+          deckName: deck.name,
+          accuracy: 0.0,
+          totalCards: 0,
+        ));
+        continue;
+      }
+
+      int totalReviews = 0;
+      int totalCorrect = 0;
+
+      for (final card in cards) {
+        totalReviews += card.reviewCount;
+        totalCorrect += card.correctCount;
+      }
+
+      accuracies.add(DeckAccuracy(
+        deckId: deck.id,
+        deckName: deck.name,
+        accuracy: totalReviews > 0 ? (totalCorrect / totalReviews * 100) : 0.0,
+        totalCards: cards.length,
+      ));
+    }
+
+    accuracies.sort((a, b) => a.accuracy.compareTo(b.accuracy));
+    return accuracies;
+  }
 }
 
 LazyDatabase openConnection() {
@@ -402,5 +667,46 @@ LazyDatabase _openConnection() {
     sqlite3.tempDirectory = cachebase.path;
 
     return NativeDatabase.createInBackground(file);
+  });
+}
+
+// Analytics data classes
+class DailyStudyActivity {
+  final DateTime date;
+  final int cardsStudied;
+  final int studyTimeMinutes;
+  final double accuracy;
+
+  DailyStudyActivity({
+    required this.date,
+    required this.cardsStudied,
+    required this.studyTimeMinutes,
+    required this.accuracy,
+  });
+}
+
+class MasteryDistribution {
+  final String level;
+  final int count;
+  final double percentage;
+
+  MasteryDistribution({
+    required this.level,
+    required this.count,
+    required this.percentage,
+  });
+}
+
+class DeckAccuracy {
+  final int deckId;
+  final String deckName;
+  final double accuracy;
+  final int totalCards;
+
+  DeckAccuracy({
+    required this.deckId,
+    required this.deckName,
+    required this.accuracy,
+    required this.totalCards,
   });
 }
