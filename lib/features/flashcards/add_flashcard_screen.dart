@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/success_snackbar.dart';
@@ -19,10 +20,17 @@ class AddFlashcardScreen extends StatefulWidget {
   State<AddFlashcardScreen> createState() => _AddFlashcardScreenState();
 }
 
-class _AddFlashcardScreenState extends State<AddFlashcardScreen> {
+class _AddFlashcardScreenState extends State<AddFlashcardScreen> with BackButtonHandlerMixin {
   final _formKey = GlobalKey<FormState>();
   final _questionController = TextEditingController();
   final _answerController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  bool get hasUnsavedChanges {
+    return _questionController.text.trim().isNotEmpty || 
+           _answerController.text.trim().isNotEmpty;
+  }
 
   @override
   void dispose() {
@@ -33,53 +41,56 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CustomAppBar(
-        title: 'Add Flashcard',
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _questionController,
-                decoration: const InputDecoration(
-                  labelText: 'Question',
-                  hintText: 'Enter the question',
+    return buildWithBackButtonHandler(
+      Scaffold(
+        appBar: const CustomAppBar(
+          title: 'Add Flashcard',
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _questionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Question',
+                    hintText: 'Enter the question',
+                  ),
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a question';
+                    }
+                    return null;
+                  },
                 ),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a question';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: AppTheme.spacingLg),
-              TextFormField(
-                controller: _answerController,
-                decoration: const InputDecoration(
-                  labelText: 'Answer',
-                  hintText: 'Enter the answer',
+                const SizedBox(height: AppTheme.spacingLg),
+                TextFormField(
+                  controller: _answerController,
+                  decoration: const InputDecoration(
+                    labelText: 'Answer',
+                    hintText: 'Enter the answer',
+                  ),
+                  maxLines: 5,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter an answer';
+                    }
+                    return null;
+                  },
                 ),
-                maxLines: 5,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter an answer';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: AppTheme.spacingXl),
-              CustomButton(
-                text: 'Add Flashcard',
-                onPressed: _addFlashcard,
-                fullWidth: true,
-              ),
-            ],
+                const SizedBox(height: AppTheme.spacingXl),
+                CustomButton(
+                  text: 'Add Flashcard',
+                  onPressed: _isLoading ? null : _addFlashcard,
+                  fullWidth: true,
+                  isLoading: _isLoading,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -90,6 +101,8 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    setState(() => _isLoading = true);
 
     final dbProvider = context.read<DatabaseProvider>();
     
@@ -125,6 +138,10 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> {
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }

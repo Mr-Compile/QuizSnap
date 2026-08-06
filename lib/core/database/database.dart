@@ -7,7 +7,6 @@ import 'dart:io';
 
 part 'database.g.dart';
 
-@Dataclass(['folderId'])
 class Folders extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 100)();
@@ -18,7 +17,6 @@ class Folders extends Table {
   DateTimeColumn get deletedAt => dateTime().nullable()();
 }
 
-@Dataclass(['deckId'])
 class Decks extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 100)();
@@ -31,7 +29,6 @@ class Decks extends Table {
   DateTimeColumn get deletedAt => dateTime().nullable()();
 }
 
-@Dataclass(['flashcardId'])
 class Flashcards extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get question => text().withLength(min: 1)();
@@ -52,7 +49,6 @@ class Flashcards extends Table {
   DateTimeColumn get deletedAt => dateTime().nullable()();
 }
 
-@Dataclass(['tagId'])
 class Tags extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 50)();
@@ -61,7 +57,6 @@ class Tags extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-@Dataclass(['flashcardTagId'])
 class FlashcardTags extends Table {
   IntColumn get flashcardId => integer().references(Flashcards, #id)();
   IntColumn get tagId => integer().references(Tags, #id)();
@@ -70,7 +65,6 @@ class FlashcardTags extends Table {
   Set<Column> get primaryKey => {flashcardId, tagId};
 }
 
-@Dataclass(['sessionId'])
 class StudySessions extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get deckId => integer().nullable().references(Decks, #id)();
@@ -83,7 +77,6 @@ class StudySessions extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-@Dataclass(['resultId'])
 class QuizResults extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get deckId => integer().nullable().references(Decks, #id)();
@@ -126,9 +119,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // Folder Queries
-  Future<List<Folder>> getAllFolders() => select(folders)
-      .where((tbl) => tbl.deletedAt.isNull())
-      .orderBy([(tbl) => OrderingTerm.asc(tbl.name)])
+  Future<List<Folder>> getAllFolders() => (select(folders)
+        ..where((tbl) => tbl.deletedAt.isNull())
+        ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
       .get();
 
   Future<Folder> getFolderById(int id) => (select(folders)
@@ -140,15 +133,13 @@ class AppDatabase extends _$AppDatabase {
 
   Future<bool> updateFolder(Folder folder) => update(folders).replace(folder);
 
-  Future<bool> deleteFolder(int id) => (update(folders)
-        ..where((tbl) => tbl.id.equals(id))
-        ..write(const FoldersCompanion(deletedAt: Value(DateTime.now()))))
-      .go();
+  Future<int> deleteFolder(int id) => update(folders)
+      .where((tbl) => tbl.id.equals(id))
+      .write(FoldersCompanion(deletedAt: Value(DateTime.now())));
 
-  Future<bool> restoreFolder(int id) => (update(folders)
-        ..where((tbl) => tbl.id.equals(id))
-        ..write(const FoldersCompanion(deletedAt: Value(null))))
-      .go();
+  Future<int> restoreFolder(int id) => update(folders)
+      .where((tbl) => tbl.id.equals(id))
+      .write(FoldersCompanion(deletedAt: Value(null)));
 
   Future<List<Folder>> getDeletedFolders() => select(folders)
       .where((tbl) => tbl.deletedAt.isNotNull())
@@ -156,15 +147,16 @@ class AppDatabase extends _$AppDatabase {
       .get();
 
   // Deck Queries
-  Future<List<Deck>> getAllDecks() => select(decks)
-      .where((tbl) => tbl.deletedAt.isNull())
-      .orderBy([(tbl) => OrderingTerm.asc(tbl.name)])
+  Future<List<Deck>> getAllDecks() => (select(decks)
+        ..where((tbl) => tbl.deletedAt.isNull())
+        ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
       .get();
 
-  Future<List<Deck>> getDecksByFolder(int folderId) => select(decks)
-      ..where((tbl) => tbl.folderId.equals(folderId))
-      ..where((tbl) => tbl.deletedAt.isNull())
-      ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]);
+  Future<List<Deck>> getDecksByFolder(int folderId) => (select(decks)
+        ..where((tbl) => tbl.folderId.equals(folderId))
+        ..where((tbl) => tbl.deletedAt.isNull())
+        ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
+      .get();
 
   Future<Deck> getDeckById(int id) => (select(decks)
         ..where((tbl) => tbl.id.equals(id))
@@ -175,15 +167,13 @@ class AppDatabase extends _$AppDatabase {
 
   Future<bool> updateDeck(Deck deck) => update(decks).replace(deck);
 
-  Future<bool> deleteDeck(int id) => (update(decks)
-        ..where((tbl) => tbl.id.equals(id))
-        ..write(const DecksCompanion(deletedAt: Value(DateTime.now()))))
-      .go();
+  Future<int> deleteDeck(int id) => update(decks)
+      .where((tbl) => tbl.id.equals(id))
+      .write(DecksCompanion(deletedAt: Value(DateTime.now())));
 
-  Future<bool> restoreDeck(int id) => (update(decks)
-        ..where((tbl) => tbl.id.equals(id))
-        ..write(const DecksCompanion(deletedAt: Value(null))))
-      .go();
+  Future<int> restoreDeck(int id) => update(decks)
+      .where((tbl) => tbl.id.equals(id))
+      .write(DecksCompanion(deletedAt: Value(null)));
 
   Future<List<Deck>> getDeletedDecks() => select(decks)
       .where((tbl) => tbl.deletedAt.isNotNull())
@@ -191,13 +181,14 @@ class AppDatabase extends _$AppDatabase {
       .get();
 
   Future<void> updateDeckCardCount(int deckId) async {
-    final count = await (select(flashcards)
+    final cards = await (select(flashcards)
           ..where((tbl) => tbl.deckId.equals(deckId))
           ..where((tbl) => tbl.deletedAt.isNull()))
-        .get()
-        .then((cards) => cards.length);
+        .get();
+    final count = cards.length;
     
-    await (update(decks)..where((tbl) => tbl.id.equals(deckId)))
+    await update(decks)
+        .where((tbl) => tbl.id.equals(deckId))
         .write(DecksCompanion(cardCount: Value(count)));
   }
 
@@ -207,14 +198,16 @@ class AppDatabase extends _$AppDatabase {
       .orderBy([(tbl) => OrderingTerm.asc(tbl.order)])
       .get();
 
-  Future<List<Flashcard>> getFlashcardsByDeck(int deckId) => select(flashcards)
-      ..where((tbl) => tbl.deckId.equals(deckId))
-      ..where((tbl) => tbl.deletedAt.isNull())
-      ..orderBy([(tbl) => OrderingTerm.asc(tbl.order)]);
+  Future<List<Flashcard>> getFlashcardsByDeck(int deckId) => (select(flashcards)
+        ..where((tbl) => tbl.deckId.equals(deckId))
+        ..where((tbl) => tbl.deletedAt.isNull())
+        ..orderBy([(tbl) => OrderingTerm.asc(tbl.order)]))
+      .get();
 
   Future<Flashcard> getFlashcardById(int id) => (select(flashcards)
         ..where((tbl) => tbl.id.equals(id))
         ..where((tbl) => tbl.deletedAt.isNull()))
+      .getSingle();
       .getSingle();
 
   Future<int> createFlashcard(FlashcardsCompanion flashcard) =>
@@ -223,15 +216,13 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateFlashcard(Flashcard flashcard) =>
       update(flashcards).replace(flashcard);
 
-  Future<bool> deleteFlashcard(int id) => (update(flashcards)
-        ..where((tbl) => tbl.id.equals(id))
-        ..write(const FlashcardsCompanion(deletedAt: Value(DateTime.now()))))
-      .go();
+  Future<int> deleteFlashcard(int id) => update(flashcards)
+      .where((tbl) => tbl.id.equals(id))
+      .write(FlashcardsCompanion(deletedAt: Value(DateTime.now())));
 
-  Future<bool> restoreFlashcard(int id) => (update(flashcards)
-        ..where((tbl) => tbl.id.equals(id))
-        ..write(const FlashcardsCompanion(deletedAt: Value(null))))
-      .go();
+  Future<int> restoreFlashcard(int id) => update(flashcards)
+      .where((tbl) => tbl.id.equals(id))
+      .write(FlashcardsCompanion(deletedAt: Value(null)));
 
   Future<List<Flashcard>> getDeletedFlashcards() => select(flashcards)
       .where((tbl) => tbl.deletedAt.isNotNull())
@@ -239,14 +230,16 @@ class AppDatabase extends _$AppDatabase {
       .get();
 
   Future<List<Flashcard>> getFavoriteFlashcards() => select(flashcards)
-      ..where((tbl) => tbl.isFavorite.equals(true))
-      ..where((tbl) => tbl.deletedAt.isNull())
-      ..orderBy([(tbl) => OrderingTerm.desc(tbl.lastReviewedAt)]);
+      .where((tbl) => tbl.isFavorite.equals(true))
+      .where((tbl) => tbl.deletedAt.isNull())
+      .orderBy([(tbl) => OrderingTerm.desc(tbl.lastReviewedAt)])
+      .get();
 
   Future<List<Flashcard>> getFlashcardsDueForReview() => select(flashcards)
-      ..where((tbl) => tbl.nextReviewAt.isSmallerThanValue(DateTime.now()))
-      ..where((tbl) => tbl.deletedAt.isNull())
-      ..orderBy([(tbl) => OrderingTerm.asc(tbl.nextReviewAt)]);
+      .where((tbl) => tbl.nextReviewAt.isSmallerThanValue(DateTime.now()))
+      .where((tbl) => tbl.deletedAt.isNull())
+      .orderBy([(tbl) => OrderingTerm.asc(tbl.nextReviewAt)])
+      .get();
 
   Future<void> updateFlashcardReview(int id, bool correct) async {
     final flashcard = await getFlashcardById(id);
@@ -342,7 +335,7 @@ class AppDatabase extends _$AppDatabase {
 
   Future<bool> updateTag(Tag tag) => update(tags).replace(tag);
 
-  Future<bool> deleteTag(int id) => delete(tags).where((tbl) => tbl.id.equals(id)).go();
+  Future<int> deleteTag(int id) => delete(tags).where((tbl) => tbl.id.equals(id)).go();
 
   // Flashcard Tag Queries
   Future<List<Tag>> getTagsForFlashcard(int flashcardId) {
@@ -353,7 +346,7 @@ class AppDatabase extends _$AppDatabase {
       ),
     ])
       ..where(flashcardTags.flashcardId.equals(flashcardId))
-      ..orderBy([(tbl) => OrderingTerm.asc(tags.name)]);
+      ..orderBy([(tags) => OrderingTerm.asc(tags.name)]);
 
     return query.map((row) => row.readTable(tags)).get();
   }
@@ -371,8 +364,8 @@ class AppDatabase extends _$AppDatabase {
           .go();
 
   Future<void> setFlashcardTags(int flashcardId, List<int> tagIds) async {
-    await (delete(flashcardTags)
-          ..where((tbl) => tbl.flashcardId.equals(flashcardId)))
+    await delete(flashcardTags)
+        .where((tbl) => tbl.flashcardId.equals(flashcardId))
         .go();
 
     for (final tagId in tagIds) {
@@ -385,10 +378,13 @@ class AppDatabase extends _$AppDatabase {
   Future<void> createFlashcardTag(FlashcardTagsCompanion flashcardTag) =>
       into(flashcardTags).insert(flashcardTag);
 
-  Future<List<StudySession>> getAllStudySessions() => select(studySessions).get();
+  Future<void> deleteFlashcardTag(int flashcardId, int tagId) =>
+      delete(flashcardTags)
+          .where((tbl) => tbl.flashcardId.equals(flashcardId))
+          .where((tbl) => tbl.tagId.equals(tagId))
+          .go();
 
-  Future<int> createStudySession(StudySessionsCompanion session) =>
-      into(studySessions).insert(session);
+  Future<List<StudySession>> getAllStudySessions() => select(studySessions).get();
 
   Future<List<QuizResult>> getAllQuizResults() => select(quizResults).get();
 
@@ -407,52 +403,55 @@ class AppDatabase extends _$AppDatabase {
   // Search Queries
   Future<List<Flashcard>> searchFlashcards(String query) {
     final searchTerm = '%$query%';
-    return select(flashcards)
+    return (select(flashcards)
         ..where((tbl) => tbl.question.like(searchTerm) |
             tbl.answer.like(searchTerm))
         ..where((tbl) => tbl.deletedAt.isNull())
-        ..orderBy([(tbl) => OrderingTerm.asc(tbl.order)]);
+        ..orderBy([(tbl) => OrderingTerm.asc(tbl.order)]))
+      .get();
   }
 
   Future<List<Deck>> searchDecks(String query) {
     final searchTerm = '%$query%';
-    return select(decks)
+    return (select(decks)
         ..where((tbl) => tbl.name.like(searchTerm) |
             (tbl.description.like(searchTerm)))
         ..where((tbl) => tbl.deletedAt.isNull())
-        ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]);
+        ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
+      .get();
   }
 
   Future<List<Folder>> searchFolders(String query) {
     final searchTerm = '%$query%';
-    return select(folders)
+    return (select(folders)
         ..where((tbl) => tbl.name.like(searchTerm) |
             (tbl.description.like(searchTerm)))
         ..where((tbl) => tbl.deletedAt.isNull())
-        ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]);
+        ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
+      .get();
   }
 
   // Study Session Queries
-  Future<int> createStudySession(StudySessionsCompanion session) =>
-      into(studySessions).insert(session);
-
   Future<bool> updateStudySession(StudySession session) =>
       update(studySessions).replace(session);
 
-  Future<List<StudySession>> getStudySessionsByDeck(int deckId) => select(studySessions)
-      ..where((tbl) => tbl.deckId.equals(deckId))
-      ..orderBy([(tbl) => OrderingTerm.desc(tbl.startedAt)]);
+  Future<List<StudySession>> getStudySessionsByDeck(int deckId) => (select(studySessions)
+        ..where((tbl) => tbl.deckId.equals(deckId))
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.startedAt)]))
+      .get();
 
-  Future<List<StudySession>> getRecentStudySessions(int limit) => select(studySessions)
-      ..orderBy([(tbl) => OrderingTerm.desc(tbl.startedAt)])
-      ..limit(limit);
+  Future<List<StudySession>> getRecentStudySessions(int limit) => (select(studySessions)
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.startedAt)])
+        ..limit(limit))
+      .get();
 
   Future<List<StudySession>> getTodayStudySessions() {
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
-    return select(studySessions)
+    return (select(studySessions)
         ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfDay))
-        ..orderBy([(tbl) => OrderingTerm.desc(tbl.startedAt)]);
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.startedAt)]))
+      .get();
   }
 
   // Quiz Result Queries
@@ -462,20 +461,23 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateQuizResult(QuizResult result) =>
       update(quizResults).replace(result);
 
-  Future<List<QuizResult>> getQuizResultsByDeck(int deckId) => select(quizResults)
-      ..where((tbl) => tbl.deckId.equals(deckId))
-      ..orderBy([(tbl) => OrderingTerm.desc(tbl.completedAt)]);
+  Future<List<QuizResult>> getQuizResultsByDeck(int deckId) => (select(quizResults)
+        ..where((tbl) => tbl.deckId.equals(deckId))
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.completedAt)]))
+      .get();
 
-  Future<List<QuizResult>> getRecentQuizResults(int limit) => select(quizResults)
-      ..orderBy([(tbl) => OrderingTerm.desc(tbl.completedAt)])
-      ..limit(limit);
+  Future<List<QuizResult>> getRecentQuizResults(int limit) => (select(quizResults)
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.completedAt)))
+        ..limit(limit))
+      .get();
 
   Future<List<QuizResult>> getTodayQuizResults() {
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
-    return select(quizResults)
+    return (select(quizResults)
         ..where((tbl) => tbl.completedAt.isBiggerOrEqualValue(startOfDay))
-        ..orderBy([(tbl) => OrderingTerm.desc(tbl.completedAt)]);
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.completedAt)]))
+      .get();
   }
 
   // Analytics aggregation queries

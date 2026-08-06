@@ -64,7 +64,7 @@ class AppearanceScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(AppTheme.spacingLg),
                 child: Column(
                   children: [
-                    _buildPreviewCard(context, 'Primary Color', AppTheme.bambooGreen),
+                    _buildPreviewCard(context, 'Primary Color', AppTheme.bambooGreen600),
                     const SizedBox(height: AppTheme.spacingMd),
                     _buildPreviewCard(context, 'Secondary Color', Theme.of(context).colorScheme.secondary),
                     const SizedBox(height: AppTheme.spacingMd),

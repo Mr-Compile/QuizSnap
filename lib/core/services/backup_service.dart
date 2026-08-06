@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'package:drift/drift.dart';
 import '../database/database.dart';
 import '../models/backup.dart';
 
@@ -465,16 +466,5 @@ class BackupService {
       'completedAt': quizResult.completedAt.toIso8601String(),
       'createdAt': quizResult.createdAt.toIso8601String(),
     };
-  }
-
-  Future<void> _clearAllData() async {
-    // Delete in reverse order of dependencies
-    await _database.deleteAllQuizResults();
-    await _database.deleteAllStudySessions();
-    await _database.deleteAllFlashcardTags();
-    await _database.deleteAllFlashcards();
-    await _database.deleteAllDecks();
-    await _database.deleteAllTags();
-    await _database.deleteAllFolders();
   }
 }

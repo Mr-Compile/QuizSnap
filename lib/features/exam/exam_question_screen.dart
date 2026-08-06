@@ -160,10 +160,12 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        _showPauseDialog();
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _showPauseDialog();
+        }
       },
       child: Scaffold(
         appBar: CustomAppBar(

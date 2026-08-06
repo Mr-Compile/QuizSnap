@@ -1,6 +1,7 @@
 import 'package:groq/groq.dart';
 import '../models/prompt_template.dart';
 import '../repositories/prompt_template_repository.dart';
+import 'secure_storage_service.dart';
 
 class GroqService {
   static const String _defaultModel = 'llama3-70b-8192';
@@ -8,6 +9,7 @@ class GroqService {
   String? _apiKey;
   Groq? _client;
   final PromptTemplateRepository _templateRepository = PromptTemplateRepository();
+  final SecureStorageService _secureStorage = SecureStorageService();
 
   bool get isInitialized => _apiKey != null && _client != null;
 
@@ -15,6 +17,17 @@ class GroqService {
     _apiKey = apiKey;
     _client = Groq(apiKey: apiKey);
     await _templateRepository.initialize();
+    // Store the API key securely
+    await _secureStorage.storeGroqApiKey(apiKey);
+  }
+
+  Future<void> initializeFromSecureStorage() async {
+    final apiKey = await _secureStorage.getGroqApiKey();
+    if (apiKey != null && apiKey.isNotEmpty) {
+      _apiKey = apiKey;
+      _client = Groq(apiKey: apiKey);
+      await _templateRepository.initialize();
+    }
   }
 
   Future<String> generateQuestions({

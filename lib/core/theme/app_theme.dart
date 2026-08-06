@@ -289,7 +289,12 @@ class AppTheme {
     fontSize: textLg,
     fontWeight: fontSemiBold,
   );
-  
+
+  static const TextStyle titleMedium = TextStyle(
+    fontSize: textBase,
+    fontWeight: fontSemiBold,
+  );
+
   static const TextStyle labelLarge = TextStyle(
     fontSize: textBase,
     fontWeight: fontMedium,

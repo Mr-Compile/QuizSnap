@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:drift/drift.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/success_snackbar.dart';
@@ -19,13 +20,28 @@ class EditDeckScreen extends StatefulWidget {
   State<EditDeckScreen> createState() => _EditDeckScreenState();
 }
 
-class _EditDeckScreenState extends State<EditDeckScreen> {
+class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerMixin {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   int? _selectedFolderId;
   String _selectedColor = '#4CAF50';
   bool _isLoading = true;
+  bool _isSaving = false;
+
+  // Store initial values for unsaved changes detection
+  String _initialName = '';
+  String _initialDescription = '';
+  int? _initialFolderId;
+  String _initialColor = '';
+
+  @override
+  bool get hasUnsavedChanges {
+    return _nameController.text.trim() != _initialName ||
+           _descriptionController.text.trim() != _initialDescription ||
+           _selectedFolderId != _initialFolderId ||
+           _selectedColor != _initialColor;
+  }
 
   final List<String> _colors = [
     '#4CAF50', // Green
@@ -55,6 +71,12 @@ class _EditDeckScreenState extends State<EditDeckScreen> {
         _selectedFolderId = deck.folderId;
         _selectedColor = deck.color;
         _isLoading = false;
+        
+        // Store initial values for unsaved changes detection
+        _initialName = deck.name;
+        _initialDescription = deck.description ?? '';
+        _initialFolderId = deck.folderId;
+        _initialColor = deck.color;
       });
     }
   }
@@ -79,118 +101,121 @@ class _EditDeckScreenState extends State<EditDeckScreen> {
       );
     }
 
-    return Scaffold(
-      appBar: const CustomAppBar(
-        title: 'Edit Deck',
-      ),
-      body: Consumer<DatabaseProvider>(
-        builder: (context, dbProvider, child) {
-          return FutureBuilder(
-            future: dbProvider.folderRepository.getAllFolders(),
-            builder: (context, snapshot) {
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Name',
-                          hintText: 'Enter deck name',
+    return buildWithBackButtonHandler(
+      Scaffold(
+        appBar: const CustomAppBar(
+          title: 'Edit Deck',
+        ),
+        body: Consumer<DatabaseProvider>(
+          builder: (context, dbProvider, child) {
+            return FutureBuilder(
+              future: dbProvider.folderRepository.getAllFolders(),
+              builder: (context, snapshot) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppTheme.spacingLg),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Name',
+                            hintText: 'Enter deck name',
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Please enter a name';
+                            }
+                            if (value.length > 100) {
+                              return 'Name must be less than 100 characters';
+                            }
+                            return null;
+                          },
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a name';
-                          }
-                          if (value.length > 100) {
-                            return 'Name must be less than 100 characters';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: AppTheme.spacingMd),
-                      TextFormField(
-                        controller: _descriptionController,
-                        decoration: const InputDecoration(
-                          labelText: 'Description (optional)',
-                          hintText: 'Enter deck description',
+                        const SizedBox(height: AppTheme.spacingMd),
+                        TextFormField(
+                          controller: _descriptionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Description (optional)',
+                            hintText: 'Enter deck description',
+                          ),
+                          maxLines: 3,
                         ),
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: AppTheme.spacingMd),
-                      DropdownButtonFormField<int>(
-                        value: _selectedFolderId,
-                        decoration: const InputDecoration(
-                          labelText: 'Folder (optional)',
-                          hintText: 'Select a folder',
+                        const SizedBox(height: AppTheme.spacingMd),
+                        DropdownButtonFormField<int>(
+                          value: _selectedFolderId,
+                          decoration: const InputDecoration(
+                            labelText: 'Folder (optional)',
+                            hintText: 'Select a folder',
+                          ),
+                          items: snapshot.hasData
+                              ? [
+                                  const DropdownMenuItem<int>(
+                                    value: null,
+                                    child: Text('No Folder'),
+                                  ),
+                                  ...snapshot.data!.map((folder) {
+                                    return DropdownMenuItem<int>(
+                                      value: folder.id,
+                                      child: Text(folder.name),
+                                    );
+                                  }),
+                                ]
+                              : null,
+                          onChanged: (value) => setState(() => _selectedFolderId = value),
                         ),
-                        items: snapshot.hasData
-                            ? [
-                                const DropdownMenuItem<int>(
-                                  value: null,
-                                  child: Text('No Folder'),
+                        const SizedBox(height: AppTheme.spacingLg),
+                        Text(
+                          'Color',
+                          style: AppTheme.labelLarge,
+                        ),
+                        const SizedBox(height: AppTheme.spacingSm),
+                        Wrap(
+                          spacing: AppTheme.spacingSm,
+                          runSpacing: AppTheme.spacingSm,
+                          children: _colors.map((color) {
+                            return GestureDetector(
+                              onTap: () => setState(() => _selectedColor = color),
+                              child: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Color(int.parse(color.replaceFirst('#', '0xFF'))),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: _selectedColor == color
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Colors.transparent,
+                                    width: 3,
+                                  ),
                                 ),
-                                ...snapshot.data!.map((folder) {
-                                  return DropdownMenuItem<int>(
-                                    value: folder.id,
-                                    child: Text(folder.name),
-                                  );
-                                }),
-                              ]
-                            : null,
-                        onChanged: (value) => setState(() => _selectedFolderId = value),
-                      ),
-                      const SizedBox(height: AppTheme.spacingLg),
-                      Text(
-                        'Color',
-                        style: AppTheme.labelLarge,
-                      ),
-                      const SizedBox(height: AppTheme.spacingSm),
-                      Wrap(
-                        spacing: AppTheme.spacingSm,
-                        runSpacing: AppTheme.spacingSm,
-                        children: _colors.map((color) {
-                          return GestureDetector(
-                            onTap: () => setState(() => _selectedColor = color),
-                            child: Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: Color(int.parse(color.replaceFirst('#', '0xFF'))),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: _selectedColor == color
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Colors.transparent,
-                                  width: 3,
-                                ),
+                                child: _selectedColor == color
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                      )
+                                    : null,
                               ),
-                              child: _selectedColor == color
-                                  ? const Icon(
-                                      Icons.check,
-                                      color: Colors.white,
-                                    )
-                                  : null,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: AppTheme.spacingXl),
-                      CustomButton(
-                        text: 'Save Changes',
-                        onPressed: _updateDeck,
-                        fullWidth: true,
-                      ),
-                    ],
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: AppTheme.spacingXl),
+                        CustomButton(
+                          text: 'Save Changes',
+                          onPressed: _isSaving ? null : _updateDeck,
+                          fullWidth: true,
+                          isLoading: _isSaving,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -199,6 +224,8 @@ class _EditDeckScreenState extends State<EditDeckScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    setState(() => _isSaving = true);
 
     final dbProvider = context.read<DatabaseProvider>();
     
@@ -231,6 +258,10 @@ class _EditDeckScreenState extends State<EditDeckScreen> {
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
       }
     }
   }
