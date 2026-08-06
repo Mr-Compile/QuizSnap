@@ -22,7 +22,7 @@ class RestoreItemDialog extends StatelessWidget {
       ),
       content: Text(
         'Are you sure you want to restore "$itemName"?',
-        style: AppTheme.bodyMedium,
+        style: Theme.of(context).textTheme.bodyMedium,
       ),
       actions: [
         TextButton(
