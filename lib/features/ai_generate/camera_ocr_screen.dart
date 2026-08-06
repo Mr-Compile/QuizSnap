@@ -1,0 +1,339 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'text_preview_screen.dart';
+
+class CameraOcrScreen extends StatefulWidget {
+  const CameraOcrScreen({super.key});
+
+  @override
+  State<CameraOcrScreen> createState() => _CameraOcrScreenState();
+}
+
+class _CameraOcrScreenState extends State<CameraOcrScreen> {
+  CameraController? _cameraController;
+  List<CameraDescription>? _cameras;
+  bool _isCameraInitialized = false;
+  bool _isProcessing = false;
+  String? _errorMessage;
+  final TextRecognizer _textRecognizer = TextRecognizer();
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeCamera();
+  }
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    _textRecognizer.close();
+    super.dispose();
+  }
+
+  Future<void> _initializeCamera() async {
+    try {
+      // Request camera permission
+      final status = await Permission.camera.request();
+      if (!status.isGranted) {
+        setState(() {
+          _errorMessage = 'Camera permission is required';
+        });
+        return;
+      }
+
+      // Get available cameras
+      _cameras = await availableCameras();
+      
+      if (_cameras == null || _cameras!.isEmpty) {
+        setState(() {
+          _errorMessage = 'No cameras available';
+        });
+        return;
+      }
+
+      // Initialize camera (prefer back camera)
+      _cameraController = CameraController(
+        _cameras!.firstWhere(
+          (camera) => camera.lensDirection == CameraLensDirection.back,
+          orElse: () => _cameras!.first,
+        ),
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+
+      await _cameraController!.initialize();
+
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to initialize camera: $e';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Scan Document'),
+        actions: [
+          if (_cameras != null && _cameras!.length > 1)
+            IconButton(
+              icon: const Icon(Icons.flip_camera_ios),
+              onPressed: _switchCamera,
+            ),
+        ],
+      ),
+      body: _errorMessage != null
+          ? _buildErrorState()
+          : !_isCameraInitialized
+              ? const Center(child: CircularProgressIndicator())
+              : _buildCameraView(),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Camera Error',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage ?? 'Unknown error',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Go Back'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCameraView() {
+    return Stack(
+      children: [
+        // Camera preview
+        Center(
+          child: CameraPreview(_cameraController!),
+        ),
+        // OCR guide overlay
+        Positioned.fill(
+          child: CustomPaint(
+            painter: OcrGuidePainter(),
+          ),
+        ),
+        // Controls
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.7),
+                ],
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Position text within the frame',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FloatingActionButton(
+                      heroTag: 'capture',
+                      onPressed: _isProcessing ? null : _captureAndRecognize,
+                      child: _isProcessing
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.camera_alt),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _switchCamera() async {
+    if (_cameras == null || _cameras!.length <= 1) return;
+
+    final currentCamera = _cameraController?.description;
+    final currentIndex = _cameras!.indexOf(currentCamera!);
+    final nextIndex = (currentIndex + 1) % _cameras!.length;
+
+    await _cameraController?.dispose();
+    
+    setState(() {
+      _isCameraInitialized = false;
+    });
+
+    _cameraController = CameraController(
+      _cameras![nextIndex],
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+
+    await _cameraController!.initialize();
+
+    if (mounted) {
+      setState(() {
+        _isCameraInitialized = true;
+      });
+    }
+  }
+
+  Future<void> _captureAndRecognize() async {
+    if (_cameraController == null || _isProcessing) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      // Capture image
+      final image = await _cameraController!.takePicture();
+      
+      // Perform OCR
+      final inputImage = InputImage.fromFilePath(image.path);
+      final recognizedText = await _textRecognizer.processImage(inputImage);
+      
+      final extractedText = recognizedText.text;
+
+      if (!mounted) return;
+
+      // Navigate to text preview
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => TextPreviewScreen(
+            text: extractedText,
+            source: 'Camera OCR',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _errorMessage = 'Failed to capture or recognize text: $e';
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+}
+
+class OcrGuidePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    final rect = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2),
+      width: size.width * 0.8,
+      height: size.height * 0.6,
+    );
+
+    canvas.drawRect(rect, paint);
+
+    // Corner markers
+    final cornerPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    final cornerSize = 20.0;
+    final cornerRadius = 4.0;
+
+    // Top-left corner
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(rect.left - cornerSize / 2, rect.top - cornerSize / 2, cornerSize, cornerSize),
+        Radius.circular(cornerRadius),
+      ),
+      cornerPaint,
+    );
+
+    // Top-right corner
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(rect.right - cornerSize / 2, rect.top - cornerSize / 2, cornerSize, cornerSize),
+        Radius.circular(cornerRadius),
+      ),
+      cornerPaint,
+    );
+
+    // Bottom-left corner
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(rect.left - cornerSize / 2, rect.bottom - cornerSize / 2, cornerSize, cornerSize),
+        Radius.circular(cornerRadius),
+      ),
+      cornerPaint,
+    );
+
+    // Bottom-right corner
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(rect.right - cornerSize / 2, rect.bottom - cornerSize / 2, cornerSize, cornerSize),
+        Radius.circular(cornerRadius),
+      ),
+      cornerPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}

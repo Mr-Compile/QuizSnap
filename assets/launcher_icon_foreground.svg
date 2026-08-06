@@ -1,0 +1,16 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Flashcard shape -->
+  <rect x="200" y="300" width="624" height="424" rx="32" fill="white" opacity="0.95"/>
+  
+  <!-- Lightning bolt -->
+  <path d="M480 200 L360 450 L480 450 L440 650 L580 400 L460 400 L500 200 Z" fill="#FBBF24" stroke="#F59E0B" stroke-width="8"/>
+  
+  <!-- Document lines -->
+  <rect x="240" y="380" width="400" height="12" rx="6" fill="#334155"/>
+  <rect x="240" y="420" width="350" height="12" rx="6" fill="#334155"/>
+  <rect x="240" y="460" width="380" height="12" rx="6" fill="#334155"/>
+  <rect x="240" y="500" width="300" height="12" rx="6" fill="#334155"/>
+  
+  <!-- QuizSnap text -->
+  <text x="512" y="680" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#16A34A" text-anchor="middle">QuizSnap</text>
+</svg>
