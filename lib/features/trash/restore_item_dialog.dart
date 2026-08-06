@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/success_snackbar.dart';
 
 class RestoreItemDialog extends StatelessWidget {
   final String itemType;
@@ -19,7 +18,7 @@ class RestoreItemDialog extends StatelessWidget {
     return AlertDialog(
       title: Text(
         'Restore $itemType',
-        style: AppTheme.textSmall,
+        style: Theme.of(context).textTheme.titleMedium,
       ),
       content: Text(
         'Are you sure you want to restore "$itemName"?',

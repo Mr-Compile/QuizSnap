@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:drift/drift.dart';
+import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/success_snackbar.dart';
@@ -38,7 +40,7 @@ class _CreateTagDialogState extends State<CreateTagDialog> {
     return AlertDialog(
       title: Text(
         'Create Tag',
-        style: AppTheme.textSmall,
+        style: Theme.of(context).textTheme.titleMedium,
       ),
       content: Form(
         key: _formKey,
@@ -124,7 +126,7 @@ class _CreateTagDialogState extends State<CreateTagDialog> {
     try {
       await dbProvider.tagRepository.createTag(
         TagsCompanion(
-          name: _nameController.text.trim(),
+          name: Value(_nameController.text.trim()),
           color: Value(_selectedColor),
         ),
       );

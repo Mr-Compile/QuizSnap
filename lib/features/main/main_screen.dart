@@ -9,6 +9,7 @@ import '../settings/appearance_screen.dart';
 import '../exam/cached_explanations_screen.dart';
 import '../study/study_home_screen.dart';
 import '../ai_generate/ai_generate_home_screen.dart';
+import '../analytics/analytics_dashboard_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -40,40 +41,12 @@ class _MainScreenState extends State<MainScreen> {
       case 2:
         return const StudyHomeScreen();
       case 3:
-        // TODO: Implement Analytics screen (Phase 2)
-        return _buildPlaceholderScreen('Analytics', 'Coming in Phase 2');
+        return const AnalyticsDashboardScreen();
       case 4:
         return const SettingsScreen();
       default:
         return const DeckListScreen();
     }
-  }
-
-  Widget _buildPlaceholderScreen(String title, String subtitle) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.construction,
-            size: 64,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

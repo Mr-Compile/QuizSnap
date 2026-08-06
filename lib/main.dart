@@ -6,6 +6,7 @@ import 'core/providers/theme_provider.dart';
 import 'core/providers/database_provider.dart';
 import 'core/providers/groq_provider.dart';
 import 'core/providers/exam_provider.dart';
+import 'core/providers/export_provider.dart';
 import 'core/services/explanation_cache_service.dart';
 import 'features/main/main_screen.dart';
 
@@ -35,6 +36,11 @@ class QuizSnapApp extends StatelessWidget {
               cacheService: cacheService,
               groqService: groqProvider.service,
             );
+          },
+        ),
+        ProxyProvider<DatabaseProvider, ExportProvider>(
+          update: (context, dbProvider, previous) {
+            return previous ?? ExportProvider(dbProvider.database);
           },
         ),
       ],

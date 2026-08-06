@@ -380,6 +380,30 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  Future<List<FlashcardTag>> getAllFlashcardTags() => select(flashcardTags).get();
+
+  Future<void> createFlashcardTag(FlashcardTagsCompanion flashcardTag) =>
+      into(flashcardTags).insert(flashcardTag);
+
+  Future<List<StudySession>> getAllStudySessions() => select(studySessions).get();
+
+  Future<int> createStudySession(StudySessionsCompanion session) =>
+      into(studySessions).insert(session);
+
+  Future<List<QuizResult>> getAllQuizResults() => select(quizResults).get();
+
+  Future<int> createQuizResult(QuizResultsCompanion quizResult) =>
+      into(quizResults).insert(quizResult);
+
+  // Delete all methods for backup restore
+  Future<void> deleteAllQuizResults() => delete(quizResults).go();
+  Future<void> deleteAllStudySessions() => delete(studySessions).go();
+  Future<void> deleteAllFlashcardTags() => delete(flashcardTags).go();
+  Future<void> deleteAllFlashcards() => delete(flashcards).go();
+  Future<void> deleteAllDecks() => delete(decks).go();
+  Future<void> deleteAllTags() => delete(tags).go();
+  Future<void> deleteAllFolders() => delete(folders).go();
+
   // Search Queries
   Future<List<Flashcard>> searchFlashcards(String query) {
     final searchTerm = '%$query%';

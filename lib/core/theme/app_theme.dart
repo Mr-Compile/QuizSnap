@@ -219,6 +219,19 @@ class AppTheme {
   static const double mediumSpacing = spacing4;
   static const double largeSpacing = spacing6;
   static const double cardPadding = spacing4;
+  
+  // Convenience spacing aliases
+  static const double spacingXs = spacing2;
+  static const double spacingSm = spacing3;
+  static const double spacingMd = spacing4;
+  static const double spacingLg = spacing6;
+  static const double spacingXl = spacing8;
+  
+  // Convenience radius aliases
+  static const double radiusXs = roundedSm;
+  static const double radiusSm = rounded;
+  static const double radiusMd = roundedMd;
+  static const double radiusLg = roundedLg;
   static const double borderRadius = roundedLg;
 
   // Design Tokens - Border Radius
@@ -255,6 +268,57 @@ class AppTheme {
   static const FontWeight fontBold = FontWeight.w700;
   static const FontWeight fontExtraBold = FontWeight.w800;
   static const FontWeight fontBlack = FontWeight.w900;
+
+  // Design Tokens - Text Styles
+  static const TextStyle headlineSmall = TextStyle(
+    fontSize: textXl,
+    fontWeight: fontSemiBold,
+  );
+  
+  static const TextStyle headlineMedium = TextStyle(
+    fontSize: text2xl,
+    fontWeight: fontSemiBold,
+  );
+  
+  static const TextStyle headlineLarge = TextStyle(
+    fontSize: text3xl,
+    fontWeight: fontBold,
+  );
+  
+  static const TextStyle titleLarge = TextStyle(
+    fontSize: textLg,
+    fontWeight: fontSemiBold,
+  );
+  
+  static const TextStyle labelLarge = TextStyle(
+    fontSize: textBase,
+    fontWeight: fontMedium,
+  );
+  
+  static const TextStyle labelMedium = TextStyle(
+    fontSize: textSm,
+    fontWeight: fontMedium,
+  );
+  
+  static const TextStyle labelSmall = TextStyle(
+    fontSize: textXs,
+    fontWeight: fontMedium,
+  );
+  
+  static const TextStyle bodyLarge = TextStyle(
+    fontSize: textLg,
+    fontWeight: fontNormal,
+  );
+  
+  static const TextStyle bodyMedium = TextStyle(
+    fontSize: textBase,
+    fontWeight: fontNormal,
+  );
+  
+  static const TextStyle bodySmall = TextStyle(
+    fontSize: textSm,
+    fontWeight: fontNormal,
+  );
 
   // Design Tokens - Shadows
   static List<BoxShadow> get shadowSm => [
