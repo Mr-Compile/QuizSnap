@@ -202,7 +202,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                 return const EmptyState(
                   icon: Icons.backup_outlined,
                   title: 'No backups yet',
-                  subtitle: 'Create your first backup to protect your data',
+                  description: 'Create your first backup to protect your data',
                 );
               }
 

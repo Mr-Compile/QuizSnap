@@ -59,7 +59,7 @@ class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
               ? const EmptyState(
                   icon: Icons.backup_outlined,
                   title: 'No backups found',
-                  description: 'Create a backup to see it here',
+                  subtitle: 'Create a backup to see it here',
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
