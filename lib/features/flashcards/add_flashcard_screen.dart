@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:drift/drift.dart' as drift;
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -98,11 +99,11 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> {
       final maxOrder = flashcards.isEmpty ? 0 : flashcards.map((f) => f.order).reduce((a, b) => a > b ? a : b);
       
       await dbProvider.flashcardRepository.createFlashcard(
-        FlashcardsCompanion(
+        drift.FlashcardsCompanion(
           question: _questionController.text.trim(),
           answer: _answerController.text.trim(),
-          deckId: Value(widget.deckId),
-          order: Value(maxOrder + 1),
+          deckId: drift.Value(widget.deckId),
+          order: drift.Value(maxOrder + 1),
         ),
       );
 

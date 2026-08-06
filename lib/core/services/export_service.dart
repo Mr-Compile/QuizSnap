@@ -9,25 +9,11 @@ import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import '../database/database.dart';
 import '../models/export.dart';
-import '../repositories/deck_repository.dart';
-import '../repositories/flashcard_repository.dart';
-import '../repositories/folder_repository.dart';
-import '../repositories/tag_repository.dart';
 
 class ExportService {
   final AppDatabase _database;
-  final DeckRepository _deckRepository;
-  final FlashcardRepository _flashcardRepository;
-  final FolderRepository _folderRepository;
-  final TagRepository _tagRepository;
 
-  ExportService(
-    this._database,
-    this._deckRepository,
-    this._flashcardRepository,
-    this._folderRepository,
-    this._tagRepository,
-  );
+  ExportService(this._database);
 
   Future<ExportResult> exportData(ExportOptions options, {int? deckId}) async {
     final exportId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -76,10 +62,10 @@ class ExportService {
 
   Future<String?> _exportToPdf(ExportOptions options, int? deckId) async {
     final pdf = pw.Document();
-    final deck = deckId != null ? await _deckRepository.getDeckById(deckId) : null;
+    final deck = deckId != null ? await _database.getDeckById(deckId) : null;
     final flashcards = deckId != null
-        ? await _flashcardRepository.getFlashcardsByDeck(deckId)
-        : await _flashcardRepository.getAllFlashcards();
+        ? await _database.getFlashcardsByDeck(deckId)
+        : await _database.getAllFlashcards();
 
     // Apply filters
     var filteredCards = flashcards;
@@ -190,10 +176,10 @@ class ExportService {
   }
 
   Future<String?> _exportToCsv(ExportOptions options, int? deckId) async {
-    final deck = deckId != null ? await _deckRepository.getDeckById(deckId) : null;
+    final deck = deckId != null ? await _database.getDeckById(deckId) : null;
     final flashcards = deckId != null
-        ? await _flashcardRepository.getFlashcardsByDeck(deckId)
-        : await _flashcardRepository.getAllFlashcards();
+        ? await _database.getFlashcardsByDeck(deckId)
+        : await _database.getAllFlashcards();
 
     // Apply filters
     var filteredCards = flashcards;
@@ -249,10 +235,10 @@ class ExportService {
   }
 
   Future<String?> _exportToJson(ExportOptions options, int? deckId) async {
-    final deck = deckId != null ? await _deckRepository.getDeckById(deckId) : null;
+    final deck = deckId != null ? await _database.getDeckById(deckId) : null;
     final flashcards = deckId != null
-        ? await _flashcardRepository.getFlashcardsByDeck(deckId)
-        : await _flashcardRepository.getAllFlashcards();
+        ? await _database.getFlashcardsByDeck(deckId)
+        : await _database.getAllFlashcards();
 
     // Apply filters
     var filteredCards = flashcards;

@@ -5,12 +5,7 @@ import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../core/models/backup.dart';
-import '../../core/providers/database_provider.dart';
-import '../../core/services/backup_service.dart';
-import '../../core/repositories/deck_repository.dart';
-import '../../core/repositories/flashcard_repository.dart';
-import '../../core/repositories/folder_repository.dart';
-import '../../core/repositories/tag_repository.dart';
+import '../../core/providers/export_provider.dart';
 import 'restore_confirmation_dialog.dart';
 
 class BackupHistoryScreen extends StatefulWidget {
@@ -21,7 +16,7 @@ class BackupHistoryScreen extends StatefulWidget {
 }
 
 class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
-  late BackupService _backupService;
+  late ExportProvider _exportProvider;
   List<BackupMetadata> _backups = [];
   bool _isLoading = true;
 
@@ -32,20 +27,12 @@ class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
   }
 
   Future<void> _initializeServices() async {
-    final database = context.read<AppDatabase>();
-    _backupService = BackupService(
-      database,
-      DeckRepository(database),
-      FlashcardRepository(database),
-      FolderRepository(database),
-      TagRepository(database),
-    );
-
+    _exportProvider = context.read<ExportProvider>();
     await _loadBackups();
   }
 
   Future<void> _loadBackups() async {
-    final backups = await _backupService.getBackupHistory();
+    final backups = await _exportProvider.backupService.getBackupHistory();
     if (mounted) {
       setState(() {
         _backups = backups;
@@ -160,7 +147,7 @@ class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
 
     if (confirmed == true && mounted) {
       try {
-        await _backupService.restoreBackup(backup.id);
+        await _exportProvider.restoreBackup(backup.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Backup restored successfully')),
@@ -198,7 +185,7 @@ class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
 
     if (confirmed == true && mounted) {
       try {
-        await _backupService.deleteBackup(backup.id);
+        await _exportProvider.deleteBackup(backup.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Backup deleted')),

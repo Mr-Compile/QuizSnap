@@ -125,9 +125,9 @@ class _CreateTagDialogState extends State<CreateTagDialog> {
     
     try {
       await dbProvider.tagRepository.createTag(
-        TagsCompanion(
-          name: Value(_nameController.text.trim()),
-          color: Value(_selectedColor),
+        drift.TagsCompanion(
+          name: drift.Value(_nameController.text.trim()),
+          color: drift.Value(_selectedColor),
         ),
       );
 

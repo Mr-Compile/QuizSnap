@@ -17,7 +17,7 @@ class MainBottomNavigation extends StatelessWidget {
       currentIndex: currentIndex,
       onTap: onTap,
       type: BottomNavigationBarType.fixed,
-      elevation: AppTheme.shadowSm,
+      elevation: 8,
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.style),

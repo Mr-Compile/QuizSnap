@@ -4,10 +4,6 @@ import '../models/export.dart';
 import '../models/backup.dart';
 import '../services/export_service.dart';
 import '../services/backup_service.dart';
-import '../repositories/deck_repository.dart';
-import '../repositories/flashcard_repository.dart';
-import '../repositories/folder_repository.dart';
-import '../repositories/tag_repository.dart';
 
 class ExportProvider with ChangeNotifier {
   final AppDatabase _database;
@@ -20,20 +16,8 @@ class ExportProvider with ChangeNotifier {
   String? _errorMessage;
 
   ExportProvider(this._database) {
-    _exportService = ExportService(
-      _database,
-      DeckRepository(_database),
-      FlashcardRepository(_database),
-      FolderRepository(_database),
-      TagRepository(_database),
-    );
-    _backupService = BackupService(
-      _database,
-      DeckRepository(_database),
-      FlashcardRepository(_database),
-      FolderRepository(_database),
-      TagRepository(_database),
-    );
+    _exportService = ExportService(_database);
+    _backupService = BackupService(_database);
     _loadBackupHistory();
   }
 

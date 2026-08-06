@@ -5,12 +5,7 @@ import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/confirmation_dialog.dart';
 import '../../core/models/export.dart';
-import '../../core/providers/database_provider.dart';
-import '../../core/services/export_service.dart';
-import '../../core/repositories/deck_repository.dart';
-import '../../core/repositories/flashcard_repository.dart';
-import '../../core/repositories/folder_repository.dart';
-import '../../core/repositories/tag_repository.dart';
+import '../../core/providers/export_provider.dart';
 import 'pdf_preview_screen.dart';
 import 'export_success_screen.dart';
 
@@ -238,14 +233,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen> {
     setState(() => _isExporting = true);
 
     try {
-      final database = context.read<AppDatabase>();
-      final exportService = ExportService(
-        database,
-        DeckRepository(database),
-        FlashcardRepository(database),
-        FolderRepository(database),
-        TagRepository(database),
-      );
+      final exportProvider = context.read<ExportProvider>();
 
       final options = ExportOptions(
         format: _selectedFormat,
@@ -259,7 +247,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen> {
         customDescription: _customDescription.isEmpty ? null : _customDescription,
       );
 
-      final result = await exportService.exportData(options, deckId: widget.deckId);
+      final result = await exportProvider.exportData(options, deckId: widget.deckId);
 
       if (result.status == ExportStatus.completed && result.filePath != null) {
         if (_selectedFormat == ExportFormat.pdf) {
@@ -286,7 +274,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen> {
             context: context,
             builder: (context) => ConfirmationDialog(
               title: 'Export Failed',
-              content: result.errorMessage ?? 'Unknown error occurred',
+              message: result.errorMessage ?? 'Unknown error occurred',
               confirmText: 'OK',
               onConfirm: () => Navigator.of(context).pop(),
             ),
@@ -299,7 +287,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen> {
           context: context,
           builder: (context) => ConfirmationDialog(
             title: 'Export Failed',
-            content: e.toString(),
+            message: e.toString(),
             confirmText: 'OK',
             onConfirm: () => Navigator.of(context).pop(),
           ),

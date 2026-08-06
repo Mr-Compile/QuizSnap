@@ -171,7 +171,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
           ),
           const SizedBox(height: AppTheme.spacingMd),
           SizedBox(
-            height: 200 + (deckAccuracies.length * 30).toDouble(),
+            height: 200.0 + (deckAccuracies.length * 30).toDouble() as double,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,

@@ -46,14 +46,14 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
               final analytics = snapshot.data!;
               
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(AppTheme.spacingMd),
+                padding: const EdgeInsets.all(AppTheme.spacing4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildOverviewCards(context, analytics),
-                    const SizedBox(height: AppTheme.spacingLg),
+                    const SizedBox(height: AppTheme.spacing6),
                     _buildQuickStats(context, analytics),
-                    const SizedBox(height: AppTheme.spacingLg),
+                    const SizedBox(height: AppTheme.spacing6),
                     _buildDetailedAnalytics(context),
                   ],
                 ),
@@ -71,9 +71,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       children: [
         Text(
           'Overview',
-          style: AppTheme.titleLarge,
+          style: Theme.of(context).textTheme.titleLarge,
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacing4),
         Row(
           children: [
             Expanded(
@@ -85,7 +85,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 Colors.blue,
               ),
             ),
-            const SizedBox(width: AppTheme.spacingSm),
+            const SizedBox(width: AppTheme.spacing2),
             Expanded(
               child: _buildOverviewCard(
                 context,
@@ -97,7 +97,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             ),
           ],
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing2),
         Row(
           children: [
             Expanded(
@@ -109,7 +109,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 Colors.orange,
               ),
             ),
-            const SizedBox(width: AppTheme.spacingSm),
+            const SizedBox(width: AppTheme.spacing2),
             Expanded(
               child: _buildOverviewCard(
                 context,
@@ -139,10 +139,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(AppTheme.spacingSm),
+                padding: const EdgeInsets.all(AppTheme.spacing2),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  borderRadius: BorderRadius.circular(AppTheme.roundedSm),
                 ),
                 child: Icon(
                   icon,
@@ -153,17 +153,17 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
               const Spacer(),
               Text(
                 value,
-                style: AppTheme.headlineMedium.copyWith(
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: color,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppTheme.spacingSm),
+          const SizedBox(height: AppTheme.spacing2),
           Text(
             label,
-            style: AppTheme.bodySmall.copyWith(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
@@ -178,9 +178,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       children: [
         Text(
           'Today\'s Progress',
-          style: AppTheme.titleLarge,
+          style: Theme.of(context).textTheme.titleLarge,
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacing4),
         CustomCard(
           child: Row(
             children: [
@@ -193,7 +193,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                   Colors.green,
                 ),
               ),
-              const SizedBox(width: AppTheme.spacingMd),
+              const SizedBox(width: AppTheme.spacing4),
               Expanded(
                 child: _buildQuickStatItem(
                   context,
@@ -224,18 +224,18 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           color: color,
           size: 32,
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing2),
         Text(
           value,
-          style: AppTheme.headlineSmall.copyWith(
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             color: color,
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: AppTheme.spacingXs),
+        const SizedBox(height: AppTheme.spacing1),
         Text(
           label,
-          style: AppTheme.bodySmall.copyWith(
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           ),
         ),
@@ -249,9 +249,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       children: [
         Text(
           'Detailed Analytics',
-          style: AppTheme.titleLarge,
+          style: Theme.of(context).textTheme.titleLarge,
         ),
-        const SizedBox(height: AppTheme.spacingMd),
+        const SizedBox(height: AppTheme.spacing4),
         _buildAnalyticsTile(
           context,
           'Daily Activity',
@@ -264,7 +264,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             ),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing2),
         _buildAnalyticsTile(
           context,
           'Quiz Performance',
@@ -277,7 +277,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             ),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing2),
         _buildAnalyticsTile(
           context,
           'Mastery Breakdown',
@@ -290,7 +290,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             ),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing2),
         _buildAnalyticsTile(
           context,
           'Weak Topics',
@@ -303,7 +303,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             ),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing2),
         _buildAnalyticsTile(
           context,
           'Study Time',
@@ -316,12 +316,12 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             ),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing2),
         _buildAnalyticsTile(
           context,
           'Subject Accuracy',
           'Compare accuracy across decks',
-          Icons.target,
+          Icons.track_changes,
           Colors.teal,
           () => Navigator.of(context).push(
             MaterialPageRoute(
@@ -329,7 +329,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             ),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingSm),
+        const SizedBox(height: AppTheme.spacing2),
         _buildAnalyticsTile(
           context,
           'Insights',
@@ -359,10 +359,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            padding: const EdgeInsets.all(AppTheme.spacing4),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              borderRadius: BorderRadius.circular(AppTheme.roundedSm),
             ),
             child: Icon(
               icon,
@@ -370,19 +370,19 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
               size: 24,
             ),
           ),
-          const SizedBox(width: AppTheme.spacingMd),
+          const SizedBox(width: AppTheme.spacing4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: AppTheme.labelLarge,
+                  style: Theme.of(context).textTheme.labelLarge,
                 ),
-                const SizedBox(height: AppTheme.spacingXs),
+                const SizedBox(height: AppTheme.spacing1),
                 Text(
                   subtitle,
-                  style: AppTheme.bodySmall.copyWith(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   ),
                 ),

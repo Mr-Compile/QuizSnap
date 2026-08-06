@@ -5,12 +5,7 @@ import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../core/models/backup.dart';
-import '../../core/providers/database_provider.dart';
-import '../../core/services/backup_service.dart';
-import '../../core/repositories/deck_repository.dart';
-import '../../core/repositories/flashcard_repository.dart';
-import '../../core/repositories/folder_repository.dart';
-import '../../core/repositories/tag_repository.dart';
+import '../../core/providers/export_provider.dart';
 import 'create_backup_dialog.dart';
 import 'backup_history_screen.dart';
 import 'restore_confirmation_dialog.dart';
@@ -23,7 +18,7 @@ class BackupRestoreScreen extends StatefulWidget {
 }
 
 class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
-  late BackupService _backupService;
+  late ExportProvider _exportProvider;
   BackupSchedule? _schedule;
   bool _isLoading = true;
 
@@ -34,16 +29,9 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
   }
 
   Future<void> _initializeServices() async {
-    final database = context.read<AppDatabase>();
-    _backupService = BackupService(
-      database,
-      DeckRepository(database),
-      FlashcardRepository(database),
-      FolderRepository(database),
-      TagRepository(database),
-    );
+    _exportProvider = context.read<ExportProvider>();
 
-    final schedule = await _backupService.getBackupSchedule();
+    final schedule = await _exportProvider.getBackupSchedule();
     if (mounted) {
       setState(() {
         _schedule = schedule;
@@ -204,7 +192,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
           ),
           const SizedBox(height: 16),
           FutureBuilder<List<BackupMetadata>>(
-            future: _backupService.getBackupHistory(),
+            future: _exportProvider.backupService.getBackupHistory(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -214,7 +202,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                 return const EmptyState(
                   icon: Icons.backup_outlined,
                   title: 'No backups yet',
-                  description: 'Create your first backup to protect your data',
+                  subtitle: 'Create your first backup to protect your data',
                 );
               }
 
@@ -274,7 +262,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
           : null,
     );
 
-    await _backupService.updateBackupSchedule(newSchedule);
+    await _exportProvider.updateBackupSchedule(newSchedule);
 
     if (mounted) {
       setState(() {
@@ -342,7 +330,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Description',
-                  style: Theme.of(context).textTheme.fontWeightBold,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(backup.description!),
@@ -384,7 +372,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
     if (confirmed == true && mounted) {
       try {
-        await _backupService.restoreBackup(backup.id);
+        await _exportProvider.restoreBackup(backup.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Backup restored successfully')),
@@ -422,7 +410,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
     if (confirmed == true && mounted) {
       try {
-        await _backupService.deleteBackup(backup.id);
+        await _exportProvider.deleteBackup(backup.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Backup deleted')),
@@ -480,8 +468,8 @@ class _BackupListItem extends StatelessWidget {
                 children: [
                   Text(
                     backup.name,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
+                    style: AppTheme.bodyMedium.copyWith(
+                          fontWeight: AppTheme.fontMedium,
                         ),
                   ),
                   const SizedBox(height: 2),

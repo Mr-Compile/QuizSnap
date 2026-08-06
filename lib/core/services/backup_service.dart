@@ -5,27 +5,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../database/database.dart';
 import '../models/backup.dart';
-import '../repositories/deck_repository.dart';
-import '../repositories/flashcard_repository.dart';
-import '../repositories/folder_repository.dart';
-import '../repositories/tag_repository.dart';
 
 class BackupService {
   final AppDatabase _database;
-  final DeckRepository _deckRepository;
-  final FlashcardRepository _flashcardRepository;
-  final FolderRepository _folderRepository;
-  final TagRepository _tagRepository;
   static const String _backupScheduleKey = 'backup_schedule';
   static const String _backupHistoryKey = 'backup_history';
 
-  BackupService(
-    this._database,
-    this._deckRepository,
-    this._flashcardRepository,
-    this._folderRepository,
-    this._tagRepository,
-  );
+  BackupService(this._database);
 
   // Create a manual backup
   Future<BackupMetadata> createBackup({
@@ -51,9 +37,9 @@ class BackupService {
 
     try {
       // Get all data
-      final folders = await _folderRepository.getAllFolders();
-      final decks = await _deckRepository.getAllDecks();
-      final flashcards = await _flashcardRepository.getAllFlashcards();
+      final folders = await _database.getAllFolders();
+      final decks = await _database.getAllDecks();
+      final flashcards = await _database.getAllFlashcards();
       final tags = await _database.getAllTags();
       final flashcardTags = await _database.getAllFlashcardTags();
       final studySessions = await _database.getAllStudySessions();

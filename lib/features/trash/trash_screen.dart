@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:drift/drift.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -307,7 +308,7 @@ class _TrashScreenState extends State<TrashScreen> {
                 children: [
                   Text(
                     flashcard.question,
-                    style: AppTheme.labelLarge,
+                    style: Theme.of(context).textTheme.labelLarge,
                   ),
                   const SizedBox(height: AppTheme.spacingXs),
                   Text(

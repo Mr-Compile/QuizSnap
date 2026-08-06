@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../shared/widgets/custom_button.dart';
-import '../../core/models/backup.dart';
-import '../../core/providers/database_provider.dart';
-import '../../core/services/backup_service.dart';
-import '../../core/repositories/deck_repository.dart';
-import '../../core/repositories/flashcard_repository.dart';
-import '../../core/repositories/folder_repository.dart';
-import '../../core/repositories/tag_repository.dart';
+import '../../core/providers/export_provider.dart';
 
 class CreateBackupDialog extends StatefulWidget {
   const CreateBackupDialog({super.key});
@@ -102,16 +96,9 @@ class _CreateBackupDialogState extends State<CreateBackupDialog> {
     setState(() => _isCreating = true);
 
     try {
-      final database = context.read<AppDatabase>();
-      final backupService = BackupService(
-        database,
-        DeckRepository(database),
-        FlashcardRepository(database),
-        FolderRepository(database),
-        TagRepository(database),
-      );
+      final exportProvider = context.read<ExportProvider>();
 
-      final backup = await backupService.createBackup(
+      final backup = await exportProvider.createBackup(
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim().isEmpty
             ? null

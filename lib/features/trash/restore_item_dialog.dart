@@ -18,11 +18,11 @@ class RestoreItemDialog extends StatelessWidget {
     return AlertDialog(
       title: Text(
         'Restore $itemType',
-        style: Theme.of(context).textTheme.titleMedium,
+        style: AppTheme.titleLarge,
       ),
       content: Text(
         'Are you sure you want to restore "$itemName"?',
-        style: Theme.of(context).textTheme.bodyMedium,
+        style: AppTheme.bodyMedium,
       ),
       actions: [
         TextButton(

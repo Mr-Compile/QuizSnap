@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../../core/theme/app_theme.dart';
 
 class ConfirmationDialog extends StatelessWidget {
   final String title;
@@ -24,12 +24,12 @@ class ConfirmationDialog extends StatelessWidget {
     return AlertDialog(
       title: Text(
         title,
-        style: AppTheme.textSmall,
+        style: Theme.of(context).textTheme.titleMedium,
       ),
       content: message != null
           ? Text(
               message!,
-              style: AppTheme.bodyMedium,
+              style: Theme.of(context).textTheme.bodyMedium,
             )
           : null,
       actions: [

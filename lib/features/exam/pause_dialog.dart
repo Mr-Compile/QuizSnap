@@ -25,7 +25,7 @@ class PauseDialog extends StatelessWidget {
             color: Theme.of(context).colorScheme.primary,
             size: 32,
           ),
-          const SizedBox(width: AppTheme.spacing4),
+          const SizedBox(width: AppTheme.spacingMd),
           const Text('Exam Paused'),
         ],
       ),
@@ -36,9 +36,9 @@ class PauseDialog extends StatelessWidget {
           const Text(
             'Your exam has been paused. You can resume or exit the exam.',
           ),
-          const SizedBox(height: AppTheme.spacing6),
+          const SizedBox(height: AppTheme.spacingLg),
           Container(
-            padding: const EdgeInsets.all(AppTheme.spacing4),
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.errorContainer.withOpacity(0.3),
               borderRadius: BorderRadius.circular(AppTheme.roundedMd),
@@ -50,7 +50,7 @@ class PauseDialog extends StatelessWidget {
                   color: Theme.of(context).colorScheme.error,
                   size: 20,
                 ),
-                const SizedBox(width: AppTheme.spacing2),
+                const SizedBox(width: AppTheme.spacingSm),
                 Expanded(
                   child: Text(
                     'Warning: If you exit, your progress will be lost.',
