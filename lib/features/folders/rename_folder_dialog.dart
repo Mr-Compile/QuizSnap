@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:drift/drift.dart' hide Column;
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/success_snackbar.dart';
@@ -107,8 +108,8 @@ class _RenameFolderDialogState extends State<RenameFolderDialog> {
         folder.copyWith(
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim().isEmpty
-              ? null
-              : _descriptionController.text.trim(),
+              ? const Value(null)
+              : Value(_descriptionController.text.trim()),
         ),
       );
 

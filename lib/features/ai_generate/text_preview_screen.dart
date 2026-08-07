@@ -19,6 +19,7 @@ class TextPreviewScreen extends StatefulWidget {
 class _TextPreviewScreenState extends State<TextPreviewScreen> {
   late TextEditingController _textController;
   late Map<String, int> _statistics;
+  bool _isEditing = false;
 
   @override
   void initState() {
@@ -40,10 +41,11 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
         title: const Text('Review Content'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
+            icon: Icon(_isEditing ? Icons.check : Icons.edit),
             onPressed: () {
-              // Enable editing mode
-              // TODO: Implement edit mode toggle
+              setState(() {
+                _isEditing = !_isEditing;
+              });
             },
           ),
         ],
@@ -53,7 +55,7 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
           // Source info and statistics
           Container(
             padding: const EdgeInsets.all(16),
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -97,6 +99,7 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
                 controller: _textController,
                 maxLines: null,
                 expands: true,
+                readOnly: !_isEditing,
                 decoration: InputDecoration(
                   hintText: 'Edit the extracted text if needed...',
                   border: OutlineInputBorder(

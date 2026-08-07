@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/app_bar.dart';
 import 'rate_card_bottom_sheet.dart';
 
 class FlashcardCardScreen extends StatefulWidget {
@@ -25,35 +23,16 @@ class FlashcardCardScreen extends StatefulWidget {
 }
 
 class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
-  final CardSwiperController _swiperController = CardSwiperController();
   bool _isAnswerRevealed = false;
 
   @override
-  void dispose() {
-    _swiperController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final flashcard = widget.flashcards[widget.currentIndex];
     final progress = '${widget.currentIndex + 1}/${widget.flashcards.length}';
 
     return Column(
       children: [
         Expanded(
-          child: CardSwiper(
-            controller: _swiperController,
-            cardsCount: widget.flashcards.length,
-            initialIndex: widget.currentIndex,
-            onSwipe: _onSwipe,
-            isLoop: false,
-            onSwipeDirectionChange: _onSwipeDirectionChange,
-            cardBuilder: (context, index, percentThresholds, direction) {
-              final card = widget.flashcards[index];
-              return _buildFlashcard(context, card, index);
-            },
-          ),
+          child: _buildFlashcard(context, widget.flashcards[widget.currentIndex], widget.currentIndex),
         ),
         _buildProgressIndicator(context, progress),
         _buildActionButtons(context),
@@ -62,8 +41,6 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
   }
 
   Widget _buildFlashcard(BuildContext context, dynamic flashcard, int index) {
-    final isCurrentCard = index == widget.currentIndex;
-    
     return Container(
       margin: const EdgeInsets.all(AppTheme.spacingMd),
       child: Column(
@@ -216,20 +193,6 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
         ],
       ),
     );
-  }
-
-  void _onSwipe(int previousIndex, int? currentIndex, CardSwiperDirection direction) {
-    if (direction == CardSwiperDirection.right) {
-      // Swipe right = easy/good
-      widget.onCardRated(4);
-    } else if (direction == CardSwiperDirection.left) {
-      // Swipe left = again/hard
-      widget.onCardRated(2);
-    }
-  }
-
-  void _onSwipeDirectionChange(CardSwiperDirection? direction) {
-    // Handle swipe direction changes if needed
   }
 
   void _showRateBottomSheet(BuildContext context) {

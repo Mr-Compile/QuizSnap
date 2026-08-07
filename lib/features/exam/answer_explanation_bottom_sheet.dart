@@ -4,6 +4,7 @@ import '../../core/models/exam.dart';
 import '../../core/providers/exam_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/custom_button.dart';
+import '../../shared/widgets/custom_card.dart';
 import 'full_explanation_screen.dart';
 
 class AnswerExplanationBottomSheet extends StatefulWidget {

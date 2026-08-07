@@ -1,4 +1,5 @@
 import '../database/database.dart';
+import 'package:drift/drift.dart';
 
 class StudyRepository {
   final AppDatabase _database;
@@ -52,8 +53,8 @@ class StudyRepository {
     final weekFromNow = now.add(const Duration(days: 7));
     
     return (_database.select(_database.flashcards)
-      ..where((tbl) => tbl.nextReviewAt.isBiggerThanValue(now))
-      ..where((tbl) => tbl.nextReviewAt.isSmallerThanValue(weekFromNow))
+      ..where((tbl) => tbl.nextReviewAt.isBiggerOrEqualValue(now))
+      ..where((tbl) => tbl.nextReviewAt.isSmallerOrEqualValue(weekFromNow))
       ..where((tbl) => tbl.deletedAt.isNull())
       ..orderBy([(tbl) => OrderingTerm.asc(tbl.nextReviewAt)]))
       .get();

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' as drift hide Column;
 import '../../core/providers/database_provider.dart';
+import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -22,10 +23,10 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
   int? _selectedFolderId;
   String _selectedColor = '#4CAF50';
   
-  String _initialName = '';
-  String _initialDescription = '';
-  int? _initialFolderId;
-  String _initialColor = '#4CAF50';
+  final String _initialName = '';
+  final String _initialDescription = '';
+  final int? _initialFolderId = null;
+  final String _initialColor = '#4CAF50';
 
   @override
   bool get hasUnsavedChanges {
@@ -99,7 +100,7 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
                         ),
                         const SizedBox(height: AppTheme.spacingMd),
                         DropdownButtonFormField<int>(
-                          value: _selectedFolderId,
+                          initialValue: _selectedFolderId,
                           decoration: const InputDecoration(
                             labelText: 'Folder (optional)',
                             hintText: 'Select a folder',
@@ -183,12 +184,12 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
     try {
       await dbProvider.deckRepository.createDeck(
         DecksCompanion(
-          name: _nameController.text.trim(),
+          name: drift.Value(_nameController.text.trim()),
           description: _descriptionController.text.trim().isEmpty
-              ? const Value(null)
-              : Value(_descriptionController.text.trim()),
-          folderId: _selectedFolderId != null ? Value(_selectedFolderId!) : const Value(null),
-          color: Value(_selectedColor),
+              ? const drift.Value(null)
+              : drift.Value(_descriptionController.text.trim()),
+          folderId: _selectedFolderId != null ? drift.Value(_selectedFolderId!) : const drift.Value(null),
+          color: drift.Value(_selectedColor),
         ),
       );
 

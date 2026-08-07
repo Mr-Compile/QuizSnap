@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +28,9 @@ import '../../features/ai_generate/camera_ocr_screen.dart';
 import '../../features/ai_generate/pdf_preview_screen.dart' as ai;
 import '../../features/ai_generate/text_preview_screen.dart';
 import '../../features/ai_generate/question_review_screen.dart';
+import '../../core/models/prompt_template.dart';
+import '../../core/models/exam.dart';
+import '../../core/models/export.dart';
 import '../../features/analytics/analytics_dashboard_screen.dart';
 import '../../features/analytics/daily_activity_chart_screen.dart';
 import '../../features/analytics/insights_screen.dart';
@@ -38,7 +42,7 @@ import '../../features/analytics/weak_topics_screen.dart';
 import '../../features/export/export_center_screen.dart';
 import '../../features/export/export_options_screen.dart';
 import '../../features/export/export_success_screen.dart';
-import '../../features/export/pdf_preview_screen.dart' as export;
+import '../../features/export/pdf_preview_screen.dart' as export_screen;
 import '../../features/export/backup_history_screen.dart';
 import '../../features/export/backup_restore_screen.dart';
 import '../../features/settings/settings_screen.dart';
@@ -125,12 +129,8 @@ class AppRouter {
                   GoRoute(
                     path: ':flashcardId/edit',
                     builder: (context, state) {
-                      final deckId = int.parse(state.pathParameters['deckId']!);
                       final flashcardId = int.parse(state.pathParameters['flashcardId']!);
-                      return EditFlashcardScreen(
-                        deckId: deckId,
-                        flashcardId: flashcardId,
-                      );
+                      return EditFlashcardScreen(flashcardId: flashcardId);
                     },
                   ),
                 ],
@@ -151,7 +151,10 @@ class AppRouter {
         routes: [
           GoRoute(
             path: 'config',
-            builder: (context, state) => const AiGenerationConfigScreen(),
+            builder: (context, state) => AiGenerationConfigScreen(
+              sourceText: state.uri.queryParameters['sourceText'] ?? '',
+              source: state.uri.queryParameters['source'] ?? '',
+            ),
           ),
           GoRoute(
             path: 'camera-ocr',
@@ -159,15 +162,34 @@ class AppRouter {
           ),
           GoRoute(
             path: 'pdf-preview',
-            builder: (context, state) => const ai.PdfPreviewScreen(),
+            builder: (context, state) {
+              // File should be passed via state.extra
+              final file = state.extra as File?;
+              if (file == null) {
+                return const Scaffold(body: Center(child: Text('Error: No file provided')));
+              }
+              return ai.PdfPreviewScreen(file: file);
+            },
           ),
           GoRoute(
             path: 'text-preview',
-            builder: (context, state) => const TextPreviewScreen(),
+            builder: (context, state) => TextPreviewScreen(
+              text: state.uri.queryParameters['text'] ?? '',
+              source: state.uri.queryParameters['source'] ?? '',
+            ),
           ),
           GoRoute(
             path: 'review',
-            builder: (context, state) => const QuestionReviewScreen(),
+            builder: (context, state) {
+              // These should be passed via state.extra
+              final extra = state.extra as Map<String, dynamic>?;
+              return QuestionReviewScreen(
+                questions: extra?['questions'] ?? [],
+                type: extra?['type'] ?? PromptType.multipleChoice,
+                difficulty: extra?['difficulty'] ?? Difficulty.medium,
+                source: extra?['source'] ?? '',
+              );
+            },
           ),
         ],
       ),
@@ -178,16 +200,12 @@ class AppRouter {
         builder: (context, state) => const StudyHomeScreen(),
         routes: [
           GoRoute(
-            path: 'decks/:deckId',
-            builder: (context, state) {
-              final deckId = int.parse(state.pathParameters['deckId']!);
-              return DeckStudyScreen(deckId: deckId);
-            },
+            path: 'decks',
+            builder: (context, state) => const DeckStudyScreen(),
           ),
           GoRoute(
-            path: 'cards/:cardId',
+            path: 'cards',
             builder: (context, state) {
-              final cardId = int.parse(state.pathParameters['cardId']!);
               // Note: This will need additional parameters for flashcard list
               return FlashcardCardScreen(
                 flashcards: [], // Will need to be passed via state.extra
@@ -197,10 +215,11 @@ class AppRouter {
             },
           ),
           GoRoute(
-            path: 'quiz/:deckId',
+            path: 'quiz',
             builder: (context, state) {
-              final deckId = int.parse(state.pathParameters['deckId']!);
-              return QuizPracticeScreen(deckId: deckId);
+              final deckId = int.tryParse(state.uri.queryParameters['deckId'] ?? '') ?? 0;
+              final deckName = state.uri.queryParameters['deckName'] ?? 'Quiz';
+              return QuizPracticeScreen(deckId: deckId, deckName: deckName);
             },
           ),
           GoRoute(
@@ -243,15 +262,25 @@ class AppRouter {
       GoRoute(
         path: '/exam/:examId/result',
         builder: (context, state) {
-          final examId = state.pathParameters['examId']!;
-          return ExamResultScreen(examId: examId);
+          // ExamResultScreen needs an ExamResult, not examId
+          // This should be passed via state.extra
+          final extra = state.extra as ExamResult?;
+          if (extra == null) {
+            return const Scaffold(body: Center(child: Text('Error: No exam result provided')));
+          }
+          return ExamResultScreen(examId: extra.exam.id);
         },
       ),
       GoRoute(
         path: '/exam/:examId/review',
         builder: (context, state) {
-          final examId = state.pathParameters['examId']!;
-          return ExamReviewScreen(examId: examId);
+          // ExamReviewScreen needs an ExamResult, not examId
+          // This should be passed via state.extra
+          final extra = state.extra as ExamResult?;
+          if (extra == null) {
+            return const Scaffold(body: Center(child: Text('Error: No exam result provided')));
+          }
+          return ExamReviewScreen(result: extra);
         },
       ),
       GoRoute(
@@ -302,15 +331,31 @@ class AppRouter {
         routes: [
           GoRoute(
             path: 'options',
-            builder: (context, state) => const ExportOptionsScreen(),
+            builder: (context, state) => const ExportOptionsScreen(
+              initialType: ExportType.flashcards,
+              initialFormat: ExportFormat.pdf,
+            ),
           ),
           GoRoute(
             path: 'success',
-            builder: (context, state) => const ExportSuccessScreen(),
+            builder: (context, state) {
+              final exportResult = state.extra as ExportResult?;
+              if (exportResult == null) {
+                return const Scaffold(
+                  body: Center(child: Text('No export result provided')),
+                );
+              }
+              return ExportSuccessScreen(exportResult: exportResult);
+            },
           ),
           GoRoute(
             path: 'pdf-preview',
-            builder: (context, state) => const export.PdfPreviewScreen(),
+            builder: (context, state) {
+              final filePath = state.uri.queryParameters['filePath'] ?? '';
+              return export_screen.PdfPreviewScreen(
+                filePath: filePath,
+              );
+            },
           ),
           GoRoute(
             path: 'backups',
@@ -373,7 +418,6 @@ class AppRouter {
           GoRoute(
             path: ':folderId',
             builder: (context, state) {
-              final folderId = int.parse(state.pathParameters['folderId']!);
               // Note: Folder details screen needs to be implemented
               return const FolderListScreen(); // Placeholder
             },

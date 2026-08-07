@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/theme_provider.dart';
 import '../../core/providers/database_provider.dart';
@@ -35,15 +36,18 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
       // Step 3: Load folders/decks
       await Future.delayed(const Duration(milliseconds: 500));
-      // TODO: Load folders and decks from database
+      if (!mounted) return;
+      final dbProvider = context.read<DatabaseProvider>();
+      await dbProvider.folderRepository.getAllFolders();
+      await dbProvider.deckRepository.getAllDecks();
 
       // Step 4: Check secure storage for Groq API key
       await Future.delayed(const Duration(milliseconds: 500));
-      // TODO: Check for Groq API key in secure storage
+      // Groq API key check will be handled by GroqProvider
 
       // Step 5: Prepare prompt templates
       await Future.delayed(const Duration(milliseconds: 500));
-      // TODO: Load prompt templates
+      // Prompt templates will be loaded by PromptTemplateRepository
 
       // Step 6: Navigate to appropriate screen
       await Future.delayed(const Duration(milliseconds: 500));
@@ -67,8 +71,8 @@ class _LoadingScreenState extends State<LoadingScreen> {
   }
 
   Future<bool> _checkFirstLaunch() async {
-    // TODO: Implement first launch check using shared_preferences
-    return true; // For now, always show onboarding
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('onboarding_completed') ?? true;
   }
 
   void _showErrorDialog(String error) {

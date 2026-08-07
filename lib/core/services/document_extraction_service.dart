@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 class DocumentExtractionService {
@@ -13,9 +12,8 @@ class DocumentExtractionService {
         // Extract all pages
         final allText = <String>[];
         for (int i = 0; i < doc.pages.count; i++) {
-          final page = doc.pages[i];
           final textExtractor = PdfTextExtractor(doc);
-          final text = textExtractor.extractText(startPageIndex: i, endIndex: i);
+          final text = textExtractor.extractText(startPageIndex: i, endPageIndex: i);
           allText.add(text);
         }
         doc.dispose();
@@ -27,7 +25,7 @@ class DocumentExtractionService {
           final pageIndex = pageNumber - 1; // Convert to 0-based index
           if (pageIndex >= 0 && pageIndex < doc.pages.count) {
             final textExtractor = PdfTextExtractor(doc);
-            final text = textExtractor.extractText(startPageIndex: pageIndex, endIndex: pageIndex);
+            final text = textExtractor.extractText(startPageIndex: pageIndex, endPageIndex: pageIndex);
             selectedText.add(text);
           }
         }

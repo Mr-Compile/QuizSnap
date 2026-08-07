@@ -25,7 +25,6 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
   }
 
   Future<void> _loadExistingKey() async {
-    final groqProvider = context.read<GroqProvider>();
     // We don't load the actual key for security, just check if it exists
     // The key is loaded from secure storage when needed
   }

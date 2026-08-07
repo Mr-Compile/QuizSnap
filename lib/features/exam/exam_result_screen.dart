@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/exam_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/models/exam.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -37,9 +38,9 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
     if (exam != null && questions != null && answers != null) {
       final correctCount = answers.where((a) => a.isCorrect).length;
       final incorrectCount = answers.where((a) => !a.isCorrect && a.selectedAnswerIndex != null).length;
-      final unansweredCount = questions.length - answers.length;
-      final percentage = questions.length > 0 
-          ? (correctCount / questions.length) * 100 
+      final unansweredCount = questions.isNotEmpty ? questions.length - answers.length : 0;
+      final percentage = questions.isNotEmpty
+          ? (correctCount / questions.length) * 100
           : 0.0;
 
       setState(() {
@@ -123,7 +124,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
           const SizedBox(height: AppTheme.spacingLg),
           Text(
             '${result.percentage.toStringAsFixed(1)}%',
-            style: AppTheme.displayLarge.copyWith(
+            style: AppTheme.headlineLarge.copyWith(
               color: gradeColor,
               fontWeight: FontWeight.bold,
             ),
@@ -316,7 +317,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
               ),
             );
           },
-          icon: Icons.review,
+          icon: Icons.rate_review,
           fullWidth: true,
         ),
         const SizedBox(height: AppTheme.spacingMd),

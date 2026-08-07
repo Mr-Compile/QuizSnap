@@ -63,6 +63,7 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
   }
 
   Future<void> _clearAllCache() async {
+    final examProvider = context.read<ExamProvider>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -75,15 +76,14 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clear All'),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Clear All'),
           ),
         ],
       ),
     );
 
     if (confirmed == true) {
-      final examProvider = context.read<ExamProvider>();
       await examProvider.clearCache();
       await _loadExplanations();
 
@@ -97,7 +97,7 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
 
   Future<void> _deleteExplanation(String questionId) async {
     final examProvider = context.read<ExamProvider>();
-    await examProvider.cacheService.clearExplanation(questionId);
+    await examProvider.clearExplanation(questionId);
     await _loadExplanations();
 
     if (mounted) {

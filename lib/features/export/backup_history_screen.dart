@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../shared/widgets/custom_card.dart';
-import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../core/models/backup.dart';
@@ -249,9 +248,9 @@ class _BackupCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    _buildChip(backup.typeDisplay),
+                    _buildChip(context, backup.typeDisplay),
                     const SizedBox(width: 8),
-                    _buildChip(backup.statusDisplay),
+                    _buildChip(context, backup.statusDisplay),
                     const SizedBox(width: 8),
                     Text(
                       backup.fileSizeDisplay,
@@ -315,7 +314,7 @@ class _BackupCard extends StatelessWidget {
     }
   }
 
-  Widget _buildChip(String label) {
+  Widget _buildChip(BuildContext context, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(

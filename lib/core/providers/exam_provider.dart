@@ -20,13 +20,12 @@ class ExamProvider with ChangeNotifier {
 
   ExamProvider({
     required FlashcardRepository flashcardRepository,
-    required ExplanationCacheService cacheService,
+    required this._cacheService,
     GroqService? groqService,
   })  : _examService = ExamService(
           flashcardRepository: flashcardRepository,
           groqService: groqService,
         ),
-        _cacheService = cacheService,
         _groqService = groqService;
 
   // Getters
@@ -143,9 +142,7 @@ class ExamProvider with ChangeNotifier {
       throw Exception('No active exam or question');
     }
 
-    if (_currentQuestionStartTime == null) {
-      _currentQuestionStartTime = DateTime.now();
-    }
+    _currentQuestionStartTime ??= DateTime.now();
 
     _examService.submitAnswer(
       examId: _currentExam!.id,
@@ -257,7 +254,7 @@ class ExamProvider with ChangeNotifier {
       return cached;
     }
 
-    if (_groqService == null || !_groqService!.isInitialized) {
+    if (_groqService == null || !_groqService.isInitialized) {
       throw Exception('AI service not available');
     }
 
@@ -272,7 +269,7 @@ class ExamProvider with ChangeNotifier {
         }
       }
 
-      final explanation = await _groqService!.generateExplanation(
+      final explanation = await _groqService.generateExplanation(
         question: question.question,
         correctAnswer: question.correctAnswer,
         wrongAnswers: wrongAnswers,
@@ -307,6 +304,11 @@ class ExamProvider with ChangeNotifier {
 
   Future<void> clearCache() async {
     await _cacheService.clearCache();
+    notifyListeners();
+  }
+
+  Future<void> clearExplanation(String questionId) async {
+    await _cacheService.clearExplanation(questionId);
     notifyListeners();
   }
 

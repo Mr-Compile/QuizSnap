@@ -7,7 +7,6 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/custom_card.dart';
-import '../../shared/widgets/loading_skeleton.dart';
 import 'countdown_screen.dart';
 
 class ExamSetupScreen extends StatefulWidget {

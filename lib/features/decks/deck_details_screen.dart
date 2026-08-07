@@ -262,7 +262,7 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
       isDestructive: true,
     );
 
-    if (confirmed && mounted) {
+    if (confirmed) {
       final dbProvider = context.read<DatabaseProvider>();
       try {
         await dbProvider.deckRepository.deleteDeck(widget.deckId);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -62,7 +63,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _completeOnboarding() async {
-    // TODO: Mark onboarding as complete in shared_preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_completed', true);
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/home');
     }

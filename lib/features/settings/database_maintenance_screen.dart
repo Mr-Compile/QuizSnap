@@ -91,12 +91,14 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
 
     if (confirmed != true) return;
 
-    setState(() {
-      _isRepairing = true;
-    });
+    if (!mounted) return;
 
     final dbProvider = context.read<DatabaseProvider>();
     final maintenanceService = DatabaseMaintenanceService(dbProvider.database);
+
+    setState(() {
+      _isRepairing = true;
+    });
     
     final result = await maintenanceService.repairDatabase();
 

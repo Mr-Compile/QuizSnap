@@ -28,6 +28,7 @@ dependencies:
   # UI Components
   google_fonts: ^6.1.0
   flutter_slidable: ^3.0.1
+  flutter_card_swiper: ^3.0.1
   
   # Storage
   shared_preferences: ^2.2.2
@@ -46,6 +47,7 @@ dependencies:
   # Document Processing (for Phase 2)
   file_picker: ^6.1.1
   syncfusion_flutter_pdf: ^24.1.41
+  syncfusion_flutter_pdfviewer: ^24.1.41
   camera: ^0.10.5+5
   google_mlkit_text_recognition: ^0.11.0
   permission_handler: ^11.0.1

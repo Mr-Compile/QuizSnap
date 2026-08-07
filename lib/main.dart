@@ -34,10 +34,9 @@ class QuizSnapApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ReminderProvider()),
         ProxyProvider2<DatabaseProvider, GroqProvider, ExamProvider>(
           update: (context, dbProvider, groqProvider, previous) {
-            final cacheService = ExplanationCacheService(prefs);
             return previous ?? ExamProvider(
               flashcardRepository: dbProvider.flashcardRepository,
-              cacheService: cacheService,
+              cacheService: ExplanationCacheService(prefs),
               groqService: groqProvider.service,
             );
           },

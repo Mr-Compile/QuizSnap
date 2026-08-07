@@ -9,6 +9,7 @@ import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import '../database/database.dart';
 import '../models/export.dart';
+import '../models/exam.dart';
 
 class ExportService {
   final AppDatabase _database;
@@ -159,7 +160,7 @@ class ExportService {
                   pw.SizedBox(height: 16),
                 ],
               );
-            }).toList(),
+            }),
           ];
         },
       ),
@@ -363,11 +364,11 @@ class ExportService {
                       padding: const pw.EdgeInsets.only(left: 16),
                       child: pw.Text('${String.fromCharCode(65 + optIndex)}. $option'),
                     );
-                  }).toList(),
+                  }),
                   pw.SizedBox(height: 16),
                 ],
               );
-            }).toList(),
+            }),
           ];
         },
       ),
@@ -420,7 +421,7 @@ class ExportService {
                   pw.SizedBox(height: 12),
                 ],
               );
-            }).toList(),
+            }),
           ];
         },
       ),

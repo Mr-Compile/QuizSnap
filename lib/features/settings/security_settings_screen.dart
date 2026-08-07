@@ -22,6 +22,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Future<void> _initializeSecurity() async {
+    if (!mounted) return;
     final securityProvider = context.read<SecurityProvider>();
     await securityProvider.initialize();
   }
@@ -77,9 +78,10 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                         : (value) async {
                             await securityProvider.setBiometricEnabled(value);
                             if (!mounted) return;
-                            
+
                             if (securityProvider.errorMessage != null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(this.context).showSnackBar(
                                 SnackBar(
                                   content: Text(securityProvider.errorMessage!),
                                   backgroundColor: Colors.red,
@@ -196,12 +198,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     );
 
     if (confirmed == true && mounted) {
-      final securityProvider = context.read<SecurityProvider>();
+      final securityProvider = this.context.read<SecurityProvider>();
       await securityProvider.disablePin();
       
       if (!mounted) return;
       
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(this.context).showSnackBar(
         const SnackBar(content: Text('PIN lock disabled')),
       );
     }
@@ -215,7 +217,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Change PIN'),
         content: Form(
           key: formKey,
@@ -289,7 +291,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           Consumer<SecurityProvider>(
@@ -306,14 +308,16 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                         );
                         
                         if (!mounted) return;
-                        
+
                         if (success) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          Navigator.pop(dialogContext);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(this.context).showSnackBar(
                             const SnackBar(content: Text('PIN changed successfully')),
                           );
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(this.context).showSnackBar(
                             SnackBar(
                               content: Text(securityProvider.errorMessage ?? 'Failed to change PIN'),
                               backgroundColor: Colors.red,

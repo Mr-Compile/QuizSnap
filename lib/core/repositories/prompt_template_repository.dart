@@ -1,9 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/prompt_template.dart';
 
 class PromptTemplateRepository {
-  static const String _promptsKey = 'prompt_templates';
   static const String _customPromptsKey = 'custom_prompt_templates';
 
   List<PromptTemplate> _builtInTemplates = [];
@@ -178,7 +178,7 @@ Sample Answer Framework: [brief structure]''',
             .map((json) => PromptTemplate.fromJson(json as Map<String, dynamic>))
             .toList();
       } catch (e) {
-        print('Error loading custom templates: $e');
+        debugPrint('Error loading custom templates: $e');
         _customTemplates = [];
       }
     }

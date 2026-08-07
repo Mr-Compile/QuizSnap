@@ -1,7 +1,7 @@
 import 'dart:math';
-import 'package:drift/drift.dart';
 import '../database/database.dart';
 import '../models/exam.dart';
+import '../models/prompt_template.dart';
 import '../repositories/flashcard_repository.dart';
 import 'groq_service.dart';
 
@@ -13,10 +13,9 @@ class ExamService {
   final Map<String, List<UserAnswer>> _examAnswers = {};
 
   ExamService({
-    required FlashcardRepository flashcardRepository,
-    GroqService? groqService,
-  })  : _flashcardRepository = flashcardRepository,
-        _groqService = groqService;
+    required this._flashcardRepository,
+    this._groqService,
+  });
 
   Exam? getActiveExam(String examId) => _activeExams[examId];
   List<ExamQuestion>? getExamQuestions(String examId) => _examQuestions[examId];
@@ -62,7 +61,7 @@ class ExamService {
 
     List<ExamQuestion> questions;
 
-    if (useAI && _groqService != null && _groqService!.isInitialized) {
+    if (useAI && _groqService != null && _groqService.isInitialized) {
       questions = await _generateAIQuestions(selectedFlashcards);
     } else {
       questions = _generateBasicQuestions(selectedFlashcards);
@@ -126,9 +125,9 @@ C: [option C]
 D: [option D]
 CORRECT: [A, B, C, or D]''';
 
-        final response = await _groqService!.generateQuestions(
+        final response = await _groqService!.generateQuestionsWithBuiltInTemplate(
           content: prompt,
-          template: null,
+          type: PromptType.multipleChoice,
           questionCount: 1,
         );
 
@@ -283,7 +282,7 @@ CORRECT: [A, B, C, or D]''';
     final correctCount = answers.where((a) => a.isCorrect).length;
     final incorrectCount = answers.where((a) => !a.isCorrect && a.selectedAnswerIndex != null).length;
     final unansweredCount = questions.length - answers.length;
-    final percentage = questions.length > 0 
+    final percentage = questions.isNotEmpty 
         ? (correctCount / questions.length) * 100 
         : 0.0;
 

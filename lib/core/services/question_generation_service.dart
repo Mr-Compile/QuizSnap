@@ -45,6 +45,7 @@ class GeneratedQuestion {
       options: options,
       correctAnswerIndex: correctAnswerIndex,
       explanation: explanation,
+      flashcardId: null,
     );
   }
 }
@@ -78,8 +79,6 @@ class QuestionGenerationService {
 
   /// Parse AI-generated text into structured questions
   List<GeneratedQuestion> _parseGeneratedQuestions(String response, PromptType type) {
-    final questions = <GeneratedQuestion>[];
-
     try {
       switch (type) {
         case PromptType.multipleChoice:
@@ -140,7 +139,7 @@ class QuestionGenerationService {
     if (options.length < 2) return null;
     
     // Extract correct answer
-    final answerMatch = RegExp(r'Answer[:\s]*([A-D])', caseInsensitive: true).firstMatch(block);
+    final answerMatch = RegExp(r'Answer[:\s]*([A-D])', caseSensitive: false).firstMatch(block);
     if (answerMatch == null) return null;
     
     final correctLetter = answerMatch.group(1)?.toUpperCase();
@@ -278,8 +277,8 @@ class QuestionGenerationService {
   List<ExamQuestion> toExamQuestions(List<GeneratedQuestion> generatedQuestions) {
     return generatedQuestions
         .asMap()
-        .map((index, question) => question.toExamQuestion('q_$index'))
-        .values
+        .entries
+        .map((entry) => entry.value.toExamQuestion('q_${entry.key}'))
         .toList();
   }
 

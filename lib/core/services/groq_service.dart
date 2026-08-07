@@ -4,8 +4,6 @@ import '../repositories/prompt_template_repository.dart';
 import 'secure_storage_service.dart';
 
 class GroqService {
-  static const String _defaultModel = 'llama3-70b-8192';
-  
   String? _apiKey;
   Groq? _client;
   final PromptTemplateRepository _templateRepository = PromptTemplateRepository();
@@ -51,19 +49,9 @@ class GroqService {
     final prompt = _templateRepository.buildPrompt(template, variables);
 
     try {
-      final response = await _client!.chat.completions.create(
-        model: _defaultModel,
-        messages: [
-          ChatMessage(
-            role: ChatMessageRole.user,
-            content: prompt,
-          ),
-        ],
-        temperature: 0.7,
-        maxTokens: 2048,
-      );
-
-      return response.choices.first.message.content ?? '';
+      _client!.startChat();
+      final response = await _client!.sendMessage(prompt);
+      return response.choices.first.message.content;
     } catch (e) {
       throw Exception('Failed to generate questions: $e');
     }
@@ -111,19 +99,9 @@ Wrong Answers: ${wrongAnswers.join(', ')}
 Provide a clear, concise explanation that helps students understand the concept.''';
 
     try {
-      final response = await _client!.chat.completions.create(
-        model: _defaultModel,
-        messages: [
-          ChatMessage(
-            role: ChatMessageRole.user,
-            content: prompt,
-          ),
-        ],
-        temperature: 0.5,
-        maxTokens: 500,
-      );
-
-      return response.choices.first.message.content ?? '';
+      _client!.startChat();
+      final response = await _client!.sendMessage(prompt);
+      return response.choices.first.message.content;
     } catch (e) {
       throw Exception('Failed to generate explanation: $e');
     }
@@ -154,19 +132,9 @@ FRONT: [question]
 BACK: [answer]''';
 
     try {
-      final response = await _client!.chat.completions.create(
-        model: _defaultModel,
-        messages: [
-          ChatMessage(
-            role: ChatMessageRole.user,
-            content: prompt,
-          ),
-        ],
-        temperature: 0.7,
-        maxTokens: 2048,
-      );
-
-      return response.choices.first.message.content ?? '';
+      _client!.startChat();
+      final response = await _client!.sendMessage(prompt);
+      return response.choices.first.message.content;
     } catch (e) {
       throw Exception('Failed to generate flashcard content: $e');
     }
@@ -186,19 +154,9 @@ Content:
 $content''';
 
     try {
-      final response = await _client!.chat.completions.create(
-        model: _defaultModel,
-        messages: [
-          ChatMessage(
-            role: ChatMessageRole.user,
-            content: prompt,
-          ),
-        ],
-        temperature: 0.5,
-        maxTokens: 300,
-      );
-
-      return response.choices.first.message.content ?? '';
+      _client!.startChat();
+      final response = await _client!.sendMessage(prompt);
+      return response.choices.first.message.content;
     } catch (e) {
       throw Exception('Failed to summarize content: $e');
     }

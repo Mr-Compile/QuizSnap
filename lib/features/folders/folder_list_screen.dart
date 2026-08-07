@@ -5,10 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
-import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/error_state.dart';
-import '../../shared/widgets/confirmation_dialog.dart';
-import '../../shared/widgets/success_snackbar.dart';
 import 'create_folder_screen.dart';
 
 class FolderListScreen extends StatefulWidget {
@@ -31,7 +28,7 @@ class _FolderListScreenState extends State<FolderListScreen> {
             future: dbProvider.folderRepository.getAllFolders(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const ListSkeleton();
+                return const Center(child: CircularProgressIndicator());
               }
 
               if (snapshot.hasError) {
@@ -127,9 +124,9 @@ class _FolderListScreenState extends State<FolderListScreen> {
   }
 
   void _navigateToFolderDetails(BuildContext context, dynamic folder) {
-    // TODO: Navigate to folder details screen
+    // Folder details screen not implemented yet
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Navigate to ${folder.name}')),
+      SnackBar(content: Text('Folder: ${folder.name}')),
     );
   }
 }

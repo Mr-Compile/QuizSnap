@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 /// Utility class for handling back button behavior across the app
 /// 
@@ -19,9 +18,9 @@ class BackButtonHandler {
     Duration timeout = const Duration(seconds: 2),
   }) {
     return _ExitProtectionWrapper(
-      child: child,
       message: message,
       timeout: timeout,
+      child: child,
     );
   }
 
@@ -64,7 +63,7 @@ class BackButtonHandler {
           if (confirmed) {
             if (await onConfirm()) {
               if (context.mounted) {
-                context.pop();
+                Navigator.of(context).pop();
               }
             }
           }
@@ -96,7 +95,7 @@ class BackButtonHandler {
       ),
     ).then((confirmed) {
       if (confirmed == true && context.mounted) {
-        context.pop();
+        Navigator.of(context).pop();
       }
     });
   }
@@ -175,7 +174,7 @@ class _ExitProtectionWrapperState extends State<_ExitProtectionWrapper> {
         if (!didPop) {
           final shouldPop = await _onWillPop();
           if (shouldPop && mounted) {
-            context.pop();
+            Navigator.of(context).pop();
           }
         }
       },
@@ -205,7 +204,7 @@ mixin BackButtonHandlerMixin<T extends StatefulWidget> on State<T> {
         if (!didPop) {
           final shouldPop = await onBackPress();
           if (shouldPop && mounted) {
-            context.pop();
+            Navigator.of(context).pop();
           }
         }
       },

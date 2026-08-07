@@ -114,28 +114,30 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
     );
 
     if (!confirmed) return;
-    
-    final dbProvider = context.read<DatabaseProvider>();
+
+    if (!mounted) return;
+
+    final dbProvider = this.context.read<DatabaseProvider>();
     try {
       await dbProvider.tagRepository.deleteTag(tag.id);
+      if (!mounted) return;
+      SuccessSnackbar.show(
+        this.context,
+        message: 'Tag deleted successfully',
+      );
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      final errorColor = Theme.of(context).colorScheme.error;
+      final messenger = ScaffoldMessenger.of(this.context);
+      final errorColor = Theme.of(this.context).colorScheme.error;
       messenger.showSnackBar(
         SnackBar(
           content: Text('Error deleting tag: $e'),
           backgroundColor: errorColor,
         ),
       );
-      return;
     }
-    
-    if (!mounted) return;
-    SuccessSnackbar.show(
-      context,
-      message: 'Tag deleted successfully',
-    );
-    setState(() {});
   }
 }

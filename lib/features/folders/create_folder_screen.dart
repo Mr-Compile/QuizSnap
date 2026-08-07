@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' as drift hide Column;
 import '../../core/providers/database_provider.dart';
+import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -147,11 +148,11 @@ class _CreateFolderScreenState extends State<CreateFolderScreen> with BackButton
     try {
       await dbProvider.folderRepository.createFolder(
         FoldersCompanion(
-          name: _nameController.text.trim(),
+          name: drift.Value(_nameController.text.trim()),
           description: _descriptionController.text.trim().isEmpty
-              ? const Value(null)
-              : Value(_descriptionController.text.trim()),
-          color: Value(_selectedColor),
+              ? const drift.Value(null)
+              : drift.Value(_descriptionController.text.trim()),
+          color: drift.Value(_selectedColor),
         ),
       );
 

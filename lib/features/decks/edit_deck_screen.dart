@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' as drift;
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
@@ -144,6 +144,7 @@ class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerM
                           maxLines: 3,
                         ),
                         const SizedBox(height: AppTheme.spacingMd),
+                        // ignore: deprecated_member_use
                         DropdownButtonFormField<int>(
                           value: _selectedFolderId,
                           decoration: const InputDecoration(
@@ -236,9 +237,9 @@ class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerM
         deck.copyWith(
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim().isEmpty
-              ? null
-              : _descriptionController.text.trim(),
-          folderId: _selectedFolderId != null ? Value(_selectedFolderId!) : const Value(null),
+              ? const drift.Value(null)
+              : drift.Value(_descriptionController.text.trim()),
+          folderId: _selectedFolderId != null ? drift.Value(_selectedFolderId!) : const drift.Value(null),
           color: _selectedColor,
         ),
       );

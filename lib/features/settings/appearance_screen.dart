@@ -22,6 +22,7 @@ class AppearanceScreen extends StatelessWidget {
                 subtitle: Text(_getThemeModeLabel(themeProvider.themeMode)),
                 trailing: const Icon(Icons.chevron_right),
               ),
+              // ignore: deprecated_member_use
               RadioListTile<ThemeMode>(
                 title: const Text('Light'),
                 subtitle: const Text('Always use light theme'),
@@ -33,6 +34,7 @@ class AppearanceScreen extends StatelessWidget {
                   }
                 },
               ),
+              // ignore: deprecated_member_use
               RadioListTile<ThemeMode>(
                 title: const Text('Dark'),
                 subtitle: const Text('Always use dark theme'),
@@ -44,6 +46,7 @@ class AppearanceScreen extends StatelessWidget {
                   }
                 },
               ),
+              // ignore: deprecated_member_use
               RadioListTile<ThemeMode>(
                 title: const Text('System'),
                 subtitle: const Text('Follow system theme'),

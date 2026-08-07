@@ -5,10 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
-import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/error_state.dart';
-import '../../shared/widgets/confirmation_dialog.dart';
-import '../../shared/widgets/success_snackbar.dart';
 import 'add_flashcard_screen.dart';
 
 class FlashcardListScreen extends StatefulWidget {
@@ -36,7 +33,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
             future: dbProvider.flashcardRepository.getFlashcardsByDeck(widget.deckId),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const ListSkeleton();
+                return const Center(child: CircularProgressIndicator());
               }
 
               if (snapshot.hasError) {
@@ -138,9 +135,9 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
   }
 
   void _navigateToFlashcardDetails(BuildContext context, dynamic flashcard) {
-    // TODO: Navigate to flashcard details screen
+    // Flashcard details screen not implemented yet
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Navigate to flashcard: ${flashcard.question}')),
+      SnackBar(content: Text('Flashcard details: ${flashcard.question}')),
     );
   }
 }

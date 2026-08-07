@@ -10,7 +10,7 @@ class ExportProvider with ChangeNotifier {
   late ExportService _exportService;
   late BackupService _backupService;
   
-  List<ExportResult> _exportHistory = [];
+  final List<ExportResult> _exportHistory = [];
   List<BackupMetadata> _backupHistory = [];
   bool _isLoading = false;
   String? _errorMessage;

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:provider/provider.dart';
 import '../database/database.dart';
 import '../repositories/folder_repository.dart';
 import '../repositories/deck_repository.dart';

@@ -98,7 +98,7 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                         }
 
                         final success = await groqProvider.initialize(apiKey);
-                        if (!success) {
+                        if (!success && mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text(groqProvider.errorMessage ?? 'Failed to initialize')),
                           );
@@ -116,7 +116,7 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
-                // TODO: Open help documentation
+                _showApiKeyHelpDialog(context);
               },
               child: const Text('How to get an API key?'),
             ),
@@ -237,6 +237,46 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const CameraOcrScreen(),
+      ),
+    );
+  }
+
+  void _showApiKeyHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('How to get a Groq API Key'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '1. Visit console.groq.com',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('2. Sign up or log in to your account'),
+              SizedBox(height: 8),
+              Text('3. Navigate to the API Keys section'),
+              SizedBox(height: 8),
+              Text('4. Click "Create API Key"'),
+              SizedBox(height: 8),
+              Text('5. Copy your API key and paste it here'),
+              SizedBox(height: 16),
+              Text(
+                'Your API key is stored securely on your device.',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }

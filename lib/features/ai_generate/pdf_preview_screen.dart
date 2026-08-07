@@ -112,7 +112,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
         // Selection controls
         Container(
           padding: const EdgeInsets.all(16),
-          color: Theme.of(context).colorScheme.surfaceVariant,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           child: Row(
             children: [
               Checkbox(

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/providers/groq_provider.dart';
 
 class PromptPreviewScreen extends StatefulWidget {
   final String prompt;
@@ -29,32 +32,31 @@ class _PromptPreviewScreenState extends State<PromptPreviewScreen> {
     });
 
     try {
-      // TODO: Integrate with Groq service
-      await Future.delayed(const Duration(seconds: 2)); // Simulate API call
+      final groqProvider = context.read<GroqProvider>();
+      
+      if (!groqProvider.isInitialized) {
+        setState(() {
+          _errorMessage = 'Groq service not initialized. Please configure your API key in settings.';
+          _isTesting = false;
+        });
+        return;
+      }
+
+      // Use the Groq service to test the prompt with a simple content summary
+      final testContent = widget.content ?? 'Test content for prompt validation';
+      final response = await groqProvider.service.summarizeContent(
+        content: '$testContent\n\nPrompt: ${widget.prompt}',
+        maxLength: 500,
+      );
+      
+      if (!mounted) return;
       
       setState(() {
-        _testResult = '''Sample AI Response:
-
-This is a simulated response from the AI. In the actual implementation, this will be replaced with the real response from the Groq API.
-
-Question 1: What is the primary function of mitochondria?
-A) Protein synthesis
-B) Energy production (ATP)
-C) DNA storage
-D) Cell division
-Correct Answer: B
-Explanation: Mitochondria are known as the "powerhouse of the cell" because they generate most of the cell's supply of adenosine triphosphate (ATP).
-
-Question 2: Which organelle is responsible for protein synthesis?
-A) Lysosome
-B) Ribosome
-C) Golgi apparatus
-D) Vacuole
-Correct Answer: B
-Explanation: Ribosomes are the cellular structures responsible for protein synthesis. They can be found free in the cytoplasm or attached to the endoplasmic reticulum.''';
+        _testResult = response;
         _isTesting = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Error testing prompt: $e';
         _isTesting = false;
@@ -63,7 +65,7 @@ Explanation: Ribosomes are the cellular structures responsible for protein synth
   }
 
   void _copyPrompt() {
-    // TODO: Implement clipboard functionality
+    Clipboard.setData(ClipboardData(text: widget.prompt));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Prompt copied to clipboard')),
     );

@@ -7,9 +7,8 @@ import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/error_state.dart';
-import '../../shared/widgets/confirmation_dialog.dart';
-import '../../shared/widgets/success_snackbar.dart';
 import 'create_deck_screen.dart';
+import 'deck_details_screen.dart';
 
 class DeckListScreen extends StatefulWidget {
   const DeckListScreen({super.key});
@@ -133,9 +132,10 @@ class _DeckListScreenState extends State<DeckListScreen> {
   }
 
   void _navigateToDeckDetails(BuildContext context, dynamic deck) {
-    // TODO: Navigate to deck details screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Navigate to ${deck.name}')),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DeckDetailsScreen(deckId: deck.id),
+      ),
     );
   }
 }

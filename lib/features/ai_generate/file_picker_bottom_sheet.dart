@@ -147,6 +147,7 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
 
       if (result != null && result.files.single.path != null) {
         final file = File(result.files.single.path!);
+        final fileName = result.files.single.name;
         
         if (!mounted) return;
         
@@ -169,7 +170,7 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
               MaterialPageRoute(
                 builder: (context) => TextPreviewScreen(
                   text: text,
-                  source: result.files.single.name,
+                  source: fileName,
                 ),
               ),
             );

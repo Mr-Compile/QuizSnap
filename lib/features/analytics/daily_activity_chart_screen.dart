@@ -6,6 +6,7 @@ import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/loading_skeleton.dart';
+import '../../shared/widgets/custom_card.dart';
 
 class DailyActivityChartScreen extends StatefulWidget {
   const DailyActivityChartScreen({super.key});
@@ -124,7 +125,7 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 30,
-                      interval: _selectedDays ~/ 7,
+                      interval: (_selectedDays ~/ 7).toDouble(),
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
                         if (index < 0 || index >= activities.length) return const SizedBox();
@@ -218,11 +219,11 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
   Widget _buildActivityStats(BuildContext context, List activities) {
     final totalCards = activities.fold<int>(
       0,
-      (sum, activity) => sum + activity.cardsStudied,
+      (sum, activity) => sum + (activity.cardsStudied as int),
     );
     final totalMinutes = activities.fold<int>(
       0,
-      (sum, activity) => sum + activity.studyTimeMinutes,
+      (sum, activity) => sum + (activity.studyTimeMinutes as int),
     );
     final avgAccuracy = activities.isEmpty
         ? 0.0

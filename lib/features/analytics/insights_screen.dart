@@ -41,10 +41,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
               }
 
               final summary = snapshot.data![0];
-              final deckAccuracies = snapshot.data![1] as List;
-              final masteryDistribution = snapshot.data![2] as List;
-              final trends = snapshot.data![3];
-              
+              final deckAccuracies = snapshot.data![1] as Map<String, double>;
+              final masteryDistribution = snapshot.data![2] as Map<String, int>;
+              final trends = snapshot.data![3] as Map<String, List<double>>;
+
               final insights = _generateInsights(summary, deckAccuracies, masteryDistribution, trends);
               
               return SingleChildScrollView(
@@ -118,38 +118,45 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
-  List<StudyInsight> _generateInsights(summary, deckAccuracies, masteryDistribution, trends) {
+  List<StudyInsight> _generateInsights(
+    dynamic summary,
+    Map<String, double> deckAccuracies,
+    Map<String, int> masteryDistribution,
+    Map<String, List<double>> trends,
+  ) {
     final insights = <StudyInsight>[];
 
     // Due cards insight
-    if (summary.dueToday > 20) {
+    final dueToday = summary['dueToday'] as int? ?? 0;
+    if (dueToday > 20) {
       insights.add(StudyInsight(
         type: InsightType.warning,
         title: 'High Card Load',
-        description: 'You have ${summary.dueToday} cards due today. Consider breaking this into multiple study sessions.',
+        description: 'You have $dueToday cards due today. Consider breaking this into multiple study sessions.',
         icon: Icons.warning,
         priority: InsightPriority.high,
       ));
-    } else if (summary.dueToday > 0) {
+    } else if (dueToday > 0) {
       insights.add(StudyInsight(
         type: InsightType.info,
         title: 'Cards Due Today',
-        description: 'You have ${summary.dueToday} cards due for review. Complete them to maintain your progress.',
+        description: 'You have $dueToday cards due for review. Complete them to maintain your progress.',
         icon: Icons.assignment,
         priority: InsightPriority.medium,
       ));
     }
 
     // Streak insight
-    if (summary.currentStreak >= 7) {
+    final currentStreak = summary['currentStreak'] as int? ?? 0;
+    if (currentStreak >= 7) {
       insights.add(StudyInsight(
         type: InsightType.achievement,
         title: 'Great Streak!',
-        description: 'You\'ve studied for ${summary.currentStreak} consecutive days. Keep it up!',
+        description: 'You\'ve studied for $currentStreak consecutive days. Keep it up!',
         icon: Icons.local_fire_department,
         priority: InsightPriority.low,
       ));
-    } else if (summary.currentStreak == 0) {
+    } else if (currentStreak == 0) {
       insights.add(StudyInsight(
         type: InsightType.suggestion,
         title: 'Start a Streak',
@@ -160,7 +167,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
 
     // Weak topics insight
-    final weakTopics = deckAccuracies.where((d) => d.accuracy < 70).toList();
+    final weakTopics = deckAccuracies.entries.where((e) => e.value < 70).toList();
     if (weakTopics.isNotEmpty) {
       insights.add(StudyInsight(
         type: InsightType.suggestion,
@@ -172,45 +179,56 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
 
     // Mastery insight
-    final newCards = masteryDistribution.firstWhere((m) => m.level == 'New', orElse: () => masteryDistribution[0]);
-    if (newCards.count > 20) {
+    final newCardsCount = masteryDistribution['New'] ?? 0;
+    if (newCardsCount > 20) {
       insights.add(StudyInsight(
         type: InsightType.info,
         title: 'Many New Cards',
-        description: 'You have ${newCards.count} new cards to learn. Start reviewing them to build your mastery.',
+        description: 'You have $newCardsCount new cards to learn. Start reviewing them to build your mastery.',
         icon: Icons.new_releases,
         priority: InsightPriority.medium,
       ));
     }
 
-    // Trend insight
-    if (trends.trend == 'declining') {
-      insights.add(StudyInsight(
-        type: InsightType.warning,
-        title: 'Performance Declining',
-        description: 'Your accuracy has been decreasing over the past ${trends.periodDays} days. Consider reviewing fundamentals.',
-        icon: Icons.trending_down,
-        priority: InsightPriority.high,
-      ));
-    } else if (trends.trend == 'improving') {
-      insights.add(StudyInsight(
-        type: InsightType.achievement,
-        title: 'Improving Performance',
-        description: 'Your accuracy has been improving over the past ${trends.periodDays} days. Keep up the great work!',
-        icon: Icons.trending_up,
-        priority: InsightPriority.low,
-      ));
+    // Trend insight - simplified for now since trends is a Map
+    if (trends.isNotEmpty) {
+      final accuracyValues = trends['accuracy'] ?? [];
+      if (accuracyValues.length >= 2) {
+        final recent = accuracyValues.last;
+        final previous = accuracyValues[accuracyValues.length - 2];
+        if (recent < previous - 10) {
+          insights.add(StudyInsight(
+            type: InsightType.warning,
+            title: 'Performance Declining',
+            description: 'Your accuracy has been decreasing recently. Consider reviewing fundamentals.',
+            icon: Icons.trending_down,
+            priority: InsightPriority.high,
+          ));
+        } else if (recent > previous + 10) {
+          insights.add(StudyInsight(
+            type: InsightType.achievement,
+            title: 'Improving Performance',
+            description: 'Your accuracy has been improving recently. Keep up the great work!',
+            icon: Icons.trending_up,
+            priority: InsightPriority.low,
+          ));
+        }
+      }
     }
 
-    // Study time insight
-    if (trends.totalStudyTimeMinutes < 60) {
-      insights.add(StudyInsight(
-        type: InsightType.suggestion,
-        title: 'Increase Study Time',
-        description: 'You\'ve studied for ${trends.totalStudyTimeMinutes} minutes in the past ${trends.periodDays} days. Try to study more consistently.',
-        icon: Icons.access_time,
-        priority: InsightPriority.medium,
-      ));
+    // Study time insight - simplified
+    final studyTimeValues = trends['studyTime'] ?? [];
+    if (studyTimeValues.isNotEmpty) {
+      final totalStudyTime = studyTimeValues.reduce((a, b) => a + b);
+      if (totalStudyTime < 60) {
+        insights.add(StudyInsight(
+          type: InsightType.suggestion,
+          title: 'Increase Study Time',
+          description: 'You\'ve studied for ${totalStudyTime.toInt()} minutes recently. Try to study more consistently.',
+          icon: Icons.access_time,
+          priority: InsightPriority.medium,
+        ));
+      }
     }
 
     // Sort by priority

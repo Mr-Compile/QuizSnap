@@ -249,24 +249,28 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen> {
 
       final result = await exportProvider.exportData(options, deckId: widget.deckId);
 
-      if (result.status == ExportStatus.completed && result.filePath != null) {
+      if (result != null && result.status == ExportStatus.completed && result.filePath != null) {
         if (_selectedFormat == ExportFormat.pdf) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => PdfPreviewScreen(
-                filePath: result.filePath!,
-                exportResult: result,
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => PdfPreviewScreen(
+                  filePath: result.filePath!,
+                  exportResult: result,
+                ),
               ),
-            ),
-          );
+            );
+          }
         } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => ExportSuccessScreen(
-                exportResult: result,
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => ExportSuccessScreen(
+                  exportResult: result,
+                ),
               ),
-            ),
-          );
+            );
+          }
         }
       } else {
         if (mounted) {
@@ -274,7 +278,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen> {
             context: context,
             builder: (context) => ConfirmationDialog(
               title: 'Export Failed',
-              message: result.errorMessage ?? 'Unknown error occurred',
+              message: result?.errorMessage ?? 'Unknown error occurred',
               confirmText: 'OK',
               onConfirm: () => Navigator.of(context).pop(),
             ),

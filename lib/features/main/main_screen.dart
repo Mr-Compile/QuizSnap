@@ -4,13 +4,7 @@ import '../../shared/widgets/bottom_navigation.dart';
 import '../../core/providers/security_provider.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../decks/deck_list_screen.dart';
-import '../search/global_search_screen.dart';
-import '../trash/trash_screen.dart';
-import '../tags/tag_management_screen.dart';
-import '../folders/folder_list_screen.dart';
-import '../settings/appearance_screen.dart';
 import '../settings/settings_screen.dart';
-import '../exam/cached_explanations_screen.dart';
 import '../study/study_home_screen.dart';
 import '../ai_generate/ai_generate_home_screen.dart';
 import '../analytics/analytics_dashboard_screen.dart';
@@ -50,9 +44,11 @@ class _MainScreenState extends State<MainScreen> {
       ),
     ).then((_) {
       // Recheck lock state after returning
-      final securityProvider = context.read<SecurityProvider>();
-      if (securityProvider.isLocked) {
-        _showPinLock();
+      if (mounted) {
+        final securityProvider = context.read<SecurityProvider>();
+        if (securityProvider.isLocked) {
+          _showPinLock();
+        }
       }
     });
   }

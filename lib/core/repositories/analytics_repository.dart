@@ -108,17 +108,17 @@ class AnalyticsRepository {
     final startOfWeekDay = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
     final startOfMonth = DateTime(now.year, now.month, 1);
 
-    final todaySessions = await _database.select(_database.studySessions)
-      ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfDay))
-      ..get();
+    final todaySessions = await (_database.select(_database.studySessions)
+      ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfDay)))
+      .get();
 
-    final weekSessions = await _database.select(_database.studySessions)
-      ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfWeekDay))
-      ..get();
+    final weekSessions = await (_database.select(_database.studySessions)
+      ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfWeekDay)))
+      .get();
 
-    final monthSessions = await _database.select(_database.studySessions)
-      ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfMonth))
-      ..get();
+    final monthSessions = await (_database.select(_database.studySessions)
+      ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfMonth)))
+      .get();
 
     final todayMinutes = todaySessions.fold<int>(0, (sum, s) => sum + s.durationSeconds) ~/ 60;
     final weekMinutes = weekSessions.fold<int>(0, (sum, s) => sum + s.durationSeconds) ~/ 60;
@@ -141,10 +141,10 @@ class AnalyticsRepository {
     final startDate = now.subtract(const Duration(days: periodDays));
     final startOfDay = DateTime(startDate.year, startDate.month, startDate.day);
 
-    final recentSessions = await _database.select(_database.studySessions)
+    final recentSessions = await (_database.select(_database.studySessions)
       ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfDay))
-      ..orderBy([(tbl) => OrderingTerm.asc(tbl.startedAt)])
-      ..get();
+      ..orderBy([(tbl) => OrderingTerm.asc(tbl.startedAt)]))
+      .get();
 
     if (recentSessions.isEmpty) {
       return ImprovementTrends(

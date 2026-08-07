@@ -1,21 +1,21 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../core/models/export.dart';
-import '../../core/services/export_service.dart';
 import 'export_success_screen.dart';
 
 class PdfPreviewScreen extends StatefulWidget {
   final String filePath;
-  final ExportResult exportResult;
+  final ExportResult? exportResult;
 
   const PdfPreviewScreen({
     super.key,
     required this.filePath,
-    required this.exportResult,
+    this.exportResult,
   });
 
   @override
@@ -36,12 +36,12 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
         children: [
           Expanded(
             child: PdfPreview(
-              build: (format) => widget.exportResult.filePath != null
-                  ? PrintingHelper.getFileBytes(widget.exportResult.filePath!)
-                  : Future.value([]),
+              build: (format) async {
+                final bytes = await PrintingHelper.getFileBytes(widget.filePath);
+                return Uint8List.fromList(bytes);
+              },
               allowSharing: false,
               allowPrinting: false,
-              initialPageFormat: PdfPageFormat.a4,
               pdfFileName: widget.filePath.split('/').last,
             ),
           ),
@@ -114,8 +114,9 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
   Future<void> _handlePrint() async {
     setState(() => _isPrinting = true);
     try {
+      final bytes = await PrintingHelper.getFileBytes(widget.filePath);
       await Printing.sharePdf(
-        bytes: await PrintingHelper.getFileBytes(widget.filePath),
+        bytes: Uint8List.fromList(bytes),
         filename: widget.filePath.split('/').last,
       );
     } catch (e) {
@@ -132,13 +133,17 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
   }
 
   void _handleDone() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => ExportSuccessScreen(
-          exportResult: widget.exportResult,
+    if (widget.exportResult != null) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => ExportSuccessScreen(
+            exportResult: widget.exportResult!,
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 }
 

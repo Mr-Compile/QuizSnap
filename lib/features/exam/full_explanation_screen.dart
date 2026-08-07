@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/models/exam.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
-import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/custom_card.dart';
 
 class FullExplanationScreen extends StatelessWidget {
@@ -26,11 +25,11 @@ class FullExplanationScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildQuestionCard(),
+            _buildQuestionCard(context),
             const SizedBox(height: AppTheme.spacingXl),
-            _buildAnswerAnalysis(),
+            _buildAnswerAnalysis(context),
             const SizedBox(height: AppTheme.spacingXl),
-            _buildExplanationCard(),
+            _buildExplanationCard(context),
             const SizedBox(height: AppTheme.spacingXl),
             _buildKeyConcepts(),
             const SizedBox(height: AppTheme.spacingXl),
@@ -41,7 +40,7 @@ class FullExplanationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuestionCard() {
+  Widget _buildQuestionCard(BuildContext context) {
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,14 +68,14 @@ class FullExplanationScreen extends StatelessWidget {
           const SizedBox(height: AppTheme.spacingMd),
           Text(
             question.question,
-            style: AppTheme.textLarge,
+            style: AppTheme.headlineMedium,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAnswerAnalysis() {
+  Widget _buildAnswerAnalysis(BuildContext context) {
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +188,7 @@ class FullExplanationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildExplanationCard() {
+  Widget _buildExplanationCard(BuildContext context) {
     if (explanation == null) {
       return CustomCard(
         child: Column(
@@ -289,7 +288,7 @@ class FullExplanationScreen extends StatelessWidget {
             children: [
               Icon(
                 Icons.info,
-                color: Theme.of(context).colorScheme.primary,
+                color: AppTheme.amber600,
               ),
               const SizedBox(width: AppTheme.spacingSm),
               Text(
@@ -303,7 +302,7 @@ class FullExplanationScreen extends StatelessWidget {
             'Review similar questions to reinforce your understanding of this topic. '
             'Consider creating flashcards for concepts you find challenging.',
             style: AppTheme.bodyLarge.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+              color: AppTheme.slate600,
             ),
           ),
         ],

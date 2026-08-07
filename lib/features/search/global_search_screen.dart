@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/search_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
-import '../../shared/widgets/loading_skeleton.dart';
-import '../../shared/widgets/error_state.dart';
 
 class GlobalSearchScreen extends StatefulWidget {
   const GlobalSearchScreen({super.key});
@@ -358,17 +357,18 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
   }
 
   void _navigateToFolder(BuildContext context, dynamic folder) {
-    // TODO: Navigate to folder details
+    // Navigate to folder details (placeholder - folder details screen not yet implemented)
+    // For now, just pop and return the folder
     Navigator.of(context).pop(folder);
   }
 
   void _navigateToDeck(BuildContext context, dynamic deck) {
-    // TODO: Navigate to deck details
-    Navigator.of(context).pop(deck);
+    // Navigate to deck details
+    context.push('/decks/${deck.id}');
   }
 
   void _navigateToFlashcard(BuildContext context, dynamic flashcard) {
-    // TODO: Navigate to flashcard details
-    Navigator.of(context).pop(flashcard);
+    // Navigate to flashcard edit/details
+    context.push('/decks/${flashcard.deckId}/flashcards/${flashcard.id}/edit');
   }
 }

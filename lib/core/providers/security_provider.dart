@@ -235,4 +235,23 @@ class SecurityProvider with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
   }
+
+  // Clear all security data
+  Future<void> clearAllSecurityData() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _secureStorage.clearAllSecurityData();
+      _isPinEnabled = false;
+      _isBiometricEnabled = false;
+      _isLocked = false;
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

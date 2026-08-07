@@ -19,5 +19,7 @@ class FolderRepository {
 
   Future<List<Folder>> getDeletedFolders() => _database.getDeletedFolders();
 
+  Future<int> permanentlyDeleteFolder(int id) => _database.permanentlyDeleteFolder(id);
+
   Future<List<Folder>> searchFolders(String query) => _database.searchFolders(query);
 }

@@ -366,28 +366,29 @@ class _TrashScreenState extends State<TrashScreen> {
   }
 
   void _restoreFolder(BuildContext context, int id) async {
+    if (!mounted) return;
     final dbProvider = context.read<DatabaseProvider>();
     try {
       await dbProvider.folderRepository.restoreFolder(id);
+      if (!mounted) return;
+      SuccessSnackbar.show(
+        this.context,
+        message: 'Folder restored successfully',
+      );
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      final errorColor = Theme.of(context).colorScheme.error;
+      final messenger = ScaffoldMessenger.of(this.context);
+      final errorColor = Theme.of(this.context).colorScheme.error;
       messenger.showSnackBar(
         SnackBar(
           content: Text('Error restoring folder: $e'),
           backgroundColor: errorColor,
         ),
       );
-      return;
     }
-    
-    if (!mounted) return;
-    SuccessSnackbar.show(
-      context,
-      message: 'Folder restored successfully',
-    );
-    setState(() {});
   }
 
   void _permanentlyDeleteFolder(BuildContext context, int id) async {
@@ -400,36 +401,49 @@ class _TrashScreenState extends State<TrashScreen> {
     );
 
     if (confirmed && mounted) {
-      // TODO: Implement permanent deletion
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Permanent deletion not implemented yet')),
-      );
+      final dbProvider = this.context.read<DatabaseProvider>();
+      try {
+        await dbProvider.folderRepository.permanentlyDeleteFolder(id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          const SnackBar(content: Text('Folder permanently deleted')),
+        );
+        if (mounted) {
+          setState(() {});
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          SnackBar(content: Text('Error deleting folder: $e')),
+        );
+      }
     }
   }
 
   void _restoreDeck(BuildContext context, int id) async {
+    if (!mounted) return;
     final dbProvider = context.read<DatabaseProvider>();
     try {
       await dbProvider.deckRepository.restoreDeck(id);
+      if (!mounted) return;
+      SuccessSnackbar.show(
+        this.context,
+        message: 'Deck restored successfully',
+      );
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      final errorColor = Theme.of(context).colorScheme.error;
+      final messenger = ScaffoldMessenger.of(this.context);
+      final errorColor = Theme.of(this.context).colorScheme.error;
       messenger.showSnackBar(
         SnackBar(
           content: Text('Error restoring deck: $e'),
           backgroundColor: errorColor,
         ),
       );
-      return;
     }
-    
-    if (!mounted) return;
-    SuccessSnackbar.show(
-      context,
-      message: 'Deck restored successfully',
-    );
-    setState(() {});
   }
 
   void _permanentlyDeleteDeck(BuildContext context, int id) async {
@@ -442,37 +456,50 @@ class _TrashScreenState extends State<TrashScreen> {
     );
 
     if (confirmed && mounted) {
-      // TODO: Implement permanent deletion
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Permanent deletion not implemented yet')),
-      );
+      final dbProvider = this.context.read<DatabaseProvider>();
+      try {
+        await dbProvider.deckRepository.permanentlyDeleteDeck(id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          const SnackBar(content: Text('Deck permanently deleted')),
+        );
+        if (mounted) {
+          setState(() {});
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          SnackBar(content: Text('Error deleting deck: $e')),
+        );
+      }
     }
   }
 
   void _restoreFlashcard(BuildContext context, int id, int deckId) async {
+    if (!mounted) return;
     final dbProvider = context.read<DatabaseProvider>();
     try {
       await dbProvider.flashcardRepository.restoreFlashcard(id);
       await dbProvider.deckRepository.updateDeckCardCount(deckId);
+      if (!mounted) return;
+      SuccessSnackbar.show(
+        this.context,
+        message: 'Flashcard restored successfully',
+      );
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      final errorColor = Theme.of(context).colorScheme.error;
+      final messenger = ScaffoldMessenger.of(this.context);
+      final errorColor = Theme.of(this.context).colorScheme.error;
       messenger.showSnackBar(
         SnackBar(
           content: Text('Error restoring flashcard: $e'),
           backgroundColor: errorColor,
         ),
       );
-      return;
     }
-    
-    if (!mounted) return;
-    SuccessSnackbar.show(
-      context,
-      message: 'Flashcard restored successfully',
-    );
-    setState(() {});
   }
 
   void _permanentlyDeleteFlashcard(BuildContext context, int id) async {
@@ -485,10 +512,22 @@ class _TrashScreenState extends State<TrashScreen> {
     );
 
     if (confirmed && mounted) {
-      // TODO: Implement permanent deletion
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Permanent deletion not implemented yet')),
-      );
+      final dbProvider = this.context.read<DatabaseProvider>();
+      try {
+        await dbProvider.flashcardRepository.permanentlyDeleteFlashcard(id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          const SnackBar(content: Text('Flashcard permanently deleted')),
+        );
+        if (mounted) {
+          setState(() {});
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          SnackBar(content: Text('Error deleting flashcard: $e')),
+        );
+      }
     }
   }
 }

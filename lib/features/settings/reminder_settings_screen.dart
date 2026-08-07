@@ -25,6 +25,8 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
     final reminderProvider = context.read<ReminderProvider>();
     await reminderProvider.initialize();
     
+    if (!mounted) return;
+    
     final timeParts = reminderProvider.reminderTime.split(':');
     setState(() {
       _selectedTime = TimeOfDay(
@@ -136,9 +138,10 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
                       : (value) async {
                           await reminderProvider.setEnabled(value);
                           if (!mounted) return;
-                          
+
                           if (reminderProvider.errorMessage != null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(this.context).showSnackBar(
                               SnackBar(
                                 content: Text(reminderProvider.errorMessage!),
                                 backgroundColor: Colors.red,
@@ -277,7 +280,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
   void _showFrequencyPicker(ReminderProvider reminderProvider) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Select Frequency'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -290,8 +293,8 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
               onChanged: (value) async {
                 if (value != null) {
                   await reminderProvider.setFrequency(value);
-                  if (!mounted) return;
-                  Navigator.pop(context);
+                  if (!this.mounted) return;
+                  Navigator.pop(dialogContext);
                 }
               },
             ),
@@ -303,8 +306,8 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
               onChanged: (value) async {
                 if (value != null) {
                   await reminderProvider.setFrequency(value);
-                  if (!mounted) return;
-                  Navigator.pop(context);
+                  if (!this.mounted) return;
+                  Navigator.pop(dialogContext);
                 }
               },
             ),
@@ -316,8 +319,8 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
               onChanged: (value) async {
                 if (value != null) {
                   await reminderProvider.setFrequency(value);
-                  if (!mounted) return;
-                  Navigator.pop(context);
+                  if (!this.mounted) return;
+                  Navigator.pop(dialogContext);
                 }
               },
             ),

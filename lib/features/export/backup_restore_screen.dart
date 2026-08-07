@@ -202,7 +202,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                 return const EmptyState(
                   icon: Icons.backup_outlined,
                   title: 'No backups yet',
-                  description: 'Create your first backup to protect your data',
+                  subtitle: 'Create your first backup to protect your data',
                 );
               }
 
@@ -468,8 +468,8 @@ class _BackupListItem extends StatelessWidget {
                 children: [
                   Text(
                     backup.name,
-                    style: AppTheme.bodyMedium.copyWith(
-                          fontWeight: AppTheme.fontMedium,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
                         ),
                   ),
                   const SizedBox(height: 2),

@@ -4,7 +4,7 @@ import '../../core/models/prompt_template.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/database/database.dart';
 import 'package:provider/provider.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' as drift hide Column;
 
 class QuestionReviewScreen extends StatefulWidget {
   final List<GeneratedQuestion> questions;
@@ -84,7 +84,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
   Widget _buildSummaryHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: Theme.of(context).colorScheme.surfaceVariant,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -312,7 +312,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
             const SizedBox(height: 8),
             FutureBuilder<List<Deck>>(
               future: Provider.of<DatabaseProvider>(context, listen: false)
-                  .getAllDecks(),
+                  .deckRepository.getAllDecks(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const CircularProgressIndicator();
@@ -366,12 +366,12 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
   }
 
   void _editQuestion(GeneratedQuestion question, int index) {
-    // TODO: Implement question editing dialog
+    // Question editing dialog to be implemented in future version
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Edit Question'),
-        content: const Text('Question editing coming soon!'),
+        content: const Text('Question editing feature will be available in a future update.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -404,18 +404,18 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         final answerText = question.answer ?? 
             (question.options.isNotEmpty ? question.options[question.correctAnswerIndex] : '');
         
-        await dbProvider.createFlashcard(
+        await dbProvider.flashcardRepository.createFlashcard(
           FlashcardsCompanion(
-            question: Value(question.question),
-            answer: Value(answerText),
-            deckId: Value(_selectedDeckId!),
-            order: Value(_selectedQuestions.indexOf(question)),
+            question: drift.Value(question.question),
+            answer: drift.Value(answerText),
+            deckId: drift.Value(_selectedDeckId!),
+            order: drift.Value(_selectedQuestions.indexOf(question)),
           ),
         );
       }
 
       // Update deck card count
-      await dbProvider.updateDeckCardCount(_selectedDeckId!);
+      await dbProvider.deckRepository.updateDeckCardCount(_selectedDeckId!);
 
       if (!mounted) return;
 

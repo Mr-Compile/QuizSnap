@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../core/models/exam.dart';
-import '../../core/providers/exam_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -35,20 +33,6 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  List<ExamQuestion> get _filteredQuestions {
-    switch (_currentFilter) {
-      case ReviewFilter.correct:
-        return widget.result.correctQuestions;
-      case ReviewFilter.incorrect:
-        return widget.result.incorrectQuestions;
-      case ReviewFilter.unanswered:
-        return widget.result.unansweredQuestions;
-      case ReviewFilter.all:
-      default:
-        return widget.result.questions;
-    }
   }
 
   @override
@@ -356,7 +340,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: borderColor?.withValues(alpha: 0.2) ??
-                      Theme.of(context).colorScheme.surfaceVariant,
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
                   border: Border.all(color: borderColor ?? Colors.grey),
                 ),
                 child: Center(

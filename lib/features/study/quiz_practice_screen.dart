@@ -27,7 +27,6 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
   int _correctCount = 0;
   int _incorrectCount = 0;
   bool _showAnswer = false;
-  bool _isAnswered = false;
   bool _isStarted = false;
 
   @override
@@ -349,7 +348,6 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
       _correctCount = 0;
       _incorrectCount = 0;
       _showAnswer = false;
-      _isAnswered = false;
       _isStarted = true;
     });
   }
@@ -371,7 +369,6 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
         _incorrectCount++;
       }
       _showAnswer = true;
-      _isAnswered = true;
     });
   }
 
@@ -380,7 +377,6 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
       setState(() {
         _currentIndex++;
         _showAnswer = false;
-        _isAnswered = false;
       });
     } else {
       setState(() {

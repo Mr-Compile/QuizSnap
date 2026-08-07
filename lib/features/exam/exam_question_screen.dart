@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/exam_provider.dart';
+import '../../core/models/exam.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -135,21 +136,9 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
   }
 
   void _exitExam() {
-    final examProvider = context.read<ExamProvider();
+    final examProvider = context.read<ExamProvider>();
     examProvider.abandonExam();
     Navigator.of(context).popUntil((route) => route.isFirst);
-  }
-
-  void _goToQuestion(int index) {
-    final examProvider = context.read<ExamProvider>();
-    
-    // Check if current question has been answered
-    if (_selectedAnswerIndex != null) {
-      examProvider.submitAnswer(_selectedAnswerIndex!);
-      setState(() => _selectedAnswerIndex = null);
-    }
-    
-    examProvider.goToQuestion(index);
   }
 
   @override
@@ -266,7 +255,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     
     return LinearProgressIndicator(
       value: progress,
-      backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       valueColor: AlwaysStoppedAnimation<Color>(
         Theme.of(context).colorScheme.primary,
       ),
@@ -304,7 +293,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         children: [
           Text(
             question.question,
-            style: AppTheme.textLarge,
+            style: AppTheme.titleLarge,
           ),
         ],
       ),
@@ -347,7 +336,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
                       shape: BoxShape.circle,
                       color: isSelected
                           ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.surfaceVariant,
+                          : Theme.of(context).colorScheme.surfaceContainerHighest,
                       border: Border.all(
                         color: isSelected
                             ? Theme.of(context).colorScheme.primary
