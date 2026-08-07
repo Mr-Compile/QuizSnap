@@ -263,22 +263,23 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
     );
 
     if (confirmed) {
-      final dbProvider = context.read<DatabaseProvider>();
+      if (!mounted) return;
+      final dbProvider = this.context.read<DatabaseProvider>();
       try {
         await dbProvider.deckRepository.deleteDeck(widget.deckId);
         if (mounted) {
           SuccessSnackbar.show(
-            context,
+            this.context,
             message: 'Deck moved to trash',
           );
-          Navigator.of(context).pop();
+          Navigator.of(this.context).pop();
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(this.context).showSnackBar(
             SnackBar(
               content: Text('Error deleting deck: $e'),
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: Theme.of(this.context).colorScheme.error,
             ),
           );
         }

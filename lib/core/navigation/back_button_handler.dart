@@ -174,7 +174,8 @@ class _ExitProtectionWrapperState extends State<_ExitProtectionWrapper> {
         if (!didPop) {
           final shouldPop = await _onWillPop();
           if (shouldPop && mounted) {
-            Navigator.of(context).pop();
+            // ignore: use_build_context_synchronously
+            Navigator.pop(context);
           }
         }
       },

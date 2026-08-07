@@ -99,7 +99,7 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
 
                         final success = await groqProvider.initialize(apiKey);
                         if (!success && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(this.context).showSnackBar(
                             SnackBar(content: Text(groqProvider.errorMessage ?? 'Failed to initialize')),
                           );
                         }

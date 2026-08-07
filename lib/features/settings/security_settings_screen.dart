@@ -198,12 +198,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     );
 
     if (confirmed == true && mounted) {
-      final securityProvider = this.context.read<SecurityProvider>();
+      final securityProvider = context.read<SecurityProvider>();
       await securityProvider.disablePin();
       
       if (!mounted) return;
       
-      ScaffoldMessenger.of(this.context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('PIN lock disabled')),
       );
     }
@@ -310,14 +310,17 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                         if (!mounted) return;
 
                         if (success) {
+                          // ignore: use_build_context_synchronously
                           Navigator.pop(dialogContext);
                           if (!mounted) return;
-                          ScaffoldMessenger.of(this.context).showSnackBar(
+                          // ignore: use_build_context_synchronously
+                          ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('PIN changed successfully')),
                           );
                         } else {
                           if (!mounted) return;
-                          ScaffoldMessenger.of(this.context).showSnackBar(
+                          // ignore: use_build_context_synchronously
+                          ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(securityProvider.errorMessage ?? 'Failed to change PIN'),
                               backgroundColor: Colors.red,

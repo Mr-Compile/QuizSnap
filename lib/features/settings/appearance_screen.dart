@@ -27,7 +27,9 @@ class AppearanceScreen extends StatelessWidget {
                 title: const Text('Light'),
                 subtitle: const Text('Always use light theme'),
                 value: ThemeMode.light,
+                // ignore: deprecated_member_use
                 groupValue: themeProvider.themeMode,
+                // ignore: deprecated_member_use
                 onChanged: (value) {
                   if (value != null) {
                     themeProvider.setThemeMode(value);
@@ -39,7 +41,9 @@ class AppearanceScreen extends StatelessWidget {
                 title: const Text('Dark'),
                 subtitle: const Text('Always use dark theme'),
                 value: ThemeMode.dark,
+                // ignore: deprecated_member_use
                 groupValue: themeProvider.themeMode,
+                // ignore: deprecated_member_use
                 onChanged: (value) {
                   if (value != null) {
                     themeProvider.setThemeMode(value);
@@ -51,7 +55,9 @@ class AppearanceScreen extends StatelessWidget {
                 title: const Text('System'),
                 subtitle: const Text('Follow system theme'),
                 value: ThemeMode.system,
+                // ignore: deprecated_member_use
                 groupValue: themeProvider.themeMode,
+                // ignore: deprecated_member_use
                 onChanged: (value) {
                   if (value != null) {
                     themeProvider.setThemeMode(value);

@@ -89,7 +89,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
             onPressed: () async {
               await reminderProvider.setReminderDays(selectedDays.toList());
               if (!mounted) return;
-              Navigator.pop(context);
+              Navigator.pop(this.context);
             },
             child: const Text('Save'),
           ),
@@ -285,41 +285,53 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // ignore: deprecated_member_use
             RadioListTile<String>(
               title: const Text('Daily'),
               subtitle: const Text('Every day at the selected time'),
               value: 'daily',
+              // ignore: deprecated_member_use
               groupValue: reminderProvider.frequency,
+              // ignore: deprecated_member_use
               onChanged: (value) async {
                 if (value != null) {
                   await reminderProvider.setFrequency(value);
-                  if (!this.mounted) return;
+                  if (!mounted) return;
+                  // ignore: use_build_context_synchronously
                   Navigator.pop(dialogContext);
                 }
               },
             ),
+            // ignore: deprecated_member_use
             RadioListTile<String>(
               title: const Text('Weekly'),
               subtitle: const Text('On selected days each week'),
               value: 'weekly',
+              // ignore: deprecated_member_use
               groupValue: reminderProvider.frequency,
+              // ignore: deprecated_member_use
               onChanged: (value) async {
                 if (value != null) {
                   await reminderProvider.setFrequency(value);
-                  if (!this.mounted) return;
+                  if (!mounted) return;
+                  // ignore: use_build_context_synchronously
                   Navigator.pop(dialogContext);
                 }
               },
             ),
+            // ignore: deprecated_member_use
             RadioListTile<String>(
               title: const Text('Custom'),
               subtitle: const Text('Choose specific days and times'),
               value: 'custom',
+              // ignore: deprecated_member_use
               groupValue: reminderProvider.frequency,
+              // ignore: deprecated_member_use
               onChanged: (value) async {
                 if (value != null) {
                   await reminderProvider.setFrequency(value);
-                  if (!this.mounted) return;
+                  if (!mounted) return;
+                  // ignore: use_build_context_synchronously
                   Navigator.pop(dialogContext);
                 }
               },

@@ -146,7 +146,9 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
           ),
           subtitle: Text(_getTypeDescription(type)),
           value: type,
+          // ignore: deprecated_member_use
           groupValue: _selectedType,
+          // ignore: deprecated_member_use
           onChanged: (value) {
             if (value != null) {
               setState(() {
@@ -183,7 +185,9 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
           title: Text(difficulty.displayName),
           subtitle: Text(difficulty.description),
           value: difficulty,
+          // ignore: deprecated_member_use
           groupValue: _selectedDifficulty,
+          // ignore: deprecated_member_use
           onChanged: (value) {
             if (value != null) {
               setState(() {

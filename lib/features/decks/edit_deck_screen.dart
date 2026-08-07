@@ -144,8 +144,8 @@ class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerM
                           maxLines: 3,
                         ),
                         const SizedBox(height: AppTheme.spacingMd),
-                        // ignore: deprecated_member_use
                         DropdownButtonFormField<int>(
+                          // ignore: deprecated_member_use
                           value: _selectedFolderId,
                           decoration: const InputDecoration(
                             labelText: 'Folder (optional)',
