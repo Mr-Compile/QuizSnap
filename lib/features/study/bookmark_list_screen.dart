@@ -59,7 +59,7 @@ class _BookmarkListScreenState extends State<BookmarkListScreen> {
                         Container(
                           padding: const EdgeInsets.all(AppTheme.spacingMd),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
+                            color: Colors.blue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                           ),
                           child: const Icon(
@@ -82,7 +82,7 @@ class _BookmarkListScreenState extends State<BookmarkListScreen> {
                               Text(
                                 'Tap to study',
                                 style: AppTheme.bodySmall.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                             ],
@@ -95,7 +95,7 @@ class _BookmarkListScreenState extends State<BookmarkListScreen> {
                                 : Icons.bookmark_border,
                             color: flashcard.isFavorite
                                 ? Colors.blue
-                                : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                           ),
                           onPressed: () => _toggleBookmark(context, flashcard.id),
                         ),

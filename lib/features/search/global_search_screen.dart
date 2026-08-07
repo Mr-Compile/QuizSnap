@@ -109,7 +109,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
             style: AppTheme.labelMedium.copyWith(
               color: isSelected
                   ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
@@ -163,7 +163,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       child: Text(
         title,
         style: AppTheme.labelLarge.copyWith(
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
         ),
       ),
     );
@@ -188,7 +188,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
             child: Text(
               'No folders found',
               style: AppTheme.bodyMedium.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -249,7 +249,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
             child: Text(
               'No decks found',
               style: AppTheme.bodyMedium.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -287,7 +287,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
                         Text(
                           '${deck.cardCount} cards',
                           style: AppTheme.bodySmall.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -321,7 +321,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
             child: Text(
               'No flashcards found',
               style: AppTheme.bodyMedium.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -343,7 +343,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
                   Text(
                     flashcard.answer,
                     style: AppTheme.bodyMedium.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

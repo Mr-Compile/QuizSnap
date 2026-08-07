@@ -329,7 +329,7 @@ class _FormatChip extends StatelessWidget {
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onTap(),
-      selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+      selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
       checkmarkColor: Theme.of(context).colorScheme.primary,
     );
   }
@@ -367,7 +367,7 @@ class _TypeChip extends StatelessWidget {
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onTap(),
-      selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+      selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
       checkmarkColor: Theme.of(context).colorScheme.primary,
     );
   }

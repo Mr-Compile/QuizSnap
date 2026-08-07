@@ -108,7 +108,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                 Text(
                   'Test your knowledge by answering questions from this deck.',
                   style: AppTheme.bodyMedium.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -160,7 +160,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                 if (_showAnswer) ...[
                   Container(
                     height: 1,
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                   ),
                   const SizedBox(height: AppTheme.spacingLg),
                   Text(
@@ -186,7 +186,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                   child: ElevatedButton(
                     onPressed: () => _handleAnswer(false),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.withOpacity(0.1),
+                      backgroundColor: Colors.red.withValues(alpha: 0.1),
                       foregroundColor: Colors.red,
                       padding: const EdgeInsets.all(AppTheme.spacingMd),
                     ),
@@ -198,7 +198,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                   child: ElevatedButton(
                     onPressed: () => _handleAnswer(true),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.withOpacity(0.1),
+                      backgroundColor: Colors.green.withValues(alpha: 0.1),
                       foregroundColor: Colors.green,
                       padding: const EdgeInsets.all(AppTheme.spacingMd),
                     ),
@@ -230,7 +230,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
         Expanded(
           child: LinearProgressIndicator(
             value: (_currentIndex + 1) / _flashcards.length,
-            backgroundColor: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+            backgroundColor: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
             valueColor: AlwaysStoppedAnimation<Color>(
               Theme.of(context).colorScheme.primary,
             ),
@@ -335,7 +335,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
         Text(
           label,
           style: AppTheme.bodySmall.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],

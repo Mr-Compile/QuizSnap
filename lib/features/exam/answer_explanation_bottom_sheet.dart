@@ -144,7 +144,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
           Text(
             'Question',
             style: AppTheme.labelMedium.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
@@ -275,7 +275,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
         color: Theme.of(context).colorScheme.surface,
         border: Border(
           top: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
           ),
         ),
       ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' as drift;
 import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -125,7 +125,7 @@ class _CreateTagDialogState extends State<CreateTagDialog> {
     
     try {
       await dbProvider.tagRepository.createTag(
-        drift.TagsCompanion(
+        TagsCompanion(
           name: drift.Value(_nameController.text.trim()),
           color: drift.Value(_selectedColor),
         ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drift/drift.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -81,7 +80,7 @@ class _TrashScreenState extends State<TrashScreen> {
             style: AppTheme.labelMedium.copyWith(
               color: isSelected
                   ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
             ),
           ),
@@ -166,7 +165,7 @@ class _TrashScreenState extends State<TrashScreen> {
                           Text(
                             'Deleted ${_formatDate(folder.deletedAt!)}',
                             style: AppTheme.bodySmall.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -249,7 +248,7 @@ class _TrashScreenState extends State<TrashScreen> {
                           Text(
                             'Deleted ${_formatDate(deck.deletedAt!)}',
                             style: AppTheme.bodySmall.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -314,7 +313,7 @@ class _TrashScreenState extends State<TrashScreen> {
                   Text(
                     flashcard.answer,
                     style: AppTheme.bodyMedium.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -324,7 +323,7 @@ class _TrashScreenState extends State<TrashScreen> {
                     Text(
                       'Deleted ${_formatDate(flashcard.deletedAt!)}',
                       style: AppTheme.bodySmall.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -370,23 +369,25 @@ class _TrashScreenState extends State<TrashScreen> {
     final dbProvider = context.read<DatabaseProvider>();
     try {
       await dbProvider.folderRepository.restoreFolder(id);
-      if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Folder restored successfully',
-        );
-        setState(() {});
-      }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error restoring folder: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      final errorColor = Theme.of(context).colorScheme.error;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error restoring folder: $e'),
+          backgroundColor: errorColor,
+        ),
+      );
+      return;
     }
+    
+    if (!mounted) return;
+    SuccessSnackbar.show(
+      context,
+      message: 'Folder restored successfully',
+    );
+    setState(() {});
   }
 
   void _permanentlyDeleteFolder(BuildContext context, int id) async {
@@ -410,23 +411,25 @@ class _TrashScreenState extends State<TrashScreen> {
     final dbProvider = context.read<DatabaseProvider>();
     try {
       await dbProvider.deckRepository.restoreDeck(id);
-      if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Deck restored successfully',
-        );
-        setState(() {});
-      }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error restoring deck: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      final errorColor = Theme.of(context).colorScheme.error;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error restoring deck: $e'),
+          backgroundColor: errorColor,
+        ),
+      );
+      return;
     }
+    
+    if (!mounted) return;
+    SuccessSnackbar.show(
+      context,
+      message: 'Deck restored successfully',
+    );
+    setState(() {});
   }
 
   void _permanentlyDeleteDeck(BuildContext context, int id) async {
@@ -451,23 +454,25 @@ class _TrashScreenState extends State<TrashScreen> {
     try {
       await dbProvider.flashcardRepository.restoreFlashcard(id);
       await dbProvider.deckRepository.updateDeckCardCount(deckId);
-      if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Flashcard restored successfully',
-        );
-        setState(() {});
-      }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error restoring flashcard: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      final errorColor = Theme.of(context).colorScheme.error;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error restoring flashcard: $e'),
+          backgroundColor: errorColor,
+        ),
+      );
+      return;
     }
+    
+    if (!mounted) return;
+    SuccessSnackbar.show(
+      context,
+      message: 'Flashcard restored successfully',
+    );
+    setState(() {});
   }
 
   void _permanentlyDeleteFlashcard(BuildContext context, int id) async {

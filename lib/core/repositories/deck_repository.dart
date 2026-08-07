@@ -15,9 +15,9 @@ class DeckRepository {
 
   Future<bool> updateDeck(Deck deck) => _database.updateDeck(deck);
 
-  Future<bool> deleteDeck(int id) => _database.deleteDeck(id);
+  Future<void> deleteDeck(int id) => _database.deleteDeck(id);
 
-  Future<bool> restoreDeck(int id) => _database.restoreDeck(id);
+  Future<void> restoreDeck(int id) => _database.restoreDeck(id);
 
   Future<List<Deck>> getDeletedDecks() => _database.getDeletedDecks();
 

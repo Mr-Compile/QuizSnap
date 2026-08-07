@@ -15,9 +15,9 @@ class FlashcardRepository {
 
   Future<bool> updateFlashcard(Flashcard flashcard) => _database.updateFlashcard(flashcard);
 
-  Future<bool> deleteFlashcard(int id) => _database.deleteFlashcard(id);
+  Future<void> deleteFlashcard(int id) => _database.deleteFlashcard(id);
 
-  Future<bool> restoreFlashcard(int id) => _database.restoreFlashcard(id);
+  Future<void> restoreFlashcard(int id) => _database.restoreFlashcard(id);
 
   Future<List<Flashcard>> getDeletedFlashcards() => _database.getDeletedFlashcards();
 

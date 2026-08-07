@@ -91,7 +91,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
                         Text(
                           flashcard.answer,
                           style: AppTheme.bodyMedium.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -102,13 +102,13 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
                             Icon(
                               Icons.reviews,
                               size: 14,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                             ),
                             const SizedBox(width: AppTheme.spacingXs),
                             Text(
                               '${flashcard.reviewCount} reviews',
                               style: AppTheme.bodySmall.copyWith(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                               ),
                             ),
                           ],

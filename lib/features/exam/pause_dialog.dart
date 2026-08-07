@@ -40,7 +40,7 @@ class PauseDialog extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppTheme.spacingMd),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.errorContainer.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(AppTheme.roundedMd),
             ),
             child: Row(

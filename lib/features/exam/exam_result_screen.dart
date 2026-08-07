@@ -106,12 +106,12 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            gradeColor.withOpacity(0.2),
-            gradeColor.withOpacity(0.1),
+            gradeColor.withValues(alpha: 0.2),
+            gradeColor.withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: gradeColor.withOpacity(0.3)),
+        border: Border.all(color: gradeColor.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -210,7 +210,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
           Text(
             '${(result.correctCount / result.questions.length * 100).toStringAsFixed(1)}% Correct',
             style: AppTheme.bodySmall.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -225,7 +225,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           ),
           child: Icon(icon, color: color),
@@ -285,7 +285,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
                 Text(
                   'Time Taken',
                   style: AppTheme.bodySmall.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 Text(

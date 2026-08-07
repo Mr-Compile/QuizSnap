@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../../core/theme/app_theme.dart';
 
 class CustomCard extends StatelessWidget {
   final Widget child;
@@ -29,7 +29,7 @@ class CustomCard extends StatelessWidget {
         vertical: AppTheme.spacingXs,
       ),
       color: color,
-      elevation: elevation ?? AppTheme.shadowSm,
+      elevation: elevation ?? 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
       ),

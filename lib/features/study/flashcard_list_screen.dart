@@ -64,7 +64,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
                         Text(
                           '${flashcards.length} cards',
                           style: AppTheme.labelMedium.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                         ElevatedButton.icon(
@@ -93,13 +93,13 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
                               const SizedBox(height: AppTheme.spacingSm),
                               Container(
                                 height: 1,
-                                color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                               ),
                               const SizedBox(height: AppTheme.spacingSm),
                               Text(
                                 flashcard.answer,
                                 style: AppTheme.bodyMedium.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                                 ),
                               ),
                               if (flashcard.isFavorite) ...[

@@ -101,7 +101,7 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
                                 Text(
                                   deck.description!,
                                   style: AppTheme.bodyMedium.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                                 ),
                               ],
@@ -199,7 +199,7 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
                                   Text(
                                     flashcard.answer,
                                     style: AppTheme.bodyMedium.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                     ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
@@ -238,7 +238,7 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
         Text(
           label,
           style: AppTheme.bodySmall.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],

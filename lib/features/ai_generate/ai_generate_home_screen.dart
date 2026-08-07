@@ -63,7 +63,7 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
               'Enter your Groq API key to enable AI-powered question generation',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 32),
@@ -140,7 +140,7 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
           Text(
             'Choose a document type to import and generate questions from',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 24),
@@ -205,7 +205,7 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(

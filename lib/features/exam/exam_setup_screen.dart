@@ -199,7 +199,7 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
                 onSelected: (selected) {
                   setState(() => _selectedQuestionCount = count);
                 },
-                selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                 checkmarkColor: Theme.of(context).colorScheme.primary,
               );
             }).toList(),
@@ -238,7 +238,7 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
                 onSelected: (selected) {
                   setState(() => _selectedTimeLimit = minutes);
                 },
-                selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                 checkmarkColor: Theme.of(context).colorScheme.primary,
               );
             }).toList(),
@@ -283,7 +283,7 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
 
   Widget _buildSummary() {
     return CustomCard(
-      color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+      color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -319,7 +319,7 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
           Text(
             label,
             style: AppTheme.bodyMedium.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           Text(

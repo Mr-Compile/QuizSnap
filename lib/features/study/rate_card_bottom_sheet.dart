@@ -23,7 +23,7 @@ class RateCardBottomSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -87,7 +87,7 @@ class RateCardBottomSheet extends StatelessWidget {
     return ElevatedButton(
       onPressed: () => onRated(quality),
       style: ElevatedButton.styleFrom(
-        backgroundColor: color.withOpacity(0.1),
+        backgroundColor: color.withValues(alpha: 0.1),
         foregroundColor: color,
         padding: const EdgeInsets.all(AppTheme.spacingMd),
         shape: RoundedRectangleBorder(
@@ -108,7 +108,7 @@ class RateCardBottomSheet extends StatelessWidget {
           Text(
             description,
             style: AppTheme.bodySmall.copyWith(
-              color: color.withOpacity(0.8),
+              color: color.withValues(alpha: 0.8),
             ),
           ),
         ],

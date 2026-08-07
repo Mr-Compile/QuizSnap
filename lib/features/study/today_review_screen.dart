@@ -106,7 +106,7 @@ class _TodayReviewScreenState extends State<TodayReviewScreen> {
                 Text(
                   'Review your cards to reinforce your memory using spaced repetition.',
                   style: AppTheme.bodyMedium.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -218,7 +218,7 @@ class _TodayReviewScreenState extends State<TodayReviewScreen> {
         Text(
           label,
           style: AppTheme.bodySmall.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],

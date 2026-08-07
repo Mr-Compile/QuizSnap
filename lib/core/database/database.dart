@@ -91,7 +91,7 @@ class QuizResults extends Table {
 
 @DriftDatabase(tables: [Folders, Decks, Flashcards, Tags, FlashcardTags, StudySessions, QuizResults])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase(QueryExecutor e) : super(e);
+  AppDatabase(super.e);
 
   @override
   int get schemaVersion => 3;
@@ -133,13 +133,17 @@ class AppDatabase extends _$AppDatabase {
 
   Future<bool> updateFolder(Folder folder) => update(folders).replace(folder);
 
-  Future<int> deleteFolder(int id) => update(folders)
-      .where((tbl) => tbl.id.equals(id))
-      .write(FoldersCompanion(deletedAt: Value(DateTime.now())));
+  Future<void> deleteFolder(int id) async {
+    await update(folders)
+        .where((tbl) => tbl.id.equals(id))
+        .write(FoldersCompanion(deletedAt: Value(DateTime.now())));
+  }
 
-  Future<int> restoreFolder(int id) => update(folders)
-      .where((tbl) => tbl.id.equals(id))
-      .write(FoldersCompanion(deletedAt: Value(null)));
+  Future<void> restoreFolder(int id) async {
+    await update(folders)
+        .where((tbl) => tbl.id.equals(id))
+        .write(FoldersCompanion(deletedAt: Value(null)));
+  }
 
   Future<List<Folder>> getDeletedFolders() => select(folders)
       .where((tbl) => tbl.deletedAt.isNotNull())
@@ -167,13 +171,17 @@ class AppDatabase extends _$AppDatabase {
 
   Future<bool> updateDeck(Deck deck) => update(decks).replace(deck);
 
-  Future<int> deleteDeck(int id) => update(decks)
-      .where((tbl) => tbl.id.equals(id))
-      .write(DecksCompanion(deletedAt: Value(DateTime.now())));
+  Future<void> deleteDeck(int id) async {
+    await update(decks)
+        .where((tbl) => tbl.id.equals(id))
+        .write(DecksCompanion(deletedAt: Value(DateTime.now())));
+  }
 
-  Future<int> restoreDeck(int id) => update(decks)
-      .where((tbl) => tbl.id.equals(id))
-      .write(DecksCompanion(deletedAt: Value(null)));
+  Future<void> restoreDeck(int id) async {
+    await update(decks)
+        .where((tbl) => tbl.id.equals(id))
+        .write(DecksCompanion(deletedAt: Value(null)));
+  }
 
   Future<List<Deck>> getDeletedDecks() => select(decks)
       .where((tbl) => tbl.deletedAt.isNotNull())
@@ -216,13 +224,17 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateFlashcard(Flashcard flashcard) =>
       update(flashcards).replace(flashcard);
 
-  Future<int> deleteFlashcard(int id) => update(flashcards)
-      .where((tbl) => tbl.id.equals(id))
-      .write(FlashcardsCompanion(deletedAt: Value(DateTime.now())));
+  Future<void> deleteFlashcard(int id) async {
+    await update(flashcards)
+        .where((tbl) => tbl.id.equals(id))
+        .write(FlashcardsCompanion(deletedAt: Value(DateTime.now())));
+  }
 
-  Future<int> restoreFlashcard(int id) => update(flashcards)
-      .where((tbl) => tbl.id.equals(id))
-      .write(FlashcardsCompanion(deletedAt: Value(null)));
+  Future<void> restoreFlashcard(int id) async {
+    await update(flashcards)
+        .where((tbl) => tbl.id.equals(id))
+        .write(FlashcardsCompanion(deletedAt: Value(null)));
+  }
 
   Future<List<Flashcard>> getDeletedFlashcards() => select(flashcards)
       .where((tbl) => tbl.deletedAt.isNotNull())

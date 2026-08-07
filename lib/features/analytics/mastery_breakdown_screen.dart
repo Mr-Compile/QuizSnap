@@ -177,7 +177,7 @@ class _MasteryBreakdownScreenState extends State<MasteryBreakdownScreen> {
                 Text(
                   '${item.count} cards',
                   style: AppTheme.bodySmall.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -268,7 +268,7 @@ class _MasteryBreakdownScreenState extends State<MasteryBreakdownScreen> {
               Text(
                 description,
                 style: AppTheme.bodySmall.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],

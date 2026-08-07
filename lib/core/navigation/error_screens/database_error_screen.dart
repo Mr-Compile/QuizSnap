@@ -33,7 +33,7 @@ class DatabaseErrorScreen extends StatelessWidget {
               Text(
                 'We\'re having trouble accessing your data. This might be due to a corrupted database or a temporary issue.',
                 style: AppTheme.bodyMedium.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),

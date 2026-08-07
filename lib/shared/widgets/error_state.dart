@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../../core/theme/app_theme.dart';
 
 class ErrorState extends StatelessWidget {
   final String message;
@@ -36,7 +36,7 @@ class ErrorState extends StatelessWidget {
             Text(
               message,
               style: AppTheme.bodyMedium.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),

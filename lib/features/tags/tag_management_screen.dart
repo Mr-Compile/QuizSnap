@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drift/drift.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -114,27 +113,29 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
       isDestructive: true,
     );
 
-    if (confirmed && mounted) {
-      final dbProvider = context.read<DatabaseProvider>();
-      try {
-        await dbProvider.tagRepository.deleteTag(tag.id);
-        if (mounted) {
-          SuccessSnackbar.show(
-            context,
-            message: 'Tag deleted successfully',
-          );
-          setState(() {});
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error deleting tag: $e'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
-      }
+    if (!confirmed) return;
+    
+    final dbProvider = context.read<DatabaseProvider>();
+    try {
+      await dbProvider.tagRepository.deleteTag(tag.id);
+    } catch (e) {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      final errorColor = Theme.of(context).colorScheme.error;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Error deleting tag: $e'),
+          backgroundColor: errorColor,
+        ),
+      );
+      return;
     }
+    
+    if (!mounted) return;
+    SuccessSnackbar.show(
+      context,
+      message: 'Tag deleted successfully',
+    );
+    setState(() {});
   }
 }

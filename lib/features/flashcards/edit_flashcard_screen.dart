@@ -152,6 +152,8 @@ class _EditFlashcardScreenState extends State<EditFlashcardScreen> with BackButt
       return;
     }
 
+    setState(() => _isSaving = true);
+
     final dbProvider = context.read<DatabaseProvider>();
     
     try {
@@ -180,6 +182,10 @@ class _EditFlashcardScreenState extends State<EditFlashcardScreen> with BackButt
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
       }
     }
   }

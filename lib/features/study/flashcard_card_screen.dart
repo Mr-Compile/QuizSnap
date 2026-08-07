@@ -78,7 +78,7 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                   borderRadius: BorderRadius.circular(AppTheme.radiusLg),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -116,7 +116,7 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                       Container(
                         width: double.infinity,
                         height: 2,
-                        color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                       ),
                       Expanded(
                         child: Padding(
@@ -176,7 +176,7 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
           Expanded(
             child: LinearProgressIndicator(
               value: (widget.currentIndex + 1) / widget.flashcards.length,
-              backgroundColor: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+              backgroundColor: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
               valueColor: AlwaysStoppedAnimation<Color>(
                 Theme.of(context).colorScheme.primary,
               ),

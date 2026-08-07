@@ -143,14 +143,14 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
           Text(
             period,
             style: AppTheme.bodySmall.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
             '$sessions sessions',
             style: AppTheme.bodySmall.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
             ),
           ),
         ],
@@ -184,7 +184,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
           Text(
             'Daily Goal',
             style: AppTheme.bodySmall.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
@@ -192,7 +192,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation<Color>(
                 Theme.of(context).colorScheme.primary,
               ),
@@ -228,7 +228,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                   drawVerticalLine: false,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                       strokeWidth: 1,
                     );
                   },
@@ -251,7 +251,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                         return Text(
                           labels[index],
                           style: AppTheme.bodySmall.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         );
                       },
@@ -265,7 +265,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                         return Text(
                           '${value.toInt()}m',
                           style: AppTheme.bodySmall.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         );
                       },

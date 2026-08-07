@@ -168,7 +168,7 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
                                 vertical: AppTheme.spacingXs,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.1),
+                                color: Colors.green.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                                 border: Border.all(color: Colors.green),
                               ),

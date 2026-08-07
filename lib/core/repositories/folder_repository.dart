@@ -13,9 +13,9 @@ class FolderRepository {
 
   Future<bool> updateFolder(Folder folder) => _database.updateFolder(folder);
 
-  Future<bool> deleteFolder(int id) => _database.deleteFolder(id);
+  Future<void> deleteFolder(int id) => _database.deleteFolder(id);
 
-  Future<bool> restoreFolder(int id) => _database.restoreFolder(id);
+  Future<void> restoreFolder(int id) => _database.restoreFolder(id);
 
   Future<List<Folder>> getDeletedFolders() => _database.getDeletedFolders();
 

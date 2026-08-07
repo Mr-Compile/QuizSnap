@@ -65,7 +65,7 @@ class SubmitConfirmationDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppTheme.spacingMd),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.warningContainer.withOpacity(0.3),
+                color: Theme.of(context).colorScheme.warningContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               ),
               child: Row(
@@ -114,9 +114,9 @@ class SubmitConfirmationDialog extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingMd),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -129,7 +129,7 @@ class SubmitConfirmationDialog extends StatelessWidget {
                 Text(
                   label,
                   style: AppTheme.bodySmall.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
                 Text(

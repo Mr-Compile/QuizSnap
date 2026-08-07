@@ -89,7 +89,7 @@ class _FolderListScreenState extends State<FolderListScreen> {
                                 Text(
                                   folder.description!,
                                   style: AppTheme.bodySmall.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -100,7 +100,7 @@ class _FolderListScreenState extends State<FolderListScreen> {
                         ),
                         Icon(
                           Icons.chevron_right,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                         ),
                       ],
                     ),

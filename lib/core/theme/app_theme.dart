@@ -155,6 +155,8 @@ class AppTheme {
   static const Color darkPage = Color(0xFF0F172A);
   static const Color darkInput = Color(0xFF1E293B);
   static const Color darkHover = Color(0xFF334155);
+  static const Color darkSurfaceVariant = Color(0xFF1E293B);
+  static const Color lightSurfaceVariant = Color(0xFFF1F5F9);
 
   // PinoyPOS Warm Theme Colors - Replaced warm orange with white/neutral
   static const Color cream50 = Color(0xFFFEFCF5);
@@ -194,6 +196,9 @@ class AppTheme {
   static const Color bambooGreen800 = Color(0xFF166534);
   static const Color bambooGreen900 = Color(0xFF14532D);
   static const Color bambooGreen950 = Color(0xFF052E16);
+
+  // Convenience alias for bambooGreen
+  static const Color bambooGreen = bambooGreen600;
 
   // Design Tokens - Spacing
   static const double spacing0 = 0;
@@ -295,6 +300,9 @@ class AppTheme {
     fontWeight: fontSemiBold,
   );
 
+  // Alias for compatibility
+  static const TextStyle textMedium = titleMedium;
+
   static const TextStyle labelLarge = TextStyle(
     fontSize: textBase,
     fontWeight: fontMedium,
@@ -324,6 +332,9 @@ class AppTheme {
     fontSize: textSm,
     fontWeight: fontNormal,
   );
+
+  // Alias for compatibility
+  static const TextStyle textSmall = bodySmall;
 
   // Design Tokens - Shadows
   static List<BoxShadow> get shadowSm => [

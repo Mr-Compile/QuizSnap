@@ -80,7 +80,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
           Container(
             padding: const EdgeInsets.all(AppTheme.spacingLg),
             decoration: BoxDecoration(
-              color: accuracyColor.withOpacity(0.1),
+              color: accuracyColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -112,7 +112,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
           Text(
             '${deckAccuracies.length} decks',
             style: AppTheme.bodySmall.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -128,13 +128,13 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
             Icon(
               Icons.folder_open,
               size: 48,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: AppTheme.spacingMd),
             Text(
               'No decks available',
               style: AppTheme.bodyMedium.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -164,7 +164,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
                   horizontalInterval: 20,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                       strokeWidth: 1,
                     );
                   },
@@ -192,7 +192,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
                                 ? '${deck.deckName.substring(0, 10)}...'
                                 : deck.deckName,
                             style: AppTheme.bodySmall.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         );
@@ -208,7 +208,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
                         return Text(
                           '${value.toInt()}%',
                           style: AppTheme.bodySmall.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         );
                       },
@@ -295,7 +295,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
                   vertical: AppTheme.spacingXs,
                 ),
                 decoration: BoxDecoration(
-                  color: accuracyColor.withOpacity(0.1),
+                  color: accuracyColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Text(
@@ -313,7 +313,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             child: LinearProgressIndicator(
               value: accuracy / 100,
-              backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation<Color>(accuracyColor),
               minHeight: 8,
             ),
@@ -324,13 +324,13 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
               Icon(
                 Icons.style,
                 size: 16,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               const SizedBox(width: AppTheme.spacingXs),
               Text(
                 '${deck.totalCards} cards',
                 style: AppTheme.bodySmall.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],

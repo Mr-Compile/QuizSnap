@@ -229,8 +229,8 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
             vertical: AppTheme.spacingXs,
           ),
           decoration: BoxDecoration(
-            color: isLow 
-                ? Colors.red.withOpacity(0.1)
+            color: isLow
+                ? Colors.red.withValues(alpha: 0.1)
                 : Theme.of(context).colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           ),
@@ -330,12 +330,12 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
                 border: Border.all(
                   color: isSelected
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                      : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                   width: isSelected ? 2 : 1,
                 ),
                 borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                 color: isSelected
-                    ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                     : null,
               ),
               child: Row(

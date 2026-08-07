@@ -84,7 +84,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
           Container(
             padding: const EdgeInsets.all(AppTheme.spacingMd),
             decoration: BoxDecoration(
-              color: trendColor.withOpacity(0.1),
+              color: trendColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -230,7 +230,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
           Container(
             padding: const EdgeInsets.all(AppTheme.spacingMd),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             ),
             child: Icon(
@@ -258,7 +258,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 Text(
                   insight.description,
                   style: AppTheme.bodySmall.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -282,7 +282,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         vertical: 2,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusXs),
       ),
       child: Text(

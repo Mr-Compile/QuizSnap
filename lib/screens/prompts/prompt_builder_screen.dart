@@ -124,21 +124,6 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
     );
   }
 
-  Color _getTypeColor(PromptType type) {
-    switch (type) {
-      case PromptType.multipleChoice:
-        return AppTheme.bambooGreen600;
-      case PromptType.identification:
-        return AppTheme.blue600;
-      case PromptType.enumeration:
-        return AppTheme.purple600;
-      case PromptType.examSimulation:
-        return AppTheme.amber600;
-      case PromptType.explanation:
-        return AppTheme.red600;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -513,7 +498,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<T>(
-          value: value,
+          initialValue: value,
           items: items.map((item) {
             String displayName;
             if (item is PromptType) {
@@ -607,7 +592,7 @@ class _TemplateTile extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: _getTypeColor(template.type).withValues(alpha: 0.1),
+                color: AppTheme.bambooGreen600.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -643,12 +628,6 @@ class _TemplateTile extends StatelessWidget {
                 ],
               ),
             ),
-            if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: AppTheme.bambooGreen600,
-              ),
-          ],
             const SizedBox(width: 16),
             Expanded(
               child: Column(

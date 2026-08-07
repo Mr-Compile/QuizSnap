@@ -80,7 +80,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
         Text(
           greeting,
           style: AppTheme.headlineSmall.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         const SizedBox(height: AppTheme.spacingXs),
@@ -150,7 +150,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
         Container(
           padding: const EdgeInsets.all(AppTheme.spacingSm),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           ),
           child: Icon(
@@ -171,7 +171,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
         Text(
           label,
           style: AppTheme.bodySmall.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -197,15 +197,15 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
                   color: stats.dueToday > 0
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                      : Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Icon(
                   Icons.today,
                   color: stats.dueToday > 0
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
               ),
               const SizedBox(width: AppTheme.spacingMd),
@@ -223,7 +223,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                           ? '$stats.dueToday cards due'
                           : 'No cards due today',
                       style: AppTheme.bodySmall.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -232,7 +232,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               if (stats.dueToday > 0)
                 Icon(
                   Icons.chevron_right,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
             ],
           ),
@@ -257,7 +257,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: const Icon(
@@ -278,7 +278,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                     Text(
                       'Study your favorite cards',
                       style: AppTheme.bodySmall.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -286,7 +286,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               ),
               Icon(
                 Icons.chevron_right,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ],
           ),
@@ -299,7 +299,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
-                  color: Colors.purple.withOpacity(0.1),
+                  color: Colors.purple.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: const Icon(
@@ -320,7 +320,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                     Text(
                       'Choose a deck to study',
                       style: AppTheme.bodySmall.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -328,7 +328,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               ),
               Icon(
                 Icons.chevron_right,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ],
           ),

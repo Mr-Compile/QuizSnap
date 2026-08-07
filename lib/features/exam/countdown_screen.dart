@@ -82,7 +82,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               Theme.of(context).colorScheme.surface,
             ],
           ),
@@ -132,7 +132,7 @@ class _CountdownScreenState extends State<CountdownScreen> {
                     color: Theme.of(context).colorScheme.primary,
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                         blurRadius: 20,
                         spreadRadius: 10,
                       ),
@@ -189,13 +189,13 @@ class _CountdownScreenState extends State<CountdownScreen> {
         children: [
           Icon(
             icon,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
           const SizedBox(width: AppTheme.spacingSm),
           Text(
             text,
             style: AppTheme.bodyLarge.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
             ),
           ),
         ],

@@ -92,7 +92,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
           Text(
             _errorMessage ?? 'Unknown error',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
             textAlign: TextAlign.center,
           ),

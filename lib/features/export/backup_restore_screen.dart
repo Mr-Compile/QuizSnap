@@ -157,7 +157,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
         Text(
           label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
         ),
         Text(
@@ -452,7 +452,7 @@ class _BackupListItem extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _getStatusColor().withOpacity(0.1),
+                color: _getStatusColor().withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -476,7 +476,7 @@ class _BackupListItem extends StatelessWidget {
                   Text(
                     '${backup.typeDisplay} • ${backup.fileSizeDisplay}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                   ),
                 ],

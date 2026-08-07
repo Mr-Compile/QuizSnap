@@ -126,7 +126,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
         Text(
           label,
           style: AppTheme.bodySmall.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -141,13 +141,13 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
             Icon(
               Icons.quiz_outlined,
               size: 48,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: AppTheme.spacingMd),
             Text(
               'No quiz results yet',
               style: AppTheme.bodyMedium.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -174,7 +174,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
                   horizontalInterval: 20,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                       strokeWidth: 1,
                     );
                   },
@@ -199,7 +199,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
                         return Text(
                           '${value.toInt()}%',
                           style: AppTheme.bodySmall.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         );
                       },
@@ -215,7 +215,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
                     isCurved: true,
                     gradient: LinearGradient(
                       colors: [
-                        Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
                         Theme.of(context).colorScheme.primary,
                       ],
                     ),
@@ -290,7 +290,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
           Container(
             padding: const EdgeInsets.all(AppTheme.spacingSm),
             decoration: BoxDecoration(
-              color: scoreColor.withOpacity(0.1),
+              color: scoreColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             ),
             child: Text(
@@ -314,7 +314,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
                 Text(
                   '${result.durationSeconds ~/ 60} min',
                   style: AppTheme.bodySmall.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -323,7 +323,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
           Text(
             result.quizType,
             style: AppTheme.bodySmall.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],

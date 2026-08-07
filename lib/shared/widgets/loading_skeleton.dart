@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../../core/theme/app_theme.dart';
 
 class LoadingSkeleton extends StatelessWidget {
   final double? height;
@@ -19,7 +19,7 @@ class LoadingSkeleton extends StatelessWidget {
       height: height,
       width: width,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
         borderRadius: borderRadius ?? BorderRadius.circular(AppTheme.radiusSm),
       ),
     );

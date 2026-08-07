@@ -23,11 +23,13 @@ class _LoadingScreenState extends State<LoadingScreen> {
     try {
       // Step 1: Load theme preference
       await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
       final themeProvider = context.read<ThemeProvider>();
       await themeProvider.loadThemePreference();
 
       // Step 2: Open SQLite database
       await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
       final databaseProvider = context.read<DatabaseProvider>();
       await databaseProvider.initialize();
 
@@ -46,15 +48,15 @@ class _LoadingScreenState extends State<LoadingScreen> {
       // Step 6: Navigate to appropriate screen
       await Future.delayed(const Duration(milliseconds: 500));
       
-      if (mounted) {
-        // Check if this is first launch
-        final isFirstLaunch = await _checkFirstLaunch();
-        
-        if (isFirstLaunch) {
-          Navigator.pushReplacementNamed(context, '/onboarding');
-        } else {
-          Navigator.pushReplacementNamed(context, '/home');
-        }
+      if (!mounted) return;
+      // Check if this is first launch
+      final isFirstLaunch = await _checkFirstLaunch();
+      
+      if (!mounted) return;
+      if (isFirstLaunch) {
+        Navigator.pushReplacementNamed(context, '/onboarding');
+      } else {
+        Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
       // Handle initialization error

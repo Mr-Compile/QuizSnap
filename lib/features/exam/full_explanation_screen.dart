@@ -197,13 +197,13 @@ class FullExplanationScreen extends StatelessWidget {
             Icon(
               Icons.info_outline,
               size: 48,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: AppTheme.spacingMd),
             Text(
               'No explanation available',
               style: AppTheme.bodyLarge.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -303,7 +303,7 @@ class FullExplanationScreen extends StatelessWidget {
             'Review similar questions to reinforce your understanding of this topic. '
             'Consider creating flashcards for concepts you find challenging.',
             style: AppTheme.bodyLarge.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
             ),
           ),
         ],

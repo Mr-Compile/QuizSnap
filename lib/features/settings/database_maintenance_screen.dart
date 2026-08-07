@@ -174,9 +174,9 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
                       vertical: AppTheme.spacingXs,
                     ),
                     decoration: BoxDecoration(
-                      color: _integrityReport!.isHealthy 
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.orange.withOpacity(0.1),
+                      color: _integrityReport!.isHealthy
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                       border: Border.all(
                         color: _integrityReport!.isHealthy ? Colors.green : Colors.orange,
@@ -327,9 +327,9 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
-                  color: _maintenanceResult!.success 
-                      ? Colors.green.withOpacity(0.1)
-                      : Colors.red.withOpacity(0.1),
+                  color: _maintenanceResult!.success
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : Colors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   border: Border.all(
                     color: _maintenanceResult!.success ? Colors.green : Colors.red,

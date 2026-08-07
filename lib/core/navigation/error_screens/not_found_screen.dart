@@ -41,7 +41,7 @@ class NotFoundScreen extends StatelessWidget {
               Text(
                 'The page you\'re looking for doesn\'t exist or has been moved.',
                 style: AppTheme.bodyMedium.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),

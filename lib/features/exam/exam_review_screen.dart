@@ -124,7 +124,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? Colors.white.withOpacity(0.3)
+                              ? Colors.white.withValues(alpha: 0.3)
                               : Theme.of(context).colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -179,13 +179,13 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
             Icon(
               _getEmptyIcon(filter),
               size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: AppTheme.spacingLg),
             Text(
               _getEmptyMessage(filter),
               style: AppTheme.bodyLarge.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -328,11 +328,11 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
         IconData? trailingIcon;
 
         if (isCorrectAnswer) {
-          backgroundColor = AppTheme.emerald600.withOpacity(0.1);
+          backgroundColor = AppTheme.emerald600.withValues(alpha: 0.1);
           borderColor = AppTheme.emerald600;
           trailingIcon = Icons.check;
         } else if (isSelected && !isUnanswered) {
-          backgroundColor = AppTheme.red600.withOpacity(0.1);
+          backgroundColor = AppTheme.red600.withValues(alpha: 0.1);
           borderColor = AppTheme.red600;
           trailingIcon = Icons.close;
         }
@@ -342,7 +342,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
           padding: const EdgeInsets.all(AppTheme.spacingMd),
           decoration: BoxDecoration(
             border: Border.all(
-              color: borderColor ?? Theme.of(context).colorScheme.outline.withOpacity(0.3),
+              color: borderColor ?? Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
               width: 1.5,
             ),
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
@@ -355,7 +355,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
                 height: 28,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: borderColor?.withOpacity(0.2) ?? 
+                  color: borderColor?.withValues(alpha: 0.2) ??
                       Theme.of(context).colorScheme.surfaceVariant,
                   border: Border.all(color: borderColor ?? Colors.grey),
                 ),

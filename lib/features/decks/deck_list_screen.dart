@@ -90,13 +90,13 @@ class _DeckListScreenState extends State<DeckListScreen> {
                                   Icon(
                                     Icons.credit_card,
                                     size: 14,
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                                   const SizedBox(width: AppTheme.spacingXs),
                                   Text(
                                     '${deck.cardCount} cards',
                                     style: AppTheme.bodySmall.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                     ),
                                   ),
                                 ],
@@ -106,7 +106,7 @@ class _DeckListScreenState extends State<DeckListScreen> {
                         ),
                         Icon(
                           Icons.chevron_right,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                         ),
                       ],
                     ),

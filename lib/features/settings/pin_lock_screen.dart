@@ -148,7 +148,7 @@ class _PinLockScreenState extends State<PinLockScreen> {
                             hintStyle: TextStyle(
                               fontSize: 32,
                               letterSpacing: 8,
-                              color: Colors.grey.withOpacity(0.3),
+                              color: Colors.grey.withValues(alpha: 0.3),
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -215,7 +215,7 @@ class _PinLockScreenState extends State<PinLockScreen> {
                           onPressed: _attemptBiometricUnlock,
                           icon: const Icon(Icons.fingerprint, size: 48),
                           style: IconButton.styleFrom(
-                            backgroundColor: AppTheme.bambooGreen600.withOpacity(0.1),
+                            backgroundColor: AppTheme.bambooGreen600.withValues(alpha: 0.1),
                           ),
                         ),
                         const SizedBox(height: AppTheme.spacingSm),

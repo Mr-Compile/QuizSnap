@@ -90,7 +90,7 @@ class _AssignTagsBottomSheetState extends State<AssignTagsBottomSheet> {
                         child: Text(
                           'No tags available. Create tags first.',
                           style: AppTheme.bodyMedium.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           textAlign: TextAlign.center,
                         ),

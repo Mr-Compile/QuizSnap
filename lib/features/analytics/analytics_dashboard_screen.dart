@@ -141,7 +141,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacing2),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.roundedSm),
                 ),
                 child: Icon(
@@ -164,7 +164,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -236,7 +236,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -361,7 +361,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           Container(
             padding: const EdgeInsets.all(AppTheme.spacing4),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.roundedSm),
             ),
             child: Icon(
@@ -383,7 +383,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -391,7 +391,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           ),
           Icon(
             Icons.chevron_right,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
           ),
         ],
       ),

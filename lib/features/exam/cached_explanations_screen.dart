@@ -232,10 +232,10 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
         border: Border(
           bottom: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
           ),
         ),
       ),
@@ -274,7 +274,7 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
         Text(
           label,
           style: AppTheme.bodySmall.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -287,8 +287,8 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
 
     return CustomCard(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
-      color: isExpired 
-          ? Theme.of(context).colorScheme.errorContainer.withOpacity(0.2)
+      color: isExpired
+          ? Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.2)
           : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,9 +331,9 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
                         Icon(
                           Icons.schedule,
                           size: 14,
-                          color: isExpired 
-                              ? Colors.grey 
-                              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          color: isExpired
+                              ? Colors.grey
+                              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -343,9 +343,9 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
                                   ? 'Today'
                                   : '$daysSinceCache days ago',
                           style: AppTheme.bodySmall.copyWith(
-                            color: isExpired 
-                                ? Colors.grey 
-                                : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: isExpired
+                                ? Colors.grey
+                                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],

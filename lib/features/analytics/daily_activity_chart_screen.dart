@@ -82,7 +82,7 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
           _selectedDays = days;
         });
       },
-      selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+      selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
       checkmarkColor: Theme.of(context).colorScheme.primary,
     );
   }
@@ -107,7 +107,7 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
                   horizontalInterval: _calculateMaxY(activities) / 5,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                       strokeWidth: 1,
                     );
                   },
@@ -133,7 +133,7 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
                         return Text(
                           date,
                           style: AppTheme.bodySmall.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         );
                       },
@@ -148,7 +148,7 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
                         return Text(
                           value.toInt().toString(),
                           style: AppTheme.bodySmall.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         );
                       },
@@ -164,7 +164,7 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
                     isCurved: true,
                     gradient: LinearGradient(
                       colors: [
-                        Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
                         Theme.of(context).colorScheme.primary,
                       ],
                     ),
@@ -175,8 +175,8 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
                       show: true,
                       gradient: LinearGradient(
                         colors: [
-                          Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                          Theme.of(context).colorScheme.primary.withOpacity(0.0),
+                          Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                          Theme.of(context).colorScheme.primary.withValues(alpha: 0.0),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -318,7 +318,7 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
           Text(
             label,
             style: AppTheme.bodySmall.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),

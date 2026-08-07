@@ -77,7 +77,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
           Text(
             'All your decks are performing well. Keep up the good work!',
             style: AppTheme.bodyMedium.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -139,7 +139,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             child: LinearProgressIndicator(
               value: accuracy / 100,
-              backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation<Color>(accuracyColor),
               minHeight: 8,
             ),
@@ -148,7 +148,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
           Text(
             '${topic.totalCards} cards',
             style: AppTheme.bodySmall.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -183,7 +183,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
                   horizontalInterval: 20,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                       strokeWidth: 1,
                     );
                   },
@@ -211,7 +211,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
                                 ? '${deck.deckName.substring(0, 10)}...'
                                 : deck.deckName,
                             style: AppTheme.bodySmall.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         );
@@ -227,7 +227,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
                         return Text(
                           '${value.toInt()}%',
                           style: AppTheme.bodySmall.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         );
                       },
@@ -339,7 +339,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
               Text(
                 description,
                 style: AppTheme.bodySmall.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
