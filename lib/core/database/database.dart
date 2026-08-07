@@ -133,20 +133,20 @@ class AppDatabase extends _$AppDatabase {
 
   Future<bool> updateFolder(Folder folder) => update(folders).replace(folder);
 
-  Future<int> deleteFolder(int id) async => await update(folders)
+  Future<void> deleteFolder(int id) async => await update(folders)
         .where((tbl) => tbl.id.equals(id))
         .write(FoldersCompanion(deletedAt: Value(DateTime.now())));
 
-  Future<int> restoreFolder(int id) async => await update(folders)
+  Future<void> restoreFolder(int id) => update(folders)
         .where((tbl) => tbl.id.equals(id))
         .write(FoldersCompanion(deletedAt: Value(null)));
 
-  Future<List<Folder>> getDeletedFolders() => select(folders)
-      .where((tbl) => tbl.deletedAt.isNotNull())
-      .orderBy([(tbl) => OrderingTerm.desc(tbl.deletedAt)])
-      .get();
+  Future<List<Folder>> getDeletedFolders() => (select(folders)
+      ..where((tbl) => tbl.deletedAt.isNotNull())
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.deletedAt)]))
+    .get();
 
-  Future<int> permanentlyDeleteFolder(int id) => delete(folders).where((tbl) => tbl.id.equals(id)).go();
+  Future<int> permanentlyDeleteFolder(int id) => (delete(folders).where((tbl) => tbl.id.equals(id))).go();
 
   // Deck Queries
   Future<List<Deck>> getAllDecks() => (select(decks)
@@ -169,20 +169,20 @@ class AppDatabase extends _$AppDatabase {
 
   Future<bool> updateDeck(Deck deck) => update(decks).replace(deck);
 
-  Future<int> deleteDeck(int id) async => await update(decks)
+  Future<void> deleteDeck(int id) async => await update(decks)
         .where((tbl) => tbl.id.equals(id))
         .write(DecksCompanion(deletedAt: Value(DateTime.now())));
 
-  Future<int> restoreDeck(int id) async => await update(decks)
+  Future<void> restoreDeck(int id) async => await update(decks)
         .where((tbl) => tbl.id.equals(id))
         .write(DecksCompanion(deletedAt: Value(null)));
 
-  Future<List<Deck>> getDeletedDecks() => select(decks)
-      .where((tbl) => tbl.deletedAt.isNotNull())
-      .orderBy([(tbl) => OrderingTerm.desc(tbl.deletedAt)])
-      .get();
+  Future<List<Deck>> getDeletedDecks() => (select(decks)
+      ..where((tbl) => tbl.deletedAt.isNotNull())
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.deletedAt)]))
+    .get();
 
-  Future<int> permanentlyDeleteDeck(int id) => delete(decks).where((tbl) => tbl.id.equals(id)).go();
+  Future<int> permanentlyDeleteDeck(int id) => (delete(decks).where((tbl) => tbl.id.equals(id))).go();
 
   Future<int> updateDeckCardCount(int deckId) async {
     final cards = await (select(flashcards)
@@ -191,16 +191,17 @@ class AppDatabase extends _$AppDatabase {
         .get();
     final count = cards.length;
 
-    return update(decks)
+    await update(decks)
         .where((tbl) => tbl.id.equals(deckId))
         .write(DecksCompanion(cardCount: Value(count)));
+    return count;
   }
 
   // Flashcard Queries
-  Future<List<Flashcard>> getAllFlashcards() => select(flashcards)
-      .where((tbl) => tbl.deletedAt.isNull())
-      .orderBy([(tbl) => OrderingTerm.asc(tbl.order)])
-      .get();
+  Future<List<Flashcard>> getAllFlashcards() => (select(flashcards)
+      ..where((tbl) => tbl.deletedAt.isNull())
+      ..orderBy([(tbl) => OrderingTerm.asc(tbl.order)]))
+    .get();
 
   Future<List<Flashcard>> getFlashcardsByDeck(int deckId) => (select(flashcards)
         ..where((tbl) => tbl.deckId.equals(deckId))
@@ -219,32 +220,36 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateFlashcard(Flashcard flashcard) =>
       update(flashcards).replace(flashcard);
 
-  Future<int> deleteFlashcard(int id) async => await update(flashcards)
+  Future<void> deleteFlashcard(int id) async {
+    await update(flashcards)
         .where((tbl) => tbl.id.equals(id))
         .write(FlashcardsCompanion(deletedAt: Value(DateTime.now())));
+  }
 
-  Future<int> restoreFlashcard(int id) async => await update(flashcards)
+  Future<void> restoreFlashcard(int id) async {
+    await update(flashcards)
         .where((tbl) => tbl.id.equals(id))
         .write(FlashcardsCompanion(deletedAt: Value(null)));
+  }
 
-  Future<List<Flashcard>> getDeletedFlashcards() => select(flashcards)
-      .where((tbl) => tbl.deletedAt.isNotNull())
-      .orderBy([(tbl) => OrderingTerm.desc(tbl.deletedAt)])
-      .get();
+  Future<List<Flashcard>> getDeletedFlashcards() => (select(flashcards)
+      ..where((tbl) => tbl.deletedAt.isNotNull())
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.deletedAt)]))
+    .get();
 
-  Future<int> permanentlyDeleteFlashcard(int id) => delete(flashcards).where((tbl) => tbl.id.equals(id)).go();
+  Future<int> permanentlyDeleteFlashcard(int id) => (delete(flashcards).where((tbl) => tbl.id.equals(id))).go();
 
-  Future<List<Flashcard>> getFavoriteFlashcards() => select(flashcards)
-      .where((tbl) => tbl.isFavorite.equals(true))
-      .where((tbl) => tbl.deletedAt.isNull())
-      .orderBy([(tbl) => OrderingTerm.desc(tbl.lastReviewedAt)])
-      .get();
+  Future<List<Flashcard>> getFavoriteFlashcards() => (select(flashcards)
+      ..where((tbl) => tbl.isFavorite.equals(true))
+      ..where((tbl) => tbl.deletedAt.isNull())
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.lastReviewedAt)]))
+    .get();
 
-  Future<List<Flashcard>> getFlashcardsDueForReview() => select(flashcards)
-      .where((tbl) => tbl.nextReviewAt.isSmallerThanValue(DateTime.now()))
-      .where((tbl) => tbl.deletedAt.isNull())
-      .orderBy([(tbl) => OrderingTerm.asc(tbl.nextReviewAt)])
-      .get();
+  Future<List<Flashcard>> getFlashcardsDueForReview() => (select(flashcards)
+      ..where((tbl) => tbl.nextReviewAt.isSmallerThanValue(DateTime.now()))
+      ..where((tbl) => tbl.deletedAt.isNull())
+      ..orderBy([(tbl) => OrderingTerm.asc(tbl.nextReviewAt)]))
+    .get();
 
   Future<void> updateFlashcardReview(int id, bool correct) async {
     final flashcard = await getFlashcardById(id);
@@ -328,19 +333,19 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // Tag Queries
-  Future<List<Tag>> getAllTags() => select(tags)
-        .orderBy([(tbl) => OrderingTerm.asc(tbl.name)])
-        .get();
+  Future<List<Tag>> getAllTags() => (select(tags)
+        ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
+      .get();
 
-  Future<Tag> getTagById(int id) async => await (select(tags)
+  Future<Tag> getTagById(int id) => (select(tags)
         ..where((tbl) => tbl.id.equals(id)))
       .getSingle();
 
-  Future<int> createTag(TagsCompanion tag) async => await into(tags).insert(tag);
+  Future<int> createTag(TagsCompanion tag) => into(tags).insert(tag);
 
-  Future<bool> updateTag(Tag tag) async => await update(tags).replace(tag);
+  Future<bool> updateTag(Tag tag) => update(tags).replace(tag);
 
-  Future<int> deleteTag(int id) => delete(tags).where((tbl) => tbl.id.equals(id)).go();
+  Future<int> deleteTag(int id) => (delete(tags).where((tbl) => tbl.id.equals(id))).go();
 
   // Flashcard Tag Queries
   Future<List<Tag>> getTagsForFlashcard(int flashcardId) {
@@ -363,13 +368,13 @@ class AppDatabase extends _$AppDatabase {
           ), mode: InsertMode.insertOrIgnore);
 
   Future<int> removeTagFromFlashcard(int flashcardId, int tagId) =>
-      delete(flashcardTags)
-          .where((tbl) => tbl.flashcardId.equals(flashcardId))
-          .where((tbl) => tbl.tagId.equals(tagId))
-          .go();
+      (delete(flashcardTags)
+          ..where((tbl) => tbl.flashcardId.equals(flashcardId))
+          ..where((tbl) => tbl.tagId.equals(tagId)))
+        .go();
 
   Future<void> setFlashcardTags(int flashcardId, List<int> tagIds) async {
-    delete(flashcardTags)
+    await delete(flashcardTags)
         .where((tbl) => tbl.flashcardId.equals(flashcardId))
         .go();
 
@@ -384,26 +389,26 @@ class AppDatabase extends _$AppDatabase {
       into(flashcardTags).insert(flashcardTag);
 
   Future<int> deleteFlashcardTag(int flashcardId, int tagId) =>
-      delete(flashcardTags)
-          .where((tbl) => tbl.flashcardId.equals(flashcardId))
-          .where((tbl) => tbl.tagId.equals(tagId))
-          .go();
+      (delete(flashcardTags)
+          ..where((tbl) => tbl.flashcardId.equals(flashcardId))
+          ..where((tbl) => tbl.tagId.equals(tagId)))
+        .go();
 
-  Future<List<StudySession>> getAllStudySessions() => select(studySessions).get();
+  Future<List<StudySession>> getAllStudySessions() => (select(studySessions)).get();
 
-  Future<List<QuizResult>> getAllQuizResults() => select(quizResults).get();
+  Future<List<QuizResult>> getAllQuizResults() => (select(quizResults)).get();
 
   Future<int> createStudySession(StudySessionsCompanion session) =>
       into(studySessions).insert(session);
 
   // Delete all methods for backup restore
-  Future<int> deleteAllQuizResults() => delete(quizResults).go();
-  Future<int> deleteAllStudySessions() => delete(studySessions).go();
-  Future<int> deleteAllFlashcardTags() => delete(flashcardTags).go();
-  Future<int> deleteAllFlashcards() => delete(flashcards).go();
-  Future<int> deleteAllDecks() => delete(decks).go();
-  Future<int> deleteAllTags() => delete(tags).go();
-  Future<int> deleteAllFolders() => delete(folders).go();
+  Future<int> deleteAllQuizResults() => (delete(quizResults)).go();
+  Future<int> deleteAllStudySessions() => (delete(studySessions)).go();
+  Future<int> deleteAllFlashcardTags() => (delete(flashcardTags)).go();
+  Future<int> deleteAllFlashcards() => (delete(flashcards)).go();
+  Future<int> deleteAllDecks() => (delete(decks)).go();
+  Future<int> deleteAllTags() => (delete(tags)).go();
+  Future<int> deleteAllFolders() => (delete(folders)).go();
 
   // Search Queries
   Future<List<Flashcard>> searchFlashcards(String query) {
@@ -486,15 +491,15 @@ class AppDatabase extends _$AppDatabase {
 
   // Analytics aggregation queries
   Future<int> getTotalDecks() async {
-    final result = await select(decks)
-        .where((tbl) => tbl.deletedAt.isNull())
+    final result = await (select(decks)
+        ..where((tbl) => tbl.deletedAt.isNull()))
         .get();
     return result.length;
   }
 
   Future<int> getTotalFlashcards() async {
-    final cards = await select(flashcards)
-        .where((tbl) => tbl.deletedAt.isNull())
+    final cards = await (select(flashcards)
+        ..where((tbl) => tbl.deletedAt.isNull()))
         .get();
     return cards.length;
   }
