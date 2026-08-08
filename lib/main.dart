@@ -5,6 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/providers/database_provider.dart';
 import 'core/providers/groq_provider.dart';
+import 'core/providers/ai_quota_provider.dart';
 import 'core/providers/security_provider.dart';
 import 'core/providers/reminder_provider.dart';
 import 'core/providers/exam_provider.dart';
@@ -30,6 +31,11 @@ class QuizSnapApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => DatabaseProvider()),
         ChangeNotifierProvider(create: (_) => GroqProvider()),
+        ProxyProvider<DatabaseProvider, AiQuotaProvider>(
+          update: (context, dbProvider, previous) {
+            return previous ?? AiQuotaProvider(dbProvider);
+          },
+        ),
         ChangeNotifierProvider(create: (_) => SecurityProvider()),
         ChangeNotifierProvider(create: (_) => ReminderProvider()),
         ProxyProvider2<DatabaseProvider, GroqProvider, ExamProvider>(

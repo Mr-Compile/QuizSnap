@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/models/prompt_template.dart';
 import '../../core/providers/groq_provider.dart';
+import '../../core/providers/ai_quota_provider.dart';
 import '../../core/services/question_generation_service.dart';
 import 'package:provider/provider.dart';
 import 'question_review_screen.dart';
@@ -23,7 +24,12 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
   PromptType _selectedType = PromptType.multipleChoice;
   Difficulty _selectedDifficulty = Difficulty.medium;
   int _questionCount = 10;
+  bool _includeAnswers = true;
+  bool _includeExplanations = true;
+  bool _shuffleChoices = true;
   bool _isGenerating = false;
+  String _generationStep = '';
+  double _generationProgress = 0.0;
 
   @override
   Widget build(BuildContext context) {
@@ -56,27 +62,26 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
           _buildQuestionCountSelector(),
           const SizedBox(height: 24),
           
+          // Additional options
+          _buildSectionTitle('Additional Options'),
+          const SizedBox(height: 12),
+          _buildAdditionalOptions(),
+          const SizedBox(height: 24),
+          
           // Generate button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _isGenerating ? null : _startGeneration,
               child: _isGenerating
-                  ? const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        SizedBox(width: 16),
-                        Text('Generating...'),
-                      ],
-                    )
+                  ? _buildGeneratingButton()
                   : const Text('Generate Questions'),
             ),
           ),
+          
+          // Progress indicator
+          if (_isGenerating)
+            _buildProgressIndicator(),
         ],
       ),
     );
@@ -234,8 +239,46 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
     );
   }
 
+  Widget _buildAdditionalOptions() {
+    return Column(
+      children: [
+        SwitchListTile(
+          title: const Text('Include Answers'),
+          subtitle: const Text('Add correct answers to generated questions'),
+          value: _includeAnswers,
+          onChanged: (value) {
+            setState(() {
+              _includeAnswers = value;
+            });
+          },
+        ),
+        SwitchListTile(
+          title: const Text('Include Explanations'),
+          subtitle: const Text('Add detailed explanations for answers'),
+          value: _includeExplanations,
+          onChanged: (value) {
+            setState(() {
+              _includeExplanations = value;
+            });
+          },
+        ),
+        SwitchListTile(
+          title: const Text('Shuffle Choices'),
+          subtitle: const Text('Randomize answer choice order'),
+          value: _shuffleChoices,
+          onChanged: (value) {
+            setState(() {
+              _shuffleChoices = value;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
   Future<void> _startGeneration() async {
     final groqProvider = Provider.of<GroqProvider>(context, listen: false);
+    final quotaProvider = Provider.of<AiQuotaProvider>(context, listen: false);
     
     if (!groqProvider.isInitialized) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -244,12 +287,29 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
       return;
     }
 
+    // Check quota
+    if (!quotaProvider.canRequest) {
+      _showQuotaExceededDialog();
+      return;
+    }
+
     setState(() {
       _isGenerating = true;
+      _generationStep = 'Preparing...';
+      _generationProgress = 0.0;
     });
 
     try {
+      // Step 1: Preparing
+      await _updateGenerationProgress('Preparing text for analysis...', 0.1);
+      
+      // Step 2: Processing
+      await _updateGenerationProgress('Processing document content...', 0.2);
+      
       final generationService = QuestionGenerationService(groqProvider.service);
+      
+      // Step 3: Generating
+      await _updateGenerationProgress('Generating questions with AI...', 0.5);
       
       final questions = await generationService.generateQuestions(
         sourceText: widget.sourceText,
@@ -260,6 +320,14 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
 
       if (!mounted) return;
 
+      // Step 4: Validating
+      await _updateGenerationProgress('Validating generated questions...', 0.8);
+      
+      if (!mounted) return;
+
+      // Increment quota usage
+      await quotaProvider.incrementUsage();
+
       // Validate questions
       final issues = generationService.validateQuestions(questions);
       if (issues.isNotEmpty) {
@@ -267,6 +335,11 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
           SnackBar(content: Text('Some questions have issues: ${issues.first}')),
         );
       }
+
+      // Step 5: Saving
+      await _updateGenerationProgress('Preparing review screen...', 0.9);
+
+      if (!mounted) return;
 
       // Navigate to review screen
       Navigator.of(context).pushReplacement(
@@ -282,17 +355,112 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
       
       setState(() {
         _isGenerating = false;
+        _generationProgress = 1.0;
       });
     } catch (e) {
       if (!mounted) return;
       
       setState(() {
         _isGenerating = false;
+        _generationProgress = 0.0;
       });
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Generation failed: $e')),
       );
     }
+  }
+
+  void _showQuotaExceededDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Daily Limit Reached'),
+        content: Text(
+          'You have reached today\'s AI limit (15/15). Try again tomorrow.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGeneratingButton() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        const SizedBox(width: 16),
+        Text(_generationStep.isEmpty ? 'Generating...' : _generationStep),
+      ],
+    );
+  }
+
+  Widget _buildProgressIndicator() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(top: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Progress',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              Text(
+                '${(_generationProgress * 100).toInt()}%',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: _generationProgress,
+              minHeight: 8,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _generationStep,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateGenerationProgress(String step, double progress) async {
+    setState(() {
+      _generationStep = step;
+      _generationProgress = progress;
+    });
+    
+    // Add a small delay to show the progress
+    await Future.delayed(const Duration(milliseconds: 500));
   }
 }

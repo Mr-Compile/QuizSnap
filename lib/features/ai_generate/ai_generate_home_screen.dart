@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/groq_provider.dart';
+import '../../core/providers/ai_quota_provider.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import 'file_picker_bottom_sheet.dart';
@@ -35,7 +36,7 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
             return _buildApiKeySetup(context, groqProvider);
           }
 
-          return _buildImportOptions(context);
+          return _buildImportOptions(context, groqProvider);
         },
       ),
     );
@@ -126,12 +127,20 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
     );
   }
 
-  Widget _buildImportOptions(BuildContext context) {
+  Widget _buildImportOptions(BuildContext context, GroqProvider groqProvider) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Quota display
+          Consumer<AiQuotaProvider>(
+            builder: (context, quotaProvider, _) {
+              return _buildQuotaDisplay(context, quotaProvider);
+            },
+          ),
+          const SizedBox(height: 24),
+          
           Text(
             'Import Document',
             style: Theme.of(context).textTheme.titleLarge,
@@ -164,6 +173,13 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                 icon: Icons.text_snippet,
                 color: Colors.green,
                 onTap: () => _showFilePicker(context, 'txt'),
+              ),
+              _buildImportCard(
+                context,
+                title: 'Cached Documents',
+                icon: Icons.folder_open,
+                color: Colors.orange,
+                onTap: () => _showCachedDocuments(context),
               ),
               _buildImportCard(
                 context,
@@ -238,6 +254,66 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
       MaterialPageRoute(
         builder: (context) => const CameraOcrScreen(),
       ),
+    );
+  }
+
+  Widget _buildQuotaDisplay(BuildContext context, AiQuotaProvider quotaProvider) {
+    final status = quotaProvider.quotaStatus;
+    if (status == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: status.isLow
+            ? Theme.of(context).colorScheme.errorContainer
+            : Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            status.isLow ? Icons.warning : Icons.check_circle,
+            color: status.isLow
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AI Quota: ${status.displayText} remaining today',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: status.isLow
+                        ? Theme.of(context).colorScheme.onErrorContainer
+                        : Theme.of(context).colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  status.message,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: status.isLow
+                        ? Theme.of(context).colorScheme.onErrorContainer
+                        : Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCachedDocuments(BuildContext context) {
+    // Navigate to cached documents screen
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Cached documents feature coming soon')),
     );
   }
 

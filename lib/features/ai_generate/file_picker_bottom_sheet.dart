@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/services/document_extraction_service.dart';
-import 'pdf_preview_screen.dart';
+import 'document_scope_selection_screen.dart';
 import 'text_preview_screen.dart';
 
 class FilePickerBottomSheet extends StatefulWidget {
@@ -145,19 +145,21 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
           result = await FilePicker.platform.pickFiles();
       }
 
-      if (result != null && result.files.single.path != null) {
+      if (result != null && result.files.isNotEmpty && result.files.single.path != null) {
         final file = File(result.files.single.path!);
-        final fileName = result.files.single.name;
         
         if (!mounted) return;
         
         Navigator.of(context).pop();
         
-        // Navigate to appropriate preview screen
+        // Navigate to document scope selection screen
         if (widget.fileType.toLowerCase() == 'pdf') {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => PdfPreviewScreen(file: file),
+              builder: (context) => DocumentScopeSelectionScreen(
+                file: file,
+                fileType: widget.fileType,
+              ),
             ),
           );
         } else if (widget.fileType.toLowerCase() == 'txt') {
@@ -165,6 +167,8 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
           try {
             final text = await DocumentExtractionService.extractFromFile(file);
             if (!mounted) return;
+            
+            final fileName = file.path.split('/').last;
             
             Navigator.of(context).push(
               MaterialPageRoute(

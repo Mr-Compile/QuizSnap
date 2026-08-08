@@ -89,12 +89,35 @@ class QuizResults extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [Folders, Decks, Flashcards, Tags, FlashcardTags, StudySessions, QuizResults])
+class AiUsage extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get date => text()(); // Store date as YYYY-MM-DD string
+  IntColumn get usedCount => integer().withDefault(const Constant(0))();
+  IntColumn get dailyLimit => integer().withDefault(const Constant(15))();
+  DateTimeColumn get lastResetAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class ExtractedDocuments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get fileName => text().withLength(min: 1, max: 255)();
+  TextColumn get filePath => text().withLength(min: 1, max: 500)();
+  TextColumn get extractedText => text()();
+  TextColumn get selectedScope => text().withDefault(const Constant('all'))(); // 'all', 'pages', 'headings', 'highlighted'
+  TextColumn get scopeDetails => text().nullable()(); // JSON string with page numbers, heading names, etc.
+  IntColumn get totalPages => integer().withDefault(const Constant(0))();
+  IntColumn get characterCount => integer().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get lastUsedAt => dateTime().nullable()();
+}
+
+@DriftDatabase(tables: [Folders, Decks, Flashcards, Tags, FlashcardTags, StudySessions, QuizResults, AiUsage, ExtractedDocuments])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -113,6 +136,11 @@ class AppDatabase extends _$AppDatabase {
           // Add analytics tables
           await m.createTable(studySessions);
           await m.createTable(quizResults);
+        }
+        if (from == 3 && to == 4) {
+          // Add AI usage and document extraction tables
+          await m.createTable(aiUsage);
+          await m.createTable(extractedDocuments);
         }
       },
     );
@@ -699,6 +727,104 @@ class AppDatabase extends _$AppDatabase {
 
     accuracies.sort((a, b) => a.accuracy.compareTo(b.accuracy));
     return accuracies;
+  }
+
+  // AI Usage Queries
+  Future<AiUsage?> getAiUsageForDate(String date) => (select(aiUsage)
+        ..where((tbl) => tbl.date.equals(date)))
+      .getSingleOrNull();
+
+  Future<int> getRemainingQuota() async {
+    final today = DateTime.now();
+    final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    
+    final usage = await getAiUsageForDate(dateStr);
+    if (usage == null) return 15; // Default daily limit
+    
+    return usage.dailyLimit - usage.usedCount;
+  }
+
+  Future<bool> incrementAiUsage() async {
+    final today = DateTime.now();
+    final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    
+    final usage = await getAiUsageForDate(dateStr);
+    
+    if (usage == null) {
+      // Create new entry for today
+      await into(aiUsage).insert(AiUsageCompanion(
+        date: Value(dateStr),
+        usedCount: const Value(1),
+        dailyLimit: const Value(15),
+        lastResetAt: Value(today),
+      ));
+      return true;
+    } else {
+      // Check if we need to reset (new day)
+      if (usage.lastResetAt.day != today.day || 
+          usage.lastResetAt.month != today.month || 
+          usage.lastResetAt.year != today.year) {
+        // Reset for new day
+        await (update(aiUsage)..where((tbl) => tbl.id.equals(usage.id))).write(
+          AiUsageCompanion(
+            usedCount: const Value(1),
+            lastResetAt: Value(today),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
+        return true;
+      }
+      
+      // Check if limit reached
+      if (usage.usedCount >= usage.dailyLimit) {
+        return false;
+      }
+      
+      // Increment usage
+      await (update(aiUsage)..where((tbl) => tbl.id.equals(usage.id))).write(
+        AiUsageCompanion(
+          usedCount: Value(usage.usedCount + 1),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+      return true;
+    }
+  }
+
+  Future<List<AiUsage>> getAiUsageHistory({int limit = 30}) => (select(aiUsage)
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)])
+        ..limit(limit))
+      .get();
+
+  // Extracted Documents Queries
+  Future<List<ExtractedDocument>> getAllExtractedDocuments() => (select(extractedDocuments)
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdAt)]))
+      .get();
+
+  Future<ExtractedDocument?> getExtractedDocumentById(int id) => (select(extractedDocuments)
+        ..where((tbl) => tbl.id.equals(id)))
+      .getSingleOrNull();
+
+  Future<int> createExtractedDocument(ExtractedDocumentsCompanion document) => into(extractedDocuments).insert(document);
+
+  Future<bool> updateExtractedDocument(ExtractedDocument document) => update(extractedDocuments).replace(document);
+
+  Future<bool> deleteExtractedDocument(int id) async {
+    // ignore: use_of_void_result
+    await delete(extractedDocuments).where((tbl) => tbl.id.equals(id)).go();
+    return true;
+  }
+
+  Future<List<ExtractedDocument>> searchExtractedDocuments(String query) => (select(extractedDocuments)
+        ..where((tbl) => tbl.fileName.like('%$query%'))
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.lastUsedAt)]))
+      .get();
+
+  Future<void> updateDocumentLastUsed(int id) async {
+    final doc = await getExtractedDocumentById(id);
+    if (doc != null) {
+      await update(extractedDocuments).replace(doc.copyWith(lastUsedAt: Value(DateTime.now())));
+    }
   }
 }
 

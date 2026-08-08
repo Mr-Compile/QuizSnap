@@ -3593,6 +3593,1082 @@ class QuizResultsCompanion extends UpdateCompanion<QuizResult> {
   }
 }
 
+class $AiUsageTable extends AiUsage with TableInfo<$AiUsageTable, AiUsageData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AiUsageTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _usedCountMeta = const VerificationMeta(
+    'usedCount',
+  );
+  @override
+  late final GeneratedColumn<int> usedCount = GeneratedColumn<int>(
+    'used_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _dailyLimitMeta = const VerificationMeta(
+    'dailyLimit',
+  );
+  @override
+  late final GeneratedColumn<int> dailyLimit = GeneratedColumn<int>(
+    'daily_limit',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(15),
+  );
+  static const VerificationMeta _lastResetAtMeta = const VerificationMeta(
+    'lastResetAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastResetAt = GeneratedColumn<DateTime>(
+    'last_reset_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    date,
+    usedCount,
+    dailyLimit,
+    lastResetAt,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ai_usage';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AiUsageData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('used_count')) {
+      context.handle(
+        _usedCountMeta,
+        usedCount.isAcceptableOrUnknown(data['used_count']!, _usedCountMeta),
+      );
+    }
+    if (data.containsKey('daily_limit')) {
+      context.handle(
+        _dailyLimitMeta,
+        dailyLimit.isAcceptableOrUnknown(data['daily_limit']!, _dailyLimitMeta),
+      );
+    }
+    if (data.containsKey('last_reset_at')) {
+      context.handle(
+        _lastResetAtMeta,
+        lastResetAt.isAcceptableOrUnknown(
+          data['last_reset_at']!,
+          _lastResetAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AiUsageData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AiUsageData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      usedCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}used_count'],
+      )!,
+      dailyLimit: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}daily_limit'],
+      )!,
+      lastResetAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_reset_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AiUsageTable createAlias(String alias) {
+    return $AiUsageTable(attachedDatabase, alias);
+  }
+}
+
+class AiUsageData extends DataClass implements Insertable<AiUsageData> {
+  final int id;
+  final String date;
+  final int usedCount;
+  final int dailyLimit;
+  final DateTime lastResetAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const AiUsageData({
+    required this.id,
+    required this.date,
+    required this.usedCount,
+    required this.dailyLimit,
+    required this.lastResetAt,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['date'] = Variable<String>(date);
+    map['used_count'] = Variable<int>(usedCount);
+    map['daily_limit'] = Variable<int>(dailyLimit);
+    map['last_reset_at'] = Variable<DateTime>(lastResetAt);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  AiUsageCompanion toCompanion(bool nullToAbsent) {
+    return AiUsageCompanion(
+      id: Value(id),
+      date: Value(date),
+      usedCount: Value(usedCount),
+      dailyLimit: Value(dailyLimit),
+      lastResetAt: Value(lastResetAt),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory AiUsageData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AiUsageData(
+      id: serializer.fromJson<int>(json['id']),
+      date: serializer.fromJson<String>(json['date']),
+      usedCount: serializer.fromJson<int>(json['usedCount']),
+      dailyLimit: serializer.fromJson<int>(json['dailyLimit']),
+      lastResetAt: serializer.fromJson<DateTime>(json['lastResetAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'date': serializer.toJson<String>(date),
+      'usedCount': serializer.toJson<int>(usedCount),
+      'dailyLimit': serializer.toJson<int>(dailyLimit),
+      'lastResetAt': serializer.toJson<DateTime>(lastResetAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  AiUsageData copyWith({
+    int? id,
+    String? date,
+    int? usedCount,
+    int? dailyLimit,
+    DateTime? lastResetAt,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => AiUsageData(
+    id: id ?? this.id,
+    date: date ?? this.date,
+    usedCount: usedCount ?? this.usedCount,
+    dailyLimit: dailyLimit ?? this.dailyLimit,
+    lastResetAt: lastResetAt ?? this.lastResetAt,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  AiUsageData copyWithCompanion(AiUsageCompanion data) {
+    return AiUsageData(
+      id: data.id.present ? data.id.value : this.id,
+      date: data.date.present ? data.date.value : this.date,
+      usedCount: data.usedCount.present ? data.usedCount.value : this.usedCount,
+      dailyLimit: data.dailyLimit.present
+          ? data.dailyLimit.value
+          : this.dailyLimit,
+      lastResetAt: data.lastResetAt.present
+          ? data.lastResetAt.value
+          : this.lastResetAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiUsageData(')
+          ..write('id: $id, ')
+          ..write('date: $date, ')
+          ..write('usedCount: $usedCount, ')
+          ..write('dailyLimit: $dailyLimit, ')
+          ..write('lastResetAt: $lastResetAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    date,
+    usedCount,
+    dailyLimit,
+    lastResetAt,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AiUsageData &&
+          other.id == this.id &&
+          other.date == this.date &&
+          other.usedCount == this.usedCount &&
+          other.dailyLimit == this.dailyLimit &&
+          other.lastResetAt == this.lastResetAt &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class AiUsageCompanion extends UpdateCompanion<AiUsageData> {
+  final Value<int> id;
+  final Value<String> date;
+  final Value<int> usedCount;
+  final Value<int> dailyLimit;
+  final Value<DateTime> lastResetAt;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const AiUsageCompanion({
+    this.id = const Value.absent(),
+    this.date = const Value.absent(),
+    this.usedCount = const Value.absent(),
+    this.dailyLimit = const Value.absent(),
+    this.lastResetAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  AiUsageCompanion.insert({
+    this.id = const Value.absent(),
+    required String date,
+    this.usedCount = const Value.absent(),
+    this.dailyLimit = const Value.absent(),
+    this.lastResetAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  }) : date = Value(date);
+  static Insertable<AiUsageData> custom({
+    Expression<int>? id,
+    Expression<String>? date,
+    Expression<int>? usedCount,
+    Expression<int>? dailyLimit,
+    Expression<DateTime>? lastResetAt,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (date != null) 'date': date,
+      if (usedCount != null) 'used_count': usedCount,
+      if (dailyLimit != null) 'daily_limit': dailyLimit,
+      if (lastResetAt != null) 'last_reset_at': lastResetAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  AiUsageCompanion copyWith({
+    Value<int>? id,
+    Value<String>? date,
+    Value<int>? usedCount,
+    Value<int>? dailyLimit,
+    Value<DateTime>? lastResetAt,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return AiUsageCompanion(
+      id: id ?? this.id,
+      date: date ?? this.date,
+      usedCount: usedCount ?? this.usedCount,
+      dailyLimit: dailyLimit ?? this.dailyLimit,
+      lastResetAt: lastResetAt ?? this.lastResetAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (usedCount.present) {
+      map['used_count'] = Variable<int>(usedCount.value);
+    }
+    if (dailyLimit.present) {
+      map['daily_limit'] = Variable<int>(dailyLimit.value);
+    }
+    if (lastResetAt.present) {
+      map['last_reset_at'] = Variable<DateTime>(lastResetAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiUsageCompanion(')
+          ..write('id: $id, ')
+          ..write('date: $date, ')
+          ..write('usedCount: $usedCount, ')
+          ..write('dailyLimit: $dailyLimit, ')
+          ..write('lastResetAt: $lastResetAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ExtractedDocumentsTable extends ExtractedDocuments
+    with TableInfo<$ExtractedDocumentsTable, ExtractedDocument> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExtractedDocumentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _fileNameMeta = const VerificationMeta(
+    'fileName',
+  );
+  @override
+  late final GeneratedColumn<String> fileName = GeneratedColumn<String>(
+    'file_name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 255,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _filePathMeta = const VerificationMeta(
+    'filePath',
+  );
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+    'file_path',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 500,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _extractedTextMeta = const VerificationMeta(
+    'extractedText',
+  );
+  @override
+  late final GeneratedColumn<String> extractedText = GeneratedColumn<String>(
+    'extracted_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _selectedScopeMeta = const VerificationMeta(
+    'selectedScope',
+  );
+  @override
+  late final GeneratedColumn<String> selectedScope = GeneratedColumn<String>(
+    'selected_scope',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('all'),
+  );
+  static const VerificationMeta _scopeDetailsMeta = const VerificationMeta(
+    'scopeDetails',
+  );
+  @override
+  late final GeneratedColumn<String> scopeDetails = GeneratedColumn<String>(
+    'scope_details',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _totalPagesMeta = const VerificationMeta(
+    'totalPages',
+  );
+  @override
+  late final GeneratedColumn<int> totalPages = GeneratedColumn<int>(
+    'total_pages',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _characterCountMeta = const VerificationMeta(
+    'characterCount',
+  );
+  @override
+  late final GeneratedColumn<int> characterCount = GeneratedColumn<int>(
+    'character_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _lastUsedAtMeta = const VerificationMeta(
+    'lastUsedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastUsedAt = GeneratedColumn<DateTime>(
+    'last_used_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    fileName,
+    filePath,
+    extractedText,
+    selectedScope,
+    scopeDetails,
+    totalPages,
+    characterCount,
+    createdAt,
+    lastUsedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'extracted_documents';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExtractedDocument> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('file_name')) {
+      context.handle(
+        _fileNameMeta,
+        fileName.isAcceptableOrUnknown(data['file_name']!, _fileNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fileNameMeta);
+    }
+    if (data.containsKey('file_path')) {
+      context.handle(
+        _filePathMeta,
+        filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filePathMeta);
+    }
+    if (data.containsKey('extracted_text')) {
+      context.handle(
+        _extractedTextMeta,
+        extractedText.isAcceptableOrUnknown(
+          data['extracted_text']!,
+          _extractedTextMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_extractedTextMeta);
+    }
+    if (data.containsKey('selected_scope')) {
+      context.handle(
+        _selectedScopeMeta,
+        selectedScope.isAcceptableOrUnknown(
+          data['selected_scope']!,
+          _selectedScopeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('scope_details')) {
+      context.handle(
+        _scopeDetailsMeta,
+        scopeDetails.isAcceptableOrUnknown(
+          data['scope_details']!,
+          _scopeDetailsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('total_pages')) {
+      context.handle(
+        _totalPagesMeta,
+        totalPages.isAcceptableOrUnknown(data['total_pages']!, _totalPagesMeta),
+      );
+    }
+    if (data.containsKey('character_count')) {
+      context.handle(
+        _characterCountMeta,
+        characterCount.isAcceptableOrUnknown(
+          data['character_count']!,
+          _characterCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('last_used_at')) {
+      context.handle(
+        _lastUsedAtMeta,
+        lastUsedAt.isAcceptableOrUnknown(
+          data['last_used_at']!,
+          _lastUsedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExtractedDocument map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExtractedDocument(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      fileName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_name'],
+      )!,
+      filePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_path'],
+      )!,
+      extractedText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}extracted_text'],
+      )!,
+      selectedScope: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}selected_scope'],
+      )!,
+      scopeDetails: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scope_details'],
+      ),
+      totalPages: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_pages'],
+      )!,
+      characterCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}character_count'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      lastUsedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_used_at'],
+      ),
+    );
+  }
+
+  @override
+  $ExtractedDocumentsTable createAlias(String alias) {
+    return $ExtractedDocumentsTable(attachedDatabase, alias);
+  }
+}
+
+class ExtractedDocument extends DataClass
+    implements Insertable<ExtractedDocument> {
+  final int id;
+  final String fileName;
+  final String filePath;
+  final String extractedText;
+  final String selectedScope;
+  final String? scopeDetails;
+  final int totalPages;
+  final int characterCount;
+  final DateTime createdAt;
+  final DateTime? lastUsedAt;
+  const ExtractedDocument({
+    required this.id,
+    required this.fileName,
+    required this.filePath,
+    required this.extractedText,
+    required this.selectedScope,
+    this.scopeDetails,
+    required this.totalPages,
+    required this.characterCount,
+    required this.createdAt,
+    this.lastUsedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['file_name'] = Variable<String>(fileName);
+    map['file_path'] = Variable<String>(filePath);
+    map['extracted_text'] = Variable<String>(extractedText);
+    map['selected_scope'] = Variable<String>(selectedScope);
+    if (!nullToAbsent || scopeDetails != null) {
+      map['scope_details'] = Variable<String>(scopeDetails);
+    }
+    map['total_pages'] = Variable<int>(totalPages);
+    map['character_count'] = Variable<int>(characterCount);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || lastUsedAt != null) {
+      map['last_used_at'] = Variable<DateTime>(lastUsedAt);
+    }
+    return map;
+  }
+
+  ExtractedDocumentsCompanion toCompanion(bool nullToAbsent) {
+    return ExtractedDocumentsCompanion(
+      id: Value(id),
+      fileName: Value(fileName),
+      filePath: Value(filePath),
+      extractedText: Value(extractedText),
+      selectedScope: Value(selectedScope),
+      scopeDetails: scopeDetails == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scopeDetails),
+      totalPages: Value(totalPages),
+      characterCount: Value(characterCount),
+      createdAt: Value(createdAt),
+      lastUsedAt: lastUsedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastUsedAt),
+    );
+  }
+
+  factory ExtractedDocument.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExtractedDocument(
+      id: serializer.fromJson<int>(json['id']),
+      fileName: serializer.fromJson<String>(json['fileName']),
+      filePath: serializer.fromJson<String>(json['filePath']),
+      extractedText: serializer.fromJson<String>(json['extractedText']),
+      selectedScope: serializer.fromJson<String>(json['selectedScope']),
+      scopeDetails: serializer.fromJson<String?>(json['scopeDetails']),
+      totalPages: serializer.fromJson<int>(json['totalPages']),
+      characterCount: serializer.fromJson<int>(json['characterCount']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      lastUsedAt: serializer.fromJson<DateTime?>(json['lastUsedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'fileName': serializer.toJson<String>(fileName),
+      'filePath': serializer.toJson<String>(filePath),
+      'extractedText': serializer.toJson<String>(extractedText),
+      'selectedScope': serializer.toJson<String>(selectedScope),
+      'scopeDetails': serializer.toJson<String?>(scopeDetails),
+      'totalPages': serializer.toJson<int>(totalPages),
+      'characterCount': serializer.toJson<int>(characterCount),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'lastUsedAt': serializer.toJson<DateTime?>(lastUsedAt),
+    };
+  }
+
+  ExtractedDocument copyWith({
+    int? id,
+    String? fileName,
+    String? filePath,
+    String? extractedText,
+    String? selectedScope,
+    Value<String?> scopeDetails = const Value.absent(),
+    int? totalPages,
+    int? characterCount,
+    DateTime? createdAt,
+    Value<DateTime?> lastUsedAt = const Value.absent(),
+  }) => ExtractedDocument(
+    id: id ?? this.id,
+    fileName: fileName ?? this.fileName,
+    filePath: filePath ?? this.filePath,
+    extractedText: extractedText ?? this.extractedText,
+    selectedScope: selectedScope ?? this.selectedScope,
+    scopeDetails: scopeDetails.present ? scopeDetails.value : this.scopeDetails,
+    totalPages: totalPages ?? this.totalPages,
+    characterCount: characterCount ?? this.characterCount,
+    createdAt: createdAt ?? this.createdAt,
+    lastUsedAt: lastUsedAt.present ? lastUsedAt.value : this.lastUsedAt,
+  );
+  ExtractedDocument copyWithCompanion(ExtractedDocumentsCompanion data) {
+    return ExtractedDocument(
+      id: data.id.present ? data.id.value : this.id,
+      fileName: data.fileName.present ? data.fileName.value : this.fileName,
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      extractedText: data.extractedText.present
+          ? data.extractedText.value
+          : this.extractedText,
+      selectedScope: data.selectedScope.present
+          ? data.selectedScope.value
+          : this.selectedScope,
+      scopeDetails: data.scopeDetails.present
+          ? data.scopeDetails.value
+          : this.scopeDetails,
+      totalPages: data.totalPages.present
+          ? data.totalPages.value
+          : this.totalPages,
+      characterCount: data.characterCount.present
+          ? data.characterCount.value
+          : this.characterCount,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      lastUsedAt: data.lastUsedAt.present
+          ? data.lastUsedAt.value
+          : this.lastUsedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExtractedDocument(')
+          ..write('id: $id, ')
+          ..write('fileName: $fileName, ')
+          ..write('filePath: $filePath, ')
+          ..write('extractedText: $extractedText, ')
+          ..write('selectedScope: $selectedScope, ')
+          ..write('scopeDetails: $scopeDetails, ')
+          ..write('totalPages: $totalPages, ')
+          ..write('characterCount: $characterCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('lastUsedAt: $lastUsedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    fileName,
+    filePath,
+    extractedText,
+    selectedScope,
+    scopeDetails,
+    totalPages,
+    characterCount,
+    createdAt,
+    lastUsedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExtractedDocument &&
+          other.id == this.id &&
+          other.fileName == this.fileName &&
+          other.filePath == this.filePath &&
+          other.extractedText == this.extractedText &&
+          other.selectedScope == this.selectedScope &&
+          other.scopeDetails == this.scopeDetails &&
+          other.totalPages == this.totalPages &&
+          other.characterCount == this.characterCount &&
+          other.createdAt == this.createdAt &&
+          other.lastUsedAt == this.lastUsedAt);
+}
+
+class ExtractedDocumentsCompanion extends UpdateCompanion<ExtractedDocument> {
+  final Value<int> id;
+  final Value<String> fileName;
+  final Value<String> filePath;
+  final Value<String> extractedText;
+  final Value<String> selectedScope;
+  final Value<String?> scopeDetails;
+  final Value<int> totalPages;
+  final Value<int> characterCount;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> lastUsedAt;
+  const ExtractedDocumentsCompanion({
+    this.id = const Value.absent(),
+    this.fileName = const Value.absent(),
+    this.filePath = const Value.absent(),
+    this.extractedText = const Value.absent(),
+    this.selectedScope = const Value.absent(),
+    this.scopeDetails = const Value.absent(),
+    this.totalPages = const Value.absent(),
+    this.characterCount = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.lastUsedAt = const Value.absent(),
+  });
+  ExtractedDocumentsCompanion.insert({
+    this.id = const Value.absent(),
+    required String fileName,
+    required String filePath,
+    required String extractedText,
+    this.selectedScope = const Value.absent(),
+    this.scopeDetails = const Value.absent(),
+    this.totalPages = const Value.absent(),
+    this.characterCount = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.lastUsedAt = const Value.absent(),
+  }) : fileName = Value(fileName),
+       filePath = Value(filePath),
+       extractedText = Value(extractedText);
+  static Insertable<ExtractedDocument> custom({
+    Expression<int>? id,
+    Expression<String>? fileName,
+    Expression<String>? filePath,
+    Expression<String>? extractedText,
+    Expression<String>? selectedScope,
+    Expression<String>? scopeDetails,
+    Expression<int>? totalPages,
+    Expression<int>? characterCount,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? lastUsedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (fileName != null) 'file_name': fileName,
+      if (filePath != null) 'file_path': filePath,
+      if (extractedText != null) 'extracted_text': extractedText,
+      if (selectedScope != null) 'selected_scope': selectedScope,
+      if (scopeDetails != null) 'scope_details': scopeDetails,
+      if (totalPages != null) 'total_pages': totalPages,
+      if (characterCount != null) 'character_count': characterCount,
+      if (createdAt != null) 'created_at': createdAt,
+      if (lastUsedAt != null) 'last_used_at': lastUsedAt,
+    });
+  }
+
+  ExtractedDocumentsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? fileName,
+    Value<String>? filePath,
+    Value<String>? extractedText,
+    Value<String>? selectedScope,
+    Value<String?>? scopeDetails,
+    Value<int>? totalPages,
+    Value<int>? characterCount,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? lastUsedAt,
+  }) {
+    return ExtractedDocumentsCompanion(
+      id: id ?? this.id,
+      fileName: fileName ?? this.fileName,
+      filePath: filePath ?? this.filePath,
+      extractedText: extractedText ?? this.extractedText,
+      selectedScope: selectedScope ?? this.selectedScope,
+      scopeDetails: scopeDetails ?? this.scopeDetails,
+      totalPages: totalPages ?? this.totalPages,
+      characterCount: characterCount ?? this.characterCount,
+      createdAt: createdAt ?? this.createdAt,
+      lastUsedAt: lastUsedAt ?? this.lastUsedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (fileName.present) {
+      map['file_name'] = Variable<String>(fileName.value);
+    }
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (extractedText.present) {
+      map['extracted_text'] = Variable<String>(extractedText.value);
+    }
+    if (selectedScope.present) {
+      map['selected_scope'] = Variable<String>(selectedScope.value);
+    }
+    if (scopeDetails.present) {
+      map['scope_details'] = Variable<String>(scopeDetails.value);
+    }
+    if (totalPages.present) {
+      map['total_pages'] = Variable<int>(totalPages.value);
+    }
+    if (characterCount.present) {
+      map['character_count'] = Variable<int>(characterCount.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (lastUsedAt.present) {
+      map['last_used_at'] = Variable<DateTime>(lastUsedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExtractedDocumentsCompanion(')
+          ..write('id: $id, ')
+          ..write('fileName: $fileName, ')
+          ..write('filePath: $filePath, ')
+          ..write('extractedText: $extractedText, ')
+          ..write('selectedScope: $selectedScope, ')
+          ..write('scopeDetails: $scopeDetails, ')
+          ..write('totalPages: $totalPages, ')
+          ..write('characterCount: $characterCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('lastUsedAt: $lastUsedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3603,6 +4679,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FlashcardTagsTable flashcardTags = $FlashcardTagsTable(this);
   late final $StudySessionsTable studySessions = $StudySessionsTable(this);
   late final $QuizResultsTable quizResults = $QuizResultsTable(this);
+  late final $AiUsageTable aiUsage = $AiUsageTable(this);
+  late final $ExtractedDocumentsTable extractedDocuments =
+      $ExtractedDocumentsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3615,6 +4694,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     flashcardTags,
     studySessions,
     quizResults,
+    aiUsage,
+    extractedDocuments,
   ];
 }
 
@@ -6673,6 +7754,553 @@ typedef $$QuizResultsTableProcessedTableManager =
       QuizResult,
       PrefetchHooks Function({bool deckId})
     >;
+typedef $$AiUsageTableCreateCompanionBuilder =
+    AiUsageCompanion Function({
+      Value<int> id,
+      required String date,
+      Value<int> usedCount,
+      Value<int> dailyLimit,
+      Value<DateTime> lastResetAt,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+typedef $$AiUsageTableUpdateCompanionBuilder =
+    AiUsageCompanion Function({
+      Value<int> id,
+      Value<String> date,
+      Value<int> usedCount,
+      Value<int> dailyLimit,
+      Value<DateTime> lastResetAt,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+class $$AiUsageTableFilterComposer
+    extends Composer<_$AppDatabase, $AiUsageTable> {
+  $$AiUsageTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get usedCount => $composableBuilder(
+    column: $table.usedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dailyLimit => $composableBuilder(
+    column: $table.dailyLimit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastResetAt => $composableBuilder(
+    column: $table.lastResetAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AiUsageTableOrderingComposer
+    extends Composer<_$AppDatabase, $AiUsageTable> {
+  $$AiUsageTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get usedCount => $composableBuilder(
+    column: $table.usedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dailyLimit => $composableBuilder(
+    column: $table.dailyLimit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastResetAt => $composableBuilder(
+    column: $table.lastResetAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AiUsageTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AiUsageTable> {
+  $$AiUsageTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<int> get usedCount =>
+      $composableBuilder(column: $table.usedCount, builder: (column) => column);
+
+  GeneratedColumn<int> get dailyLimit => $composableBuilder(
+    column: $table.dailyLimit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastResetAt => $composableBuilder(
+    column: $table.lastResetAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$AiUsageTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AiUsageTable,
+          AiUsageData,
+          $$AiUsageTableFilterComposer,
+          $$AiUsageTableOrderingComposer,
+          $$AiUsageTableAnnotationComposer,
+          $$AiUsageTableCreateCompanionBuilder,
+          $$AiUsageTableUpdateCompanionBuilder,
+          (
+            AiUsageData,
+            BaseReferences<_$AppDatabase, $AiUsageTable, AiUsageData>,
+          ),
+          AiUsageData,
+          PrefetchHooks Function()
+        > {
+  $$AiUsageTableTableManager(_$AppDatabase db, $AiUsageTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AiUsageTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AiUsageTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AiUsageTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> date = const Value.absent(),
+                Value<int> usedCount = const Value.absent(),
+                Value<int> dailyLimit = const Value.absent(),
+                Value<DateTime> lastResetAt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => AiUsageCompanion(
+                id: id,
+                date: date,
+                usedCount: usedCount,
+                dailyLimit: dailyLimit,
+                lastResetAt: lastResetAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String date,
+                Value<int> usedCount = const Value.absent(),
+                Value<int> dailyLimit = const Value.absent(),
+                Value<DateTime> lastResetAt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => AiUsageCompanion.insert(
+                id: id,
+                date: date,
+                usedCount: usedCount,
+                dailyLimit: dailyLimit,
+                lastResetAt: lastResetAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AiUsageTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AiUsageTable,
+      AiUsageData,
+      $$AiUsageTableFilterComposer,
+      $$AiUsageTableOrderingComposer,
+      $$AiUsageTableAnnotationComposer,
+      $$AiUsageTableCreateCompanionBuilder,
+      $$AiUsageTableUpdateCompanionBuilder,
+      (AiUsageData, BaseReferences<_$AppDatabase, $AiUsageTable, AiUsageData>),
+      AiUsageData,
+      PrefetchHooks Function()
+    >;
+typedef $$ExtractedDocumentsTableCreateCompanionBuilder =
+    ExtractedDocumentsCompanion Function({
+      Value<int> id,
+      required String fileName,
+      required String filePath,
+      required String extractedText,
+      Value<String> selectedScope,
+      Value<String?> scopeDetails,
+      Value<int> totalPages,
+      Value<int> characterCount,
+      Value<DateTime> createdAt,
+      Value<DateTime?> lastUsedAt,
+    });
+typedef $$ExtractedDocumentsTableUpdateCompanionBuilder =
+    ExtractedDocumentsCompanion Function({
+      Value<int> id,
+      Value<String> fileName,
+      Value<String> filePath,
+      Value<String> extractedText,
+      Value<String> selectedScope,
+      Value<String?> scopeDetails,
+      Value<int> totalPages,
+      Value<int> characterCount,
+      Value<DateTime> createdAt,
+      Value<DateTime?> lastUsedAt,
+    });
+
+class $$ExtractedDocumentsTableFilterComposer
+    extends Composer<_$AppDatabase, $ExtractedDocumentsTable> {
+  $$ExtractedDocumentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get extractedText => $composableBuilder(
+    column: $table.extractedText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get selectedScope => $composableBuilder(
+    column: $table.selectedScope,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get scopeDetails => $composableBuilder(
+    column: $table.scopeDetails,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalPages => $composableBuilder(
+    column: $table.totalPages,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get characterCount => $composableBuilder(
+    column: $table.characterCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ExtractedDocumentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ExtractedDocumentsTable> {
+  $$ExtractedDocumentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get extractedText => $composableBuilder(
+    column: $table.extractedText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get selectedScope => $composableBuilder(
+    column: $table.selectedScope,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scopeDetails => $composableBuilder(
+    column: $table.scopeDetails,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalPages => $composableBuilder(
+    column: $table.totalPages,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get characterCount => $composableBuilder(
+    column: $table.characterCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ExtractedDocumentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ExtractedDocumentsTable> {
+  $$ExtractedDocumentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get fileName =>
+      $composableBuilder(column: $table.fileName, builder: (column) => column);
+
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<String> get extractedText => $composableBuilder(
+    column: $table.extractedText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get selectedScope => $composableBuilder(
+    column: $table.selectedScope,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get scopeDetails => $composableBuilder(
+    column: $table.scopeDetails,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get totalPages => $composableBuilder(
+    column: $table.totalPages,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get characterCount => $composableBuilder(
+    column: $table.characterCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUsedAt => $composableBuilder(
+    column: $table.lastUsedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$ExtractedDocumentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ExtractedDocumentsTable,
+          ExtractedDocument,
+          $$ExtractedDocumentsTableFilterComposer,
+          $$ExtractedDocumentsTableOrderingComposer,
+          $$ExtractedDocumentsTableAnnotationComposer,
+          $$ExtractedDocumentsTableCreateCompanionBuilder,
+          $$ExtractedDocumentsTableUpdateCompanionBuilder,
+          (
+            ExtractedDocument,
+            BaseReferences<
+              _$AppDatabase,
+              $ExtractedDocumentsTable,
+              ExtractedDocument
+            >,
+          ),
+          ExtractedDocument,
+          PrefetchHooks Function()
+        > {
+  $$ExtractedDocumentsTableTableManager(
+    _$AppDatabase db,
+    $ExtractedDocumentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExtractedDocumentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExtractedDocumentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ExtractedDocumentsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> fileName = const Value.absent(),
+                Value<String> filePath = const Value.absent(),
+                Value<String> extractedText = const Value.absent(),
+                Value<String> selectedScope = const Value.absent(),
+                Value<String?> scopeDetails = const Value.absent(),
+                Value<int> totalPages = const Value.absent(),
+                Value<int> characterCount = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> lastUsedAt = const Value.absent(),
+              }) => ExtractedDocumentsCompanion(
+                id: id,
+                fileName: fileName,
+                filePath: filePath,
+                extractedText: extractedText,
+                selectedScope: selectedScope,
+                scopeDetails: scopeDetails,
+                totalPages: totalPages,
+                characterCount: characterCount,
+                createdAt: createdAt,
+                lastUsedAt: lastUsedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String fileName,
+                required String filePath,
+                required String extractedText,
+                Value<String> selectedScope = const Value.absent(),
+                Value<String?> scopeDetails = const Value.absent(),
+                Value<int> totalPages = const Value.absent(),
+                Value<int> characterCount = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> lastUsedAt = const Value.absent(),
+              }) => ExtractedDocumentsCompanion.insert(
+                id: id,
+                fileName: fileName,
+                filePath: filePath,
+                extractedText: extractedText,
+                selectedScope: selectedScope,
+                scopeDetails: scopeDetails,
+                totalPages: totalPages,
+                characterCount: characterCount,
+                createdAt: createdAt,
+                lastUsedAt: lastUsedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ExtractedDocumentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ExtractedDocumentsTable,
+      ExtractedDocument,
+      $$ExtractedDocumentsTableFilterComposer,
+      $$ExtractedDocumentsTableOrderingComposer,
+      $$ExtractedDocumentsTableAnnotationComposer,
+      $$ExtractedDocumentsTableCreateCompanionBuilder,
+      $$ExtractedDocumentsTableUpdateCompanionBuilder,
+      (
+        ExtractedDocument,
+        BaseReferences<
+          _$AppDatabase,
+          $ExtractedDocumentsTable,
+          ExtractedDocument
+        >,
+      ),
+      ExtractedDocument,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6690,4 +8318,8 @@ class $AppDatabaseManager {
       $$StudySessionsTableTableManager(_db, _db.studySessions);
   $$QuizResultsTableTableManager get quizResults =>
       $$QuizResultsTableTableManager(_db, _db.quizResults);
+  $$AiUsageTableTableManager get aiUsage =>
+      $$AiUsageTableTableManager(_db, _db.aiUsage);
+  $$ExtractedDocumentsTableTableManager get extractedDocuments =>
+      $$ExtractedDocumentsTableTableManager(_db, _db.extractedDocuments);
 }

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/providers/ai_quota_provider.dart';
 import '../../shared/widgets/app_bar.dart';
 import 'appearance_screen.dart';
 import 'security_settings_screen.dart';
 import 'reminder_settings_screen.dart';
 import 'database_maintenance_screen.dart';
+import 'ai_usage_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -64,6 +67,32 @@ class SettingsScreen extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (context) => const ReminderSettingsScreen(),
                     ),
+                  );
+                },
+              ),
+            ],
+          ),
+          _buildSection(
+            title: 'AI Features',
+            children: [
+              Consumer<AiQuotaProvider>(
+                builder: (context, quotaProvider, _) {
+                  final status = quotaProvider.quotaStatus;
+                  return ListTile(
+                    leading: const Icon(Icons.psychology_outlined),
+                    title: const Text('AI Usage'),
+                    subtitle: status != null 
+                        ? Text('${status.remaining} / ${status.limit} requests remaining today')
+                        : const Text('View your AI usage statistics'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AiUsageScreen(),
+                        ),
+                      );
+                    },
                   );
                 },
               ),

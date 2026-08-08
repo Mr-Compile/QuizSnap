@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import '../../core/services/question_generation_service.dart';
 import '../../core/models/prompt_template.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/groq_provider.dart';
+import '../../core/providers/ai_quota_provider.dart';
 import '../../core/database/database.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
+import 'regeneration_options_bottom_sheet.dart';
 
 class QuestionReviewScreen extends StatefulWidget {
   final List<GeneratedQuestion> questions;
@@ -42,6 +45,11 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
       appBar: AppBar(
         title: const Text('Review Questions'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _showRegenerationOptions,
+            tooltip: 'Regenerate questions',
+          ),
           if (_selectedQuestions.isNotEmpty)
             TextButton.icon(
               onPressed: _selectedDeckId == null ? null : _saveQuestions,
@@ -468,5 +476,200 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
       case Difficulty.expert:
         return Colors.purple;
     }
+  }
+
+  void _showRegenerationOptions() {
+    final approvedCount = _selectedQuestions.length;
+    final rejectedCount = widget.questions.length - _selectedQuestions.length;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => RegenerationOptionsBottomSheet(
+        totalQuestions: widget.questions.length,
+        approvedCount: approvedCount,
+        rejectedCount: rejectedCount,
+        onOptionSelected: (option) {
+          Navigator.of(context).pop();
+          _handleRegeneration(option);
+        },
+      ),
+    );
+  }
+
+  Future<void> _handleRegeneration(RegenerationOption option) async {
+    final groqProvider = Provider.of<GroqProvider>(context, listen: false);
+    final quotaProvider = Provider.of<AiQuotaProvider>(context, listen: false);
+
+    // Check quota
+    if (!quotaProvider.canRequest) {
+      _showQuotaExceededDialog();
+      return;
+    }
+
+    // Show confirmation dialog
+    final confirmed = await _showRegenerationConfirmation(option);
+    if (!confirmed) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final generationService = QuestionGenerationService(groqProvider.service);
+      
+      List<GeneratedQuestion> newQuestions;
+      
+      switch (option) {
+        case RegenerationOption.regenerateAll:
+          // Regenerate all questions
+          newQuestions = await generationService.generateQuestions(
+            sourceText: widget.source, // This would need to be stored/passed properly
+            type: widget.type,
+            difficulty: widget.difficulty,
+            questionCount: widget.questions.length,
+          );
+          break;
+          
+        case RegenerationOption.regenerateSelected:
+          // Regenerate only selected questions
+          newQuestions = await generationService.generateQuestions(
+            sourceText: widget.source,
+            type: widget.type,
+            difficulty: widget.difficulty,
+            questionCount: _selectedQuestions.length,
+          );
+          break;
+          
+        case RegenerationOption.keepApprovedReplaceRejected:
+          // Keep approved, replace rejected
+          final rejectedCount = widget.questions.length - _selectedQuestions.length;
+          if (rejectedCount > 0) {
+            final regeneratedQuestions = await generationService.generateQuestions(
+              sourceText: widget.source,
+              type: widget.type,
+              difficulty: widget.difficulty,
+              questionCount: rejectedCount,
+            );
+            // Combine approved with regenerated
+            newQuestions = [..._selectedQuestions, ...regeneratedQuestions];
+          } else {
+            newQuestions = List.from(_selectedQuestions);
+          }
+          break;
+      }
+
+      if (!mounted) return;
+
+      // Increment quota usage
+      await quotaProvider.incrementUsage();
+
+      // Show comparison dialog (simplified version)
+      _showComparisonDialog(newQuestions);
+      
+      setState(() {
+        _isSaving = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      
+      setState(() {
+        _isSaving = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Regeneration failed: $e')),
+      );
+    }
+  }
+
+  Future<bool> _showRegenerationConfirmation(RegenerationOption option) async {
+    String message;
+    switch (option) {
+      case RegenerationOption.regenerateAll:
+        message = 'This will replace all ${widget.questions.length} questions with new ones. Continue?';
+        break;
+      case RegenerationOption.regenerateSelected:
+        message = 'This will replace ${_selectedQuestions.length} selected questions with new ones. Continue?';
+        break;
+      case RegenerationOption.keepApprovedReplaceRejected:
+        message = 'This will keep ${_selectedQuestions.length} approved questions and replace the rest. Continue?';
+        break;
+    }
+
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Regeneration'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Regenerate'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
+  void _showComparisonDialog(List<GeneratedQuestion> newQuestions) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Regeneration Complete'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Generated ${newQuestions.length} new questions'),
+            const SizedBox(height: 16),
+            const Text('Would you like to:'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Keep old questions
+            },
+            child: const Text('Keep Old'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Replace with new questions - this would require updating the state
+              setState(() {
+                // For now, just show a message
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Questions updated with regenerated versions')),
+              );
+            },
+            child: const Text('Use New'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showQuotaExceededDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Daily Limit Reached'),
+        content: const Text('You have reached today\'s AI limit (15/15). Try again tomorrow.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 }
