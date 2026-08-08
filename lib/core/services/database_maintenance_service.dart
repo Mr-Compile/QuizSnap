@@ -128,7 +128,7 @@ class DatabaseMaintenanceService {
       // Delete orphaned tags
       final orphanedTags = await _findOrphanedTags();
       for (final tag in orphanedTags) {
-        await database.deleteTag(tag.id);
+        database.deleteTag(tag.id);
         result.deletedOrphanedTags++;
       }
 

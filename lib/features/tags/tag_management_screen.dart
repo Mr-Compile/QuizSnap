@@ -119,7 +119,7 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
 
     final dbProvider = this.context.read<DatabaseProvider>();
     try {
-      await dbProvider.tagRepository.deleteTag(tag.id);
+      dbProvider.tagRepository.deleteTag(tag.id);
       if (!mounted) return;
       SuccessSnackbar.show(
         this.context,

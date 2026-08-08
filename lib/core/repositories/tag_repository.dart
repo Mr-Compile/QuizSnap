@@ -13,13 +13,13 @@ class TagRepository {
 
   Future<bool> updateTag(Tag tag) => _database.updateTag(tag);
 
-  Future<int> deleteTag(int id) => _database.deleteTag(id);
+  void deleteTag(int id) => _database.deleteTag(id);
 
   Future<List<Tag>> getTagsForFlashcard(int flashcardId) => _database.getTagsForFlashcard(flashcardId);
 
   Future<void> addTagToFlashcard(int flashcardId, int tagId) => _database.addTagToFlashcard(flashcardId, tagId);
 
-  Future<void> removeTagFromFlashcard(int flashcardId, int tagId) => _database.removeTagFromFlashcard(flashcardId, tagId);
+  void removeTagFromFlashcard(int flashcardId, int tagId) => _database.removeTagFromFlashcard(flashcardId, tagId);
 
   Future<void> setFlashcardTags(int flashcardId, List<int> tagIds) => _database.setFlashcardTags(flashcardId, tagIds);
 }
