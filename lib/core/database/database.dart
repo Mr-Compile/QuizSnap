@@ -133,16 +133,16 @@ class AppDatabase extends _$AppDatabase {
 
   Future<bool> updateFolder(Folder folder) => update(folders).replace(folder);
 
-  Future<void> deleteFolder(int id) async {
+  Future<bool> deleteFolder(int id) async {
     final folder = await getFolderById(id);
     final updatedFolder = folder.copyWith(deletedAt: Value(DateTime.now()));
-    await update(folders).replace(updatedFolder);
+    return await update(folders).replace(updatedFolder);
   }
 
-  Future<void> restoreFolder(int id) async {
+  Future<bool> restoreFolder(int id) async {
     final folder = await getFolderById(id);
     final updatedFolder = folder.copyWith(deletedAt: const Value(null));
-    await update(folders).replace(updatedFolder);
+    return await update(folders).replace(updatedFolder);
   }
 
   Future<List<Folder>> getDeletedFolders() => (select(folders)
@@ -176,16 +176,16 @@ class AppDatabase extends _$AppDatabase {
 
   Future<bool> updateDeck(Deck deck) => update(decks).replace(deck);
 
-  Future<void> deleteDeck(int id) async {
+  Future<bool> deleteDeck(int id) async {
     final deck = await getDeckById(id);
     final updatedDeck = deck.copyWith(deletedAt: Value(DateTime.now()));
-    await update(decks).replace(updatedDeck);
+    return await update(decks).replace(updatedDeck);
   }
 
-  Future<void> restoreDeck(int id) async {
+  Future<bool> restoreDeck(int id) async {
     final deck = await getDeckById(id);
     final updatedDeck = deck.copyWith(deletedAt: const Value(null));
-    await update(decks).replace(updatedDeck);
+    return await update(decks).replace(updatedDeck);
   }
 
   Future<List<Deck>> getDeletedDecks() => (select(decks)
@@ -235,16 +235,16 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateFlashcard(Flashcard flashcard) =>
       update(flashcards).replace(flashcard);
 
-  Future<void> deleteFlashcard(int id) async {
+  Future<bool> deleteFlashcard(int id) async {
     final flashcard = await getFlashcardById(id);
     final updatedFlashcard = flashcard.copyWith(deletedAt: Value(DateTime.now()));
-    await update(flashcards).replace(updatedFlashcard);
+    return await update(flashcards).replace(updatedFlashcard);
   }
 
-  Future<void> restoreFlashcard(int id) async {
+  Future<bool> restoreFlashcard(int id) async {
     final flashcard = await getFlashcardById(id);
     final updatedFlashcard = flashcard.copyWith(deletedAt: const Value(null));
-    await update(flashcards).replace(updatedFlashcard);
+    return await update(flashcards).replace(updatedFlashcard);
   }
 
   Future<List<Flashcard>> getDeletedFlashcards() => (select(flashcards)
@@ -269,7 +269,7 @@ class AppDatabase extends _$AppDatabase {
       ..orderBy([(tbl) => OrderingTerm.asc(tbl.nextReviewAt)]))
     .get();
 
-  Future<void> updateFlashcardReview(int id, bool correct) async {
+  Future<int> updateFlashcardReview(int id, bool correct) async {
     final flashcard = await getFlashcardById(id);
     final newReviewCount = flashcard.reviewCount + 1;
     final newCorrectCount = correct ? flashcard.correctCount + 1 : flashcard.correctCount;
@@ -284,7 +284,7 @@ class AppDatabase extends _$AppDatabase {
       nextReview = now.add(const Duration(days: 1));
     }
 
-    await (update(flashcards)..where((tbl) => tbl.id.equals(id)))
+    return await (update(flashcards)..where((tbl) => tbl.id.equals(id)))
         .write(FlashcardsCompanion(
           reviewCount: Value(newReviewCount),
           correctCount: Value(newCorrectCount),
@@ -294,7 +294,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // SM-2 Algorithm implementation
-  Future<void> updateFlashcardReviewSM2(int id, int quality) async {
+  Future<int> updateFlashcardReviewSM2(int id, int quality) async {
     // Quality: 0-5 (0=blackout, 1=incorrect, 2=hard, 3=good, 4=easy, 5=perfect)
     final flashcard = await getFlashcardById(id);
     final now = DateTime.now();
@@ -325,7 +325,7 @@ class AppDatabase extends _$AppDatabase {
     
     final nextReview = now.add(Duration(days: interval));
     
-    await (update(flashcards)..where((tbl) => tbl.id.equals(id)))
+    return await (update(flashcards)..where((tbl) => tbl.id.equals(id)))
         .write(FlashcardsCompanion(
           reviewCount: Value(flashcard.reviewCount + 1),
           correctCount: Value(quality >= 3 ? flashcard.correctCount + 1 : flashcard.correctCount),
@@ -369,7 +369,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // Flashcard Tag Queries
-  Future<List<Tag>> getTagsForFlashcard(int flashcardId) {
+  Future<List<Tag>> getTagsForFlashcard(int flashcardId) async {
     final query = select(tags).join([
       innerJoin(
         flashcardTags,
@@ -379,7 +379,7 @@ class AppDatabase extends _$AppDatabase {
       ..where(flashcardTags.flashcardId.equals(flashcardId))
       ..orderBy([OrderingTerm.asc(tags.name)]);
 
-    return query.map((row) => row.readTable(tags)).get();
+    return await query.map((row) => row.readTable(tags)).get();
   }
 
   Future<int> addTagToFlashcard(int flashcardId, int tagId) =>
@@ -397,9 +397,8 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> setFlashcardTags(int flashcardId, List<int> tagIds) async {
-    // ignore: use_of_void_result
-    delete(flashcardTags)
-        .where((tbl) => tbl.flashcardId.equals(flashcardId))
+    await (delete(flashcardTags)
+        ..where((tbl) => tbl.flashcardId.equals(flashcardId)))
         .go();
     
     for (final tagId in tagIds) {
