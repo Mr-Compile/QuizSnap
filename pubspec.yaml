@@ -45,9 +45,9 @@ dependencies:
   groq: ^0.0.1
   
   # Document Processing (for Phase 2)
-  file_picker: ^6.1.1
-  syncfusion_flutter_pdf: ^24.1.41
-  syncfusion_flutter_pdfviewer: ^24.1.41
+  file_picker: ^8.3.7
+  syncfusion_flutter_pdf: ^24.2.8
+  syncfusion_flutter_pdfviewer: ^24.2.8
   camera: ^0.10.5+5
   google_mlkit_text_recognition: ^0.11.0
   permission_handler: ^11.0.1

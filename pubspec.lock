@@ -157,10 +157,10 @@ packages:
     dependency: transitive
     description:
       name: camera_web
-      sha256: "1245a480a113437f8d46d19c0fb90cea9db921436d9cf2ba5fb11854a1312693"
+      sha256: "081441bd2f92b5841aa70ff4d6eddfe34078d97f9d085cc9e0f9d0102f145925"
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.5+4"
+    version: "0.3.5+5"
   characters:
     dependency: transitive
     description:
@@ -349,10 +349,10 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: "1bbf65dd997458a08b531042ec3794112a6c39c07c37ff22113d2e7e4f81d4e4"
+      sha256: ab13ae8ef5580a411c458d6207b6774a6c237d77ac37011b13994879f68a8810
       url: "https://pub.dev"
     source: hosted
-    version: "6.2.1"
+    version: "8.3.7"
   fixnum:
     dependency: transitive
     description:

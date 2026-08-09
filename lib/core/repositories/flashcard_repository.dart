@@ -21,7 +21,7 @@ class FlashcardRepository {
 
   Future<List<Flashcard>> getDeletedFlashcards() => _database.getDeletedFlashcards();
 
-  void permanentlyDeleteFlashcard(int id) => _database.permanentlyDeleteFlashcard(id);
+  Future<void> permanentlyDeleteFlashcard(int id) => _database.permanentlyDeleteFlashcard(id);
 
   Future<List<Flashcard>> getFavoriteFlashcards() => _database.getFavoriteFlashcards();
 

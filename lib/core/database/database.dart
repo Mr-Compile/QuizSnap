@@ -178,9 +178,8 @@ class AppDatabase extends _$AppDatabase {
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.deletedAt)]))
     .get();
 
-  void permanentlyDeleteFolder(int id) {
-    // ignore: use_of_void_result
-    delete(folders).where((tbl) => tbl.id.equals(id)).go();
+  Future<void> permanentlyDeleteFolder(int id) async {
+    await (delete(folders)..where((tbl) => tbl.id.equals(id))).go();
   }
 
   // Deck Queries
@@ -221,9 +220,8 @@ class AppDatabase extends _$AppDatabase {
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.deletedAt)]))
     .get();
 
-  void permanentlyDeleteDeck(int id) {
-    // ignore: use_of_void_result
-    delete(decks).where((tbl) => tbl.id.equals(id)).go();
+  Future<void> permanentlyDeleteDeck(int id) async {
+    await (delete(decks)..where((tbl) => tbl.id.equals(id))).go();
   }
 
   Future<int> updateDeckCardCount(int deckId) async {
@@ -280,9 +278,8 @@ class AppDatabase extends _$AppDatabase {
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.deletedAt)]))
     .get();
 
-  void permanentlyDeleteFlashcard(int id) {
-    // ignore: use_of_void_result
-    delete(flashcards).where((tbl) => tbl.id.equals(id)).go();
+  Future<void> permanentlyDeleteFlashcard(int id) async {
+    await (delete(flashcards)..where((tbl) => tbl.id.equals(id))).go();
   }
 
   Future<List<Flashcard>> getFavoriteFlashcards() => (select(flashcards)
@@ -391,9 +388,8 @@ class AppDatabase extends _$AppDatabase {
 
   Future<bool> updateTag(Tag tag) => update(tags).replace(tag);
 
-  void deleteTag(int id) {
-    // ignore: use_of_void_result
-    delete(tags).where((tbl) => tbl.id.equals(id)).go();
+  Future<void> deleteTag(int id) async {
+    await (delete(tags)..where((tbl) => tbl.id.equals(id))).go();
   }
 
   // Flashcard Tag Queries
@@ -416,9 +412,8 @@ class AppDatabase extends _$AppDatabase {
             tagId: Value(tagId),
           ), mode: InsertMode.insertOrIgnore);
 
-  void removeTagFromFlashcard(int flashcardId, int tagId) {
-    // ignore: use_of_void_result
-    (delete(flashcardTags)
+  Future<void> removeTagFromFlashcard(int flashcardId, int tagId) async {
+    await (delete(flashcardTags)
         ..where((tbl) => tbl.flashcardId.equals(flashcardId))
         ..where((tbl) => tbl.tagId.equals(tagId)))
       .go();
@@ -730,26 +725,26 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // AI Usage Queries
-  Future<AiUsage?> getAiUsageForDate(String date) => (select(aiUsage)
+  Future<AiUsageData?> getAiUsageForDate(String date) => (select(aiUsage)
         ..where((tbl) => tbl.date.equals(date)))
       .getSingleOrNull();
 
   Future<int> getRemainingQuota() async {
     final today = DateTime.now();
     final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    
+
     final usage = await getAiUsageForDate(dateStr);
     if (usage == null) return 15; // Default daily limit
-    
+
     return usage.dailyLimit - usage.usedCount;
   }
 
   Future<bool> incrementAiUsage() async {
     final today = DateTime.now();
     final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    
+
     final usage = await getAiUsageForDate(dateStr);
-    
+
     if (usage == null) {
       // Create new entry for today
       await into(aiUsage).insert(AiUsageCompanion(
@@ -761,8 +756,8 @@ class AppDatabase extends _$AppDatabase {
       return true;
     } else {
       // Check if we need to reset (new day)
-      if (usage.lastResetAt.day != today.day || 
-          usage.lastResetAt.month != today.month || 
+      if (usage.lastResetAt.day != today.day ||
+          usage.lastResetAt.month != today.month ||
           usage.lastResetAt.year != today.year) {
         // Reset for new day
         await (update(aiUsage)..where((tbl) => tbl.id.equals(usage.id))).write(
@@ -774,12 +769,12 @@ class AppDatabase extends _$AppDatabase {
         );
         return true;
       }
-      
+
       // Check if limit reached
       if (usage.usedCount >= usage.dailyLimit) {
         return false;
       }
-      
+
       // Increment usage
       await (update(aiUsage)..where((tbl) => tbl.id.equals(usage.id))).write(
         AiUsageCompanion(
@@ -791,7 +786,7 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
-  Future<List<AiUsage>> getAiUsageHistory({int limit = 30}) => (select(aiUsage)
+  Future<List<AiUsageData>> getAiUsageHistory({int limit = 30}) => (select(aiUsage)
         ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)])
         ..limit(limit))
       .get();
@@ -810,8 +805,7 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateExtractedDocument(ExtractedDocument document) => update(extractedDocuments).replace(document);
 
   Future<bool> deleteExtractedDocument(int id) async {
-    // ignore: use_of_void_result
-    await delete(extractedDocuments).where((tbl) => tbl.id.equals(id)).go();
+    await (delete(extractedDocuments)..where((tbl) => tbl.id.equals(id))).go();
     return true;
   }
 

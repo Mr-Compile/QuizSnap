@@ -21,7 +21,7 @@ class DeckRepository {
 
   Future<List<Deck>> getDeletedDecks() => _database.getDeletedDecks();
 
-  void permanentlyDeleteDeck(int id) => _database.permanentlyDeleteDeck(id);
+  Future<void> permanentlyDeleteDeck(int id) => _database.permanentlyDeleteDeck(id);
 
   Future<void> updateDeckCardCount(int deckId) => _database.updateDeckCardCount(deckId);
 

@@ -330,7 +330,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
 
       // Validate questions
       final issues = generationService.validateQuestions(questions);
-      if (issues.isNotEmpty) {
+      if (issues.isNotEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Some questions have issues: ${issues.first}')),
         );

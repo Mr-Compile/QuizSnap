@@ -34,7 +34,7 @@ class AiQuotaService {
   }
 
   /// Get usage history for the past N days
-  Future<List<AiUsage>> getUsageHistory({int days = 30}) async {
+  Future<List<AiUsageData>> getUsageHistory({int days = 30}) async {
     final db = _databaseProvider.database;
     return await db.getAiUsageHistory(limit: days);
   }
@@ -56,21 +56,20 @@ class AiQuotaService {
   /// Reset quota (for testing or admin purposes)
   Future<bool> resetQuota() async {
     final db = _databaseProvider.database;
-    
+
     final today = DateTime.now();
     final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    
+
     final existing = await db.getAiUsageForDate(dateStr);
     if (existing != null) {
-      await (db.update(db.aiUsage)..where((tbl) => tbl.id.equals(existing.id))).write(
-        AiUsageCompanion(
-          usedCount: const Value(0),
-          lastResetAt: Value(today),
-          updatedAt: Value(DateTime.now()),
-        ),
+      final updated = existing.copyWith(
+        usedCount: 0,
+        lastResetAt: today,
+        updatedAt: DateTime.now(),
       );
+      await db.update(db.aiUsage).replace(updated);
     }
-    
+
     return true;
   }
 }

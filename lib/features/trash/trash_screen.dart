@@ -403,7 +403,7 @@ class _TrashScreenState extends State<TrashScreen> {
     if (confirmed && mounted) {
       final dbProvider = this.context.read<DatabaseProvider>();
       try {
-        dbProvider.folderRepository.permanentlyDeleteFolder(id);
+        await dbProvider.folderRepository.permanentlyDeleteFolder(id);
         if (!mounted) return;
         ScaffoldMessenger.of(this.context).showSnackBar(
           const SnackBar(content: Text('Folder permanently deleted')),
@@ -458,7 +458,7 @@ class _TrashScreenState extends State<TrashScreen> {
     if (confirmed && mounted) {
       final dbProvider = this.context.read<DatabaseProvider>();
       try {
-        dbProvider.deckRepository.permanentlyDeleteDeck(id);
+        await dbProvider.deckRepository.permanentlyDeleteDeck(id);
         if (!mounted) return;
         ScaffoldMessenger.of(this.context).showSnackBar(
           const SnackBar(content: Text('Deck permanently deleted')),
@@ -514,7 +514,7 @@ class _TrashScreenState extends State<TrashScreen> {
     if (confirmed && mounted) {
       final dbProvider = this.context.read<DatabaseProvider>();
       try {
-        dbProvider.flashcardRepository.permanentlyDeleteFlashcard(id);
+        await dbProvider.flashcardRepository.permanentlyDeleteFlashcard(id);
         if (!mounted) return;
         ScaffoldMessenger.of(this.context).showSnackBar(
           const SnackBar(content: Text('Flashcard permanently deleted')),
