@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+// import 'package:syncfusion_flutter_pdf/pdf.dart';
+// import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import '../../core/services/document_extraction_service.dart';
 import 'text_preview_screen.dart';
 
@@ -23,7 +23,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
   String? _errorMessage;
   final Set<int> _selectedPages = {};
   int _totalPages = 0;
-  PdfViewerController? _pdfViewerController;
+  // PdfViewerController? _pdfViewerController;
 
   @override
   void initState() {
@@ -35,14 +35,15 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
     try {
       final bytes = await widget.file.readAsBytes();
       
-      // Load PDF to get page count
-      final doc = PdfDocument(inputBytes: bytes);
+      // TODO: Load PDF to get page count with compatible library
+      // final doc = PdfDocument(inputBytes: bytes);
       setState(() {
-        _totalPages = doc.pages.count;
+        _totalPages = 1; // Placeholder
         _isLoading = false;
+        _errorMessage = 'PDF preview temporarily disabled - need compatible PDF library';
       });
       
-      _pdfViewerController = PdfViewerController();
+      // _pdfViewerController = PdfViewerController();
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -152,28 +153,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
         ),
         // PDF Viewer
         Expanded(
-          child: FutureBuilder<Uint8List>(
-            future: widget.file.readAsBytes(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text('Error: ${snapshot.error}'),
-                );
-              }
-              return SfPdfViewer.memory(
-                snapshot.data!,
-                controller: _pdfViewerController,
-                onDocumentLoaded: (details) {
-                  setState(() {
-                    _totalPages = details.document.pages.count;
-                  });
-                },
-              );
-            },
-          ),
+          child: _buildErrorState(),
         ),
       ],
     );

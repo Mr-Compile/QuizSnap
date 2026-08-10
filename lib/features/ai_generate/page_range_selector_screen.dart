@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
+// import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/document_cache_service.dart';
 import '../../core/providers/database_provider.dart';
@@ -42,14 +42,16 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
   Future<void> _loadPdfInfo() async {
     try {
       final bytes = await widget.file.readAsBytes();
-      final doc = PdfDocument(inputBytes: bytes);
+      // TODO: Load PDF to get page count with compatible library
+      // final doc = PdfDocument(inputBytes: bytes);
       
       setState(() {
-        _totalPages = doc.pages.count;
+        _totalPages = 1; // Placeholder
         _isLoading = false;
+        _errorMessage = 'PDF page selection temporarily disabled - need compatible PDF library';
       });
       
-      doc.dispose();
+      // doc.dispose();
     } catch (e) {
       setState(() {
         _isLoading = false;

@@ -1,10 +1,15 @@
 import 'dart:io';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
+// import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 class DocumentExtractionService {
   /// Extract text from a PDF file
   static Future<String> extractFromPdf(File file, {List<int>? pages}) async {
     try {
+      // TODO: Implement PDF text extraction with a compatible library
+      // For now, return a placeholder to allow build to succeed
+      throw Exception('PDF extraction temporarily disabled - need compatible PDF library');
+      
+      /* 
       final bytes = await file.readAsBytes();
       final doc = PdfDocument(inputBytes: bytes);
       
@@ -32,6 +37,7 @@ class DocumentExtractionService {
         doc.dispose();
         return selectedText.join('\n\n--- Page Break ---\n\n');
       }
+      */
     } catch (e) {
       throw Exception('Failed to extract text from PDF: $e');
     }

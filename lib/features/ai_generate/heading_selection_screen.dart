@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
+// import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/document_cache_service.dart';
 import '../../core/providers/database_provider.dart';
@@ -55,20 +55,25 @@ class _HeadingSelectionScreenState extends State<HeadingSelectionScreen> {
 
     try {
       final bytes = await widget.file.readAsBytes();
-      final doc = PdfDocument(inputBytes: bytes);
+      // TODO: Load PDF to get page count with compatible library
+      // final doc = PdfDocument(inputBytes: bytes);
       
       setState(() {
-        _totalPages = doc.pages.count;
+        _totalPages = 1; // Placeholder
+        _isLoading = false;
+        _errorMessage = 'PDF heading selection temporarily disabled - need compatible PDF library';
       });
 
       // Extract headings from PDF
-      await _extractHeadings(doc);
+      // await _extractHeadings();
       
-      doc.dispose();
+      // doc.dispose();
       
+      /*
       setState(() {
         _isLoading = false;
       });
+      */
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -77,42 +82,18 @@ class _HeadingSelectionScreenState extends State<HeadingSelectionScreen> {
     }
   }
 
-  Future<void> _extractHeadings(PdfDocument doc) async {
+  /*
+  Future<void> _extractHeadings() async {
     final headings = <DocumentHeading>[];
     
     // Simple heading detection - look for larger text and common patterns
-    for (int i = 0; i < doc.pages.count; i++) {
-      final textExtractor = PdfTextExtractor(doc);
-      final text = textExtractor.extractText(startPageIndex: i, endPageIndex: i);
-      
-      // Look for heading patterns (lines that are all caps, start with numbers, etc.)
-      final lines = text.split('\n');
-      for (final line in lines) {
-        final trimmed = line.trim();
-        if (_isLikelyHeading(trimmed)) {
-          headings.add(DocumentHeading(
-            title: trimmed,
-            startPage: i + 1,
-            endPage: i + 1, // Will be updated later
-            level: _getHeadingLevel(trimmed),
-          ));
-        }
-      }
-    }
-
-    // Update end pages for headings
-    for (int i = 0; i < headings.length; i++) {
-      if (i < headings.length - 1) {
-        headings[i].endPage = headings[i + 1].startPage - 1;
-      } else {
-        headings[i].endPage = _totalPages;
-      }
-    }
-
+    // TODO: Implement with compatible PDF library
+    
     setState(() {
       _headings = headings;
     });
   }
+  */
 
   bool _isLikelyHeading(String text) {
     if (text.length < 3) return false;
