@@ -242,10 +242,25 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
 
   Future<bool> _requestStoragePermission() async {
     if (Platform.isAndroid) {
-      final status = await Permission.storage.request();
-      if (status.isGranted) {
+      // Try multiple permission types for better compatibility
+      final storageStatus = await Permission.storage.request();
+      if (storageStatus.isGranted) {
         return true;
-      } else if (status.isPermanentlyDenied) {
+      }
+      
+      // Try manage external storage for Android 11+
+      final manageStatus = await Permission.manageExternalStorage.request();
+      if (manageStatus.isGranted) {
+        return true;
+      }
+      
+      // Try photos permission for media files
+      final photosStatus = await Permission.photos.request();
+      if (photosStatus.isGranted) {
+        return true;
+      }
+      
+      if (storageStatus.isPermanentlyDenied || manageStatus.isPermanentlyDenied) {
         // Show dialog to guide user to settings
         _showPermissionDialog();
         return false;

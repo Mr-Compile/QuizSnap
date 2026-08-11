@@ -14,8 +14,11 @@ class AuthorizedQuotaScreen extends StatefulWidget {
 }
 
 class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
-  late final SecureStorageService _secureStorage;
+  late SecureStorageService _secureStorage;
+  // Constant secret key password for authorization
+  static const String _constantSecretKey = 'QuizSnap2024SecureAuth';
   bool _isAuthEnabled = false;
+  bool _isAuthenticated = false;
   DateTime? _lastModificationTime;
 
   @override
@@ -23,10 +26,14 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
     super.initState();
     _secureStorage = SecureStorageService();
     _loadAuthStatus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showAuthenticationDialog();
+    });
   }
 
   Future<void> _loadAuthStatus() async {
-    final isEnabled = await _secureStorage.isQuotaAuthEnabled();
+    // Authorization is always enabled with constant password
+    final isEnabled = true;
     if (!mounted) return;
     
     final quotaProvider = context.read<AiQuotaProvider>();
@@ -40,36 +47,15 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
     });
   }
 
-  Future<void> _showPasswordDialog(String action, Future<bool> Function() actionCallback) async {
-    // If authorization is not enabled, proceed without password
-    if (!_isAuthEnabled) {
-      final success = await actionCallback();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(success ? 'Action completed successfully' : 'Action failed'),
-            backgroundColor: success ? Colors.green : Colors.red,
-          ),
-        );
-        // Refresh quota status
-        context.read<AiQuotaProvider>().refreshQuota();
-        // Reload last modification time
-        final quotaProvider = context.read<AiQuotaProvider>();
-        final lastMod = await quotaProvider.service.getLastModificationTime();
-        setState(() {
-          _lastModificationTime = lastMod;
-        });
-      }
-      return;
-    }
-
+  Future<void> _showAuthenticationDialog() async {
     final passwordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
     final confirmed = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text('Authorize $action'),
+        title: const Text('Authorization Required'),
         content: Form(
           key: formKey,
           child: Column(
@@ -79,7 +65,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                 controller: passwordController,
                 obscureText: true,
                 decoration: const InputDecoration(
-                  labelText: 'Authorization Password',
+                  labelText: 'Enter Authorization Password',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
@@ -94,7 +80,10 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () {
+              Navigator.pop(context, false);
+              Navigator.pop(context); // Close the screen if cancelled
+            },
             child: const Text('Cancel'),
           ),
           ElevatedButton(
@@ -111,26 +100,10 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
 
     if (confirmed == true && mounted) {
       final password = passwordController.text.trim();
-      final isValid = await _secureStorage.verifyQuotaAuthPassword(password);
-      
-      if (isValid) {
-        final success = await actionCallback();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(success ? 'Action completed successfully' : 'Action failed'),
-              backgroundColor: success ? Colors.green : Colors.red,
-            ),
-          );
-          // Refresh quota status
-          context.read<AiQuotaProvider>().refreshQuota();
-          // Reload last modification time
-          final quotaProvider = context.read<AiQuotaProvider>();
-          final lastMod = await quotaProvider.service.getLastModificationTime();
-          setState(() {
-            _lastModificationTime = lastMod;
-          });
-        }
+      if (password == _constantSecretKey) {
+        setState(() {
+          _isAuthenticated = true;
+        });
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -139,8 +112,31 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
               backgroundColor: Colors.red,
             ),
           );
+          Navigator.pop(context); // Close the screen if password is wrong
         }
       }
+    }
+  }
+
+  Future<void> _showPasswordDialog(String action, Future<bool> Function() actionCallback) async {
+    // Authorization is always enabled with constant password
+    // Auto-authorize using the constant secret key
+    final success = await actionCallback();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? 'Action completed successfully' : 'Action failed'),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+      // Refresh quota status
+      context.read<AiQuotaProvider>().refreshQuota();
+      // Reload last modification time
+      final quotaProvider = context.read<AiQuotaProvider>();
+      final lastMod = await quotaProvider.service.getLastModificationTime();
+      setState(() {
+        _lastModificationTime = lastMod;
+      });
     }
   }
 
@@ -265,6 +261,15 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isAuthenticated) {
+      return const Scaffold(
+        appBar: CustomAppBar(
+          title: 'Authorized Quota Management',
+        ),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: const CustomAppBar(
         title: 'Authorized Quota Management',
@@ -284,8 +289,8 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                     Row(
                       children: [
                         Icon(
-                          _isAuthEnabled ? Icons.security : Icons.lock_open,
-                          color: _isAuthEnabled ? Colors.green : Colors.orange,
+                          Icons.security,
+                          color: AppTheme.bambooGreen600,
                           size: 32,
                         ),
                         const SizedBox(width: AppTheme.spacingMd),
@@ -294,12 +299,12 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Authorization Status',
-                                style: AppTheme.titleMedium,
+                                'Quota Status',
+                                style: AppTheme.headlineSmall,
                               ),
                               const SizedBox(height: AppTheme.spacingXs),
                               Text(
-                                _isAuthEnabled ? 'Enabled' : 'Disabled',
+                                _isAuthEnabled ? 'Authorization Enabled' : 'Authorization Disabled',
                                 style: AppTheme.bodyMedium.copyWith(
                                   color: _isAuthEnabled ? Colors.green : Colors.orange,
                                   fontWeight: FontWeight.bold,
@@ -308,72 +313,44 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                             ],
                           ),
                         ),
+                        Switch(
+                          value: _isAuthEnabled,
+                          onChanged: (value) {
+                            setState(() {
+                              _isAuthEnabled = value;
+                            });
+                            if (value) {
+                              _setPassword();
+                            } else {
+                              _disableAuthorization();
+                            }
+                          },
+                        ),
                       ],
                     ),
+                    const SizedBox(height: AppTheme.spacingLg),
+                    Text(
+                      'Current Quota Status',
+                      style: AppTheme.titleMedium,
+                    ),
                     const SizedBox(height: AppTheme.spacingMd),
-                    if (_isAuthEnabled) ...[
+                    _buildQuotaDetail('Used', '${status?.used ?? 0} requests'),
+                    _buildQuotaDetail('Remaining', '${status?.remaining ?? 0} requests'),
+                    _buildQuotaDetail('Daily Limit', '${status?.limit ?? 0} requests'),
+                    if (_lastModificationTime != null) ...[
+                      const SizedBox(height: AppTheme.spacingSm),
                       Text(
-                        'Password protection is active. Authorization is required for quota modifications.',
+                        'Last modified: ${_formatDateTime(_lastModificationTime!)}',
                         style: AppTheme.bodySmall.copyWith(
                           color: Colors.grey,
-                        ),
-                      ),
-                    ] else ...[
-                      Text(
-                        'Authorization is disabled. Anyone can modify quota settings.',
-                        style: AppTheme.bodySmall.copyWith(
-                          color: Colors.grey,
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
-                    const SizedBox(height: AppTheme.spacingMd),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _isAuthEnabled ? _disableAuthorization : _setPassword,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _isAuthEnabled ? Colors.red : Colors.green,
-                            ),
-                            child: Text(_isAuthEnabled ? 'Disable' : 'Enable'),
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
               const SizedBox(height: AppTheme.spacingLg),
-              
-              // Current quota status
-              if (status != null) ...[
-                CustomCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Current Quota Status',
-                        style: AppTheme.titleMedium,
-                      ),
-                      const SizedBox(height: AppTheme.spacingMd),
-                      _buildQuotaDetail('Used', '${status.used} requests'),
-                      _buildQuotaDetail('Remaining', '${status.remaining} requests'),
-                      _buildQuotaDetail('Daily Limit', '${status.limit} requests'),
-                      if (_lastModificationTime != null) ...[
-                        const SizedBox(height: AppTheme.spacingSm),
-                        Text(
-                          'Last modified: ${_formatDateTime(_lastModificationTime!)}',
-                          style: AppTheme.bodySmall.copyWith(
-                            color: Colors.grey,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spacingLg),
-              ],
               
               // Authorized actions
               Text(

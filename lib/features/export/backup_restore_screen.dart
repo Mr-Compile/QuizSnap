@@ -18,20 +18,18 @@ class BackupRestoreScreen extends StatefulWidget {
 }
 
 class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
-  late ExportProvider _exportProvider;
   BackupSchedule? _schedule;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _initializeServices();
+    _loadSchedule();
   }
 
-  Future<void> _initializeServices() async {
-    _exportProvider = context.read<ExportProvider>();
-
-    final schedule = await _exportProvider.getBackupSchedule();
+  Future<void> _loadSchedule() async {
+    final exportProvider = context.read<ExportProvider>();
+    final schedule = await exportProvider.getBackupSchedule();
     if (mounted) {
       setState(() {
         _schedule = schedule;
@@ -192,7 +190,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
           ),
           const SizedBox(height: 16),
           FutureBuilder<List<BackupMetadata>>(
-            future: _exportProvider.backupService.getBackupHistory(),
+            future: context.read<ExportProvider>().backupService.getBackupHistory(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -262,7 +260,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
           : null,
     );
 
-    await _exportProvider.updateBackupSchedule(newSchedule);
+    await context.read<ExportProvider>().updateBackupSchedule(newSchedule);
 
     if (mounted) {
       setState(() {
@@ -372,7 +370,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
     if (confirmed == true && mounted) {
       try {
-        await _exportProvider.restoreBackup(backup.id);
+        await context.read<ExportProvider>().restoreBackup(backup.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Backup restored successfully')),
@@ -410,7 +408,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
     if (confirmed == true && mounted) {
       try {
-        await _exportProvider.deleteBackup(backup.id);
+        await context.read<ExportProvider>().deleteBackup(backup.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Backup deleted')),

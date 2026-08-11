@@ -66,99 +66,101 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
   }
 
   Widget _buildApiKeySetup(BuildContext context, GroqProvider groqProvider) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.api_outlined,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Setup Groq API Key',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Enter your Groq API key to enable AI-powered question generation',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+    return SingleChildScrollView(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.api_outlined,
+                size: 80,
+                color: Theme.of(context).colorScheme.primary,
               ),
-            ),
-            const SizedBox(height: 32),
-            TextField(
-              controller: _apiKeyController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'API Key',
-                hintText: 'gsk_...',
-                border: const OutlineInputBorder(),
-                errorText: groqProvider.errorMessage,
+              const SizedBox(height: 24),
+              Text(
+                'Setup Groq API Key',
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-              onChanged: (value) {
-                groqProvider.clearError();
-              },
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: groqProvider.isLoading
-                    ? null
-                    : () async {
-                        final apiKey = _apiKeyController.text.trim();
-                        
-                        if (apiKey.isEmpty) {
-                          groqProvider.clearError();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please enter an API key')),
-                          );
-                          return;
-                        }
+              const SizedBox(height: 12),
+              Text(
+                'Enter your Groq API key to enable AI-powered question generation',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 32),
+              TextField(
+                controller: _apiKeyController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'API Key',
+                  hintText: 'gsk_...',
+                  border: const OutlineInputBorder(),
+                  errorText: groqProvider.errorMessage,
+                ),
+                onChanged: (value) {
+                  groqProvider.clearError();
+                },
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: groqProvider.isLoading
+                      ? null
+                      : () async {
+                          final apiKey = _apiKeyController.text.trim();
+                          
+                          if (apiKey.isEmpty) {
+                            groqProvider.clearError();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please enter an API key')),
+                            );
+                            return;
+                          }
 
-                        final success = await groqProvider.initialize(apiKey);
-                        if (!success && mounted) {
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            SnackBar(content: Text(groqProvider.errorMessage ?? 'Failed to initialize')),
-                          );
-                        }
+                          final success = await groqProvider.initialize(apiKey);
+                          if (!success && mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              SnackBar(content: Text(groqProvider.errorMessage ?? 'Failed to initialize')),
+                            );
+                          }
+                        },
+                  child: groqProvider.isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Connect'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (groqProvider.errorMessage != null) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        groqProvider.retryInitialization();
                       },
-                child: groqProvider.isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Connect'),
+                      child: const Text('Retry from saved key'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+              TextButton(
+                onPressed: () {
+                  _showApiKeyHelpDialog(context);
+                },
+                child: const Text('How to get an API key?'),
               ),
-            ),
-            const SizedBox(height: 16),
-            if (groqProvider.errorMessage != null) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      groqProvider.retryInitialization();
-                    },
-                    child: const Text('Retry from saved key'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
             ],
-            TextButton(
-              onPressed: () {
-                _showApiKeyHelpDialog(context);
-              },
-              child: const Text('How to get an API key?'),
-            ),
-          ],
+          ),
         ),
       ),
     );
