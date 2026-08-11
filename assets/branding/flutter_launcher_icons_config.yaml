@@ -1,0 +1,35 @@
+# Flutter Launcher Icons Configuration for QuizSnap
+# Add this section to your pubspec.yaml
+
+flutter_launcher_icons:
+  # Android Configuration
+  android: true
+  ios: true
+  
+  # Main launcher icon
+  image_path: "assets/branding/icon_light.png"
+  
+  # Adaptive Icon Configuration
+  adaptive_icon_foreground: "assets/branding/icon_foreground.png"
+  adaptive_icon_background: "#16A34A"  # bambooGreen600
+  
+  # iOS specific settings
+  remove_alpha_ios: true
+  
+  # Web configuration (disabled as per current setup)
+  web:
+    generate: false
+  
+  # Windows configuration (disabled as per current setup)
+  windows:
+    generate: false
+  
+  # macOS configuration (disabled as per current setup)
+  macos:
+    generate: false
+  
+  # Minimum Android SDK
+  min_sdk_android: 21
+
+# Command to generate launcher icons:
+# flutter pub run flutter_launcher_icons

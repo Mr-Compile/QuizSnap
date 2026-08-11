@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
 import '../../core/services/ai_quota_service.dart';
 import '../../shared/widgets/app_bar.dart';
+import 'authorized_quota_screen.dart';
 
 class AiUsageScreen extends StatefulWidget {
   const AiUsageScreen({super.key});
@@ -37,6 +38,25 @@ class _AiUsageScreenState extends State<AiUsageScreen> {
               
               // Quota details
               _buildQuotaDetails(context, status),
+              const SizedBox(height: 24),
+              
+              // Authorized controls button
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.admin_panel_settings),
+                  title: const Text('Authorized Controls'),
+                  subtitle: const Text('Manage quota with authorization'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AuthorizedQuotaScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
               const SizedBox(height: 24),
               
               // Usage history

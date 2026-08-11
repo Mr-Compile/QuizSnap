@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:pdfx/pdfx.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/document_cache_service.dart';
 import '../../core/providers/database_provider.dart';
@@ -41,11 +41,18 @@ class _HeadingSelectionScreenState extends State<HeadingSelectionScreen> {
   String? _errorMessage;
   List<DocumentHeading> _headings = [];
   int _totalPages = 0;
+  PdfController? _pdfController;
 
   @override
   void initState() {
     super.initState();
     _loadPdfAndExtractHeadings();
+  }
+
+  @override
+  void dispose() {
+    _pdfController?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadPdfAndExtractHeadings() async {
@@ -55,25 +62,24 @@ class _HeadingSelectionScreenState extends State<HeadingSelectionScreen> {
 
     try {
       final bytes = await widget.file.readAsBytes();
-      // TODO: Load PDF to get page count with compatible library
-      // final doc = PdfDocument(inputBytes: bytes);
+      _pdfController = PdfController(
+        document: PdfDocument.openData(bytes),
+      );
+      
+      // Get page count
+      final pdfDocument = await _pdfController!.document;
+      final pageCount = pdfDocument.pagesCount;
       
       setState(() {
-        _totalPages = 1; // Placeholder
-        _isLoading = false;
-        _errorMessage = 'PDF heading selection temporarily disabled - need compatible PDF library';
+        _totalPages = pageCount;
       });
 
       // Extract headings from PDF
-      // await _extractHeadings();
+      await _extractHeadings();
       
-      // doc.dispose();
-      
-      /*
       setState(() {
         _isLoading = false;
       });
-      */
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -82,54 +88,70 @@ class _HeadingSelectionScreenState extends State<HeadingSelectionScreen> {
     }
   }
 
-  /*
   Future<void> _extractHeadings() async {
     final headings = <DocumentHeading>[];
     
-    // Simple heading detection - look for larger text and common patterns
-    // TODO: Implement with compatible PDF library
-    
-    setState(() {
-      _headings = headings;
-    });
-  }
-  */
-
-  bool _isLikelyHeading(String text) {
-    if (text.length < 3) return false;
-    if (text.length > 100) return false;
-    
-    // Check for common heading patterns
-    final patterns = [
-      RegExp(r'^Chapter \d+', caseSensitive: false),
-      RegExp(r'^\d+\.\s', caseSensitive: false), // "1. Introduction"
-      RegExp(r'^[A-Z][A-Z\s]+$'), // All caps
-      RegExp(r'^Section \d+', caseSensitive: false),
-      RegExp(r'^Part [IVX]+', caseSensitive: false),
-    ];
-
-    for (final pattern in patterns) {
-      if (pattern.hasMatch(text)) return true;
+    try {
+      // Extract text from the PDF
+      final text = await DocumentExtractionService.extractFromPdf(widget.file);
+      
+      // Simple heading detection - look for common patterns
+      // This is a basic implementation; for production, you might want to use
+      // a more sophisticated PDF parsing library or AI-based heading detection
+      final lines = text.split('\n');
+      
+      for (int i = 0; i < lines.length; i++) {
+        final line = lines[i].trim();
+        
+        // Skip empty lines
+        if (line.isEmpty) continue;
+        
+        // Detect potential headings based on common patterns
+        // 1. All caps
+        // 2. Numbered sections (1., 2., etc.)
+        // 3. Short lines that might be titles
+        if (line.length < 100 && 
+            (line == line.toUpperCase() || 
+             RegExp(r'^\d+\.\s').hasMatch(line) ||
+             RegExp(r'^Chapter\s+\d+').hasMatch(line) ||
+             RegExp(r'^Section\s+\d+').hasMatch(line))) {
+          
+          // Create a heading (assigning page 1 as placeholder since pdfx doesn't provide page-level text extraction)
+          headings.add(DocumentHeading(
+            title: line,
+            startPage: 1,
+            endPage: _totalPages,
+            level: 1,
+          ));
+        }
+      }
+      
+      // If no headings found, create a default one for the entire document
+      if (headings.isEmpty) {
+        headings.add(DocumentHeading(
+          title: 'Full Document',
+          startPage: 1,
+          endPage: _totalPages,
+          level: 1,
+        ));
+      }
+      
+      setState(() {
+        _headings = headings;
+      });
+    } catch (e) {
+      // If heading extraction fails, create a default heading
+      setState(() {
+        _headings = [
+          DocumentHeading(
+            title: 'Full Document',
+            startPage: 1,
+            endPage: _totalPages,
+            level: 1,
+          ),
+        ];
+      });
     }
-
-    // Check if first letter is capitalized and rest are not all lowercase
-    if (text[0] == text[0].toUpperCase() && 
-        !text.substring(1).contains(RegExp(r'[A-Z]'))) {
-      return true;
-    }
-
-    return false;
-  }
-
-  int _getHeadingLevel(String text) {
-    // Determine heading level based on patterns
-    if (RegExp(r'^Chapter \d+', caseSensitive: false).hasMatch(text)) return 1;
-    if (RegExp(r'^Part [IVX]+', caseSensitive: false).hasMatch(text)) return 1;
-    if (RegExp(r'^Section \d+', caseSensitive: false).hasMatch(text)) return 2;
-    if (RegExp(r'^\d+\.\d+\.', caseSensitive: false).hasMatch(text)) return 3; // "1.1. Introduction"
-    if (RegExp(r'^\d+\.', caseSensitive: false).hasMatch(text)) return 2;
-    
-    return 2; // Default level
   }
 
   @override
@@ -274,13 +296,32 @@ class _HeadingSelectionScreenState extends State<HeadingSelectionScreen> {
         ),
         // Heading list
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _headings.length,
-            itemBuilder: (context, index) {
-              final heading = _headings[index];
-              return _buildHeadingTile(heading, index);
-            },
+          child: Row(
+            children: [
+              // PDF Viewer (left side)
+              Expanded(
+                flex: 1,
+                child: _pdfController != null
+                    ? PdfView(
+                        controller: _pdfController!,
+                      )
+                    : const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+              ),
+              // Heading list (right side)
+              Expanded(
+                flex: 1,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _headings.length,
+                  itemBuilder: (context, index) {
+                    final heading = _headings[index];
+                    return _buildHeadingTile(heading, index);
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ],

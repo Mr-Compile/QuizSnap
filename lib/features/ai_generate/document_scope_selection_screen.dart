@@ -250,6 +250,8 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
         return Icons.picture_as_pdf;
       case 'txt':
         return Icons.text_snippet;
+      case 'docx':
+        return Icons.description;
       default:
         return Icons.description;
     }
@@ -313,13 +315,13 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
       
       if (!mounted) return;
 
-      // Cache the extracted document
+      // Cache the extracted document using the copied file path
       final dbProvider = Provider.of<DatabaseProvider>(context, listen: false);
       final cacheService = DocumentCacheService(dbProvider);
       
       await cacheService.cacheDocument(
         fileName: widget.file.path.split('/').last,
-        filePath: widget.file.path,
+        filePath: widget.file.path, // This is now the copied path in app storage
         extractedText: text,
         selectedScope: 'all',
         scopeDetails: null,

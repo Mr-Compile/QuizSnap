@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../shared/widgets/bottom_navigation.dart';
 import '../../core/providers/security_provider.dart';
 import '../../core/navigation/back_button_handler.dart';
+import '../../core/navigation/app_routes.dart';
 import '../decks/deck_list_screen.dart';
 import '../settings/settings_screen.dart';
 import '../study/study_home_screen.dart';
@@ -66,6 +68,17 @@ class _MainScreenState extends State<MainScreen> {
           context: context,
           message: 'Press back again to exit QuizSnap',
           child: Scaffold(
+            appBar: AppBar(
+              title: Text(_getAppBarTitle()),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () {
+                    GoRouter.of(context).push(AppRoutes.settings);
+                  },
+                ),
+              ],
+            ),
             body: _buildCurrentScreen(),
             bottomNavigationBar: MainBottomNavigation(
               currentIndex: _currentIndex,
@@ -91,6 +104,23 @@ class _MainScreenState extends State<MainScreen> {
         return const SettingsScreen();
       default:
         return const DeckListScreen();
+    }
+  }
+
+  String _getAppBarTitle() {
+    switch (_currentIndex) {
+      case 0:
+        return 'Library';
+      case 1:
+        return 'AI Generate';
+      case 2:
+        return 'Study';
+      case 3:
+        return 'Progress';
+      case 4:
+        return 'Settings';
+      default:
+        return 'QuizSnap';
     }
   }
 }

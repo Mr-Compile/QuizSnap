@@ -1,12 +1,13 @@
 import '../database/database.dart';
 import '../providers/database_provider.dart';
+import 'package:drift/drift.dart';
 
 class AiQuotaService {
   final DatabaseProvider _databaseProvider;
 
   AiQuotaService(this._databaseProvider);
 
-  static const int dailyLimit = 15;
+  static const int defaultDailyLimit = 15;
 
   /// Get remaining quota for today
   Future<int> getRemainingQuota() async {
@@ -17,7 +18,7 @@ class AiQuotaService {
   /// Get today's usage count
   Future<int> getTodayUsage() async {
     final remaining = await getRemainingQuota();
-    return dailyLimit - remaining;
+    return defaultDailyLimit - remaining;
   }
 
   /// Check if user can make an AI request
@@ -42,12 +43,12 @@ class AiQuotaService {
   /// Get quota status for UI display
   Future<QuotaStatus> getQuotaStatus() async {
     final remaining = await getRemainingQuota();
-    final used = dailyLimit - remaining;
+    final used = defaultDailyLimit - remaining;
     
     return QuotaStatus(
       used: used,
       remaining: remaining,
-      limit: dailyLimit,
+      limit: defaultDailyLimit,
       canRequest: remaining > 0,
       isLow: remaining <= 3,
     );
@@ -71,6 +72,121 @@ class AiQuotaService {
     }
 
     return true;
+  }
+
+  /// Authorized: Set custom daily limit for today
+  Future<bool> setCustomDailyLimit(int newLimit) async {
+    final db = _databaseProvider.database;
+
+    final today = DateTime.now();
+    final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    final existing = await db.getAiUsageForDate(dateStr);
+    if (existing != null) {
+      final updated = existing.copyWith(
+        dailyLimit: newLimit,
+        updatedAt: DateTime.now(),
+      );
+      await db.update(db.aiUsage).replace(updated);
+    } else {
+      // Create new entry with custom limit
+      await db.into(db.aiUsage).insert(
+        AiUsageCompanion(
+          date: Value(dateStr),
+          usedCount: const Value(0),
+          dailyLimit: Value(newLimit),
+          lastResetAt: Value(today),
+        ),
+      );
+    }
+
+    return true;
+  }
+
+  /// Authorized: Increase quota by specified amount
+  Future<bool> increaseQuota(int amount) async {
+    final db = _databaseProvider.database;
+
+    final today = DateTime.now();
+    final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    final existing = await db.getAiUsageForDate(dateStr);
+    if (existing != null) {
+      final newLimit = existing.dailyLimit + amount;
+      final updated = existing.copyWith(
+        dailyLimit: newLimit,
+        updatedAt: DateTime.now(),
+      );
+      await db.update(db.aiUsage).replace(updated);
+    } else {
+      // Create new entry with increased limit
+      await db.into(db.aiUsage).insert(
+        AiUsageCompanion(
+          date: Value(dateStr),
+          usedCount: const Value(0),
+          dailyLimit: Value(defaultDailyLimit + amount),
+          lastResetAt: Value(today),
+        ),
+      );
+    }
+
+    return true;
+  }
+
+  /// Authorized: Decrease quota by specified amount
+  Future<bool> decreaseQuota(int amount) async {
+    final db = _databaseProvider.database;
+
+    final today = DateTime.now();
+    final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    final existing = await db.getAiUsageForDate(dateStr);
+    if (existing != null) {
+      final newLimit = (existing.dailyLimit - amount).clamp(0, existing.usedCount);
+      final updated = existing.copyWith(
+        dailyLimit: newLimit,
+        updatedAt: DateTime.now(),
+      );
+      await db.update(db.aiUsage).replace(updated);
+    }
+
+    return true;
+  }
+
+  /// Authorized: Reset today's usage to zero
+  Future<bool> resetTodayUsage() async {
+    final db = _databaseProvider.database;
+
+    final today = DateTime.now();
+    final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    final existing = await db.getAiUsageForDate(dateStr);
+    if (existing != null) {
+      final updated = existing.copyWith(
+        usedCount: 0,
+        lastResetAt: today,
+        updatedAt: DateTime.now(),
+      );
+      await db.update(db.aiUsage).replace(updated);
+    }
+
+    return true;
+  }
+
+  /// Authorized: Restore default daily limit
+  Future<bool> restoreDefaultLimit() async {
+    return await setCustomDailyLimit(defaultDailyLimit);
+  }
+
+  /// Get the last quota modification timestamp
+  Future<DateTime?> getLastModificationTime() async {
+    final db = _databaseProvider.database;
+
+    final today = DateTime.now();
+    final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    final existing = await db.getAiUsageForDate(dateStr);
+    return existing?.updatedAt;
   }
 }
 

@@ -158,8 +158,8 @@ class AnalyticsRepository {
 
     final totalAccuracy = recentSessions.fold<double>(0, (sum, s) {
       if (s.cardsStudied == 0) return sum;
-      return sum + (s.cardsCorrect / s.cardsStudied * 100);
-    }) / recentSessions.length;
+      return sum + (s.cardsCorrect.toDouble() / s.cardsStudied.toDouble() * 100.0);
+    }) / recentSessions.length.toDouble();
 
     final averageCardsPerSession = recentSessions.fold<int>(0, (sum, s) => sum + s.cardsStudied) / recentSessions.length;
     final totalStudyTimeMinutes = recentSessions.fold<int>(0, (sum, s) => sum + s.durationSeconds) ~/ 60;
@@ -171,13 +171,13 @@ class AnalyticsRepository {
 
     final firstHalfAccuracy = firstHalf.isEmpty ? 0.0 : firstHalf.fold<double>(0, (sum, s) {
       if (s.cardsStudied == 0) return sum;
-      return sum + (s.cardsCorrect / s.cardsStudied * 100);
-    }) / firstHalf.length;
+      return sum + (s.cardsCorrect.toDouble() / s.cardsStudied.toDouble() * 100.0);
+    }) / firstHalf.length.toDouble();
 
     final secondHalfAccuracy = secondHalf.isEmpty ? 0.0 : secondHalf.fold<double>(0, (sum, s) {
       if (s.cardsStudied == 0) return sum;
-      return sum + (s.cardsCorrect / s.cardsStudied * 100);
-    }) / secondHalf.length;
+      return sum + (s.cardsCorrect.toDouble() / s.cardsStudied.toDouble() * 100.0);
+    }) / secondHalf.length.toDouble();
 
     String trend;
     if (secondHalfAccuracy > firstHalfAccuracy + 5) {
@@ -191,7 +191,7 @@ class AnalyticsRepository {
     return ImprovementTrends(
       periodDays: periodDays,
       averageAccuracy: totalAccuracy,
-      averageCardsPerSession: averageCardsPerSession,
+      averageCardsPerSession: averageCardsPerSession.toDouble(),
       totalStudyTimeMinutes: totalStudyTimeMinutes,
       trend: trend,
     );

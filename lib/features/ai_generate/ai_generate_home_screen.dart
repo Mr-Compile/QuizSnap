@@ -29,9 +29,32 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
       appBar: AppBar(
         title: const Text('AI Generate'),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings/api-config');
+            },
+          ),
+        ],
       ),
       body: Consumer<GroqProvider>(
         builder: (context, groqProvider, _) {
+          // Show loading state during auto-initialization
+          if (groqProvider.isAutoInitializing) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Initializing AI service...'),
+                ],
+              ),
+            );
+          }
+
+          // Show API key setup if not initialized
           if (!groqProvider.isInitialized) {
             return _buildApiKeySetup(context, groqProvider);
           }
@@ -115,6 +138,20 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            if (groqProvider.errorMessage != null) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      groqProvider.retryInitialization();
+                    },
+                    child: const Text('Retry from saved key'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
             TextButton(
               onPressed: () {
                 _showApiKeyHelpDialog(context);
@@ -173,6 +210,13 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                 icon: Icons.text_snippet,
                 color: Colors.green,
                 onTap: () => _showFilePicker(context, 'txt'),
+              ),
+              _buildImportCard(
+                context,
+                title: 'DOCX',
+                icon: Icons.description,
+                color: Colors.blue,
+                onTap: () => _showFilePicker(context, 'docx'),
               ),
               _buildImportCard(
                 context,

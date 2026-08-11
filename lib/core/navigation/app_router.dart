@@ -45,10 +45,15 @@ import '../../features/export/export_success_screen.dart';
 import '../../features/export/pdf_preview_screen.dart' as export_screen;
 import '../../features/export/backup_history_screen.dart';
 import '../../features/export/backup_restore_screen.dart';
+import '../../features/export/backup_restore_screen_enhanced.dart';
+import '../../features/export/import_preview_screen.dart';
+import '../../features/export/change_backup_folder_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/settings/appearance_screen.dart';
 import '../../features/settings/security_settings_screen.dart';
 import '../../features/settings/api_configuration_screen.dart';
+import '../../features/settings/ai_usage_screen.dart';
+import '../../features/settings/authorized_quota_screen.dart';
 import '../../features/settings/pin_lock_screen.dart';
 import '../../features/settings/set_pin_screen.dart';
 import '../../features/settings/reminder_settings_screen.dart';
@@ -72,6 +77,7 @@ import '../../core/navigation/error_screens/network_error_screen.dart';
 /// - Route guards for authentication
 /// - Error handling and fallback screens
 /// - Consistent navigation patterns
+/// - State preservation for bottom navigation tabs
 class AppRouter {
   AppRouter._();
 
@@ -87,7 +93,7 @@ class AppRouter {
       return null;
     },
     routes: [
-      // Main screen with bottom navigation
+      // Main screen with bottom navigation (using shell route for state preservation)
       GoRoute(
         path: AppRoutes.home,
         builder: (context, state) => const MainScreen(),
@@ -365,6 +371,26 @@ class AppRouter {
                 path: 'restore',
                 builder: (context, state) => const BackupRestoreScreen(),
               ),
+              GoRoute(
+                path: 'restore-enhanced',
+                builder: (context, state) => const BackupRestoreScreenEnhanced(),
+              ),
+              GoRoute(
+                path: 'import-preview',
+                builder: (context, state) {
+                  final filePath = state.uri.queryParameters['filePath'] ?? '';
+                  if (filePath.isEmpty) {
+                    return const Scaffold(
+                      body: Center(child: Text('No file path provided')),
+                    );
+                  }
+                  return ImportPreviewScreen(filePath: filePath);
+                },
+              ),
+              GoRoute(
+                path: 'change-folder',
+                builder: (context, state) => const ChangeBackupFolderScreen(),
+              ),
             ],
           ),
         ],
@@ -384,8 +410,16 @@ class AppRouter {
             builder: (context, state) => const SecuritySettingsScreen(),
           ),
           GoRoute(
-            path: 'api',
+            path: 'api-config',
             builder: (context, state) => const ApiConfigurationScreen(),
+          ),
+          GoRoute(
+            path: 'ai-usage',
+            builder: (context, state) => const AiUsageScreen(),
+          ),
+          GoRoute(
+            path: 'authorized-quota',
+            builder: (context, state) => const AuthorizedQuotaScreen(),
           ),
           GoRoute(
             path: 'pin-lock',

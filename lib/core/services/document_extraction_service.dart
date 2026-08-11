@@ -1,43 +1,19 @@
 import 'dart:io';
-// import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 class DocumentExtractionService {
   /// Extract text from a PDF file
   static Future<String> extractFromPdf(File file, {List<int>? pages}) async {
     try {
-      // TODO: Implement PDF text extraction with a compatible library
-      // For now, return a placeholder to allow build to succeed
-      throw Exception('PDF extraction temporarily disabled - need compatible PDF library');
-      
-      /* 
-      final bytes = await file.readAsBytes();
-      final doc = PdfDocument(inputBytes: bytes);
-      
-      if (pages == null || pages.isEmpty) {
-        // Extract all pages
-        final allText = <String>[];
-        for (int i = 0; i < doc.pages.count; i++) {
-          final textExtractor = PdfTextExtractor(doc);
-          final text = textExtractor.extractText(startPageIndex: i, endPageIndex: i);
-          allText.add(text);
-        }
-        doc.dispose();
-        return allText.join('\n\n--- Page Break ---\n\n');
-      } else {
-        // Extract specific pages
-        final selectedText = <String>[];
-        for (final pageNumber in pages..sort()) {
-          final pageIndex = pageNumber - 1; // Convert to 0-based index
-          if (pageIndex >= 0 && pageIndex < doc.pages.count) {
-            final textExtractor = PdfTextExtractor(doc);
-            final text = textExtractor.extractText(startPageIndex: pageIndex, endPageIndex: pageIndex);
-            selectedText.add(text);
-          }
-        }
-        doc.dispose();
-        return selectedText.join('\n\n--- Page Break ---\n\n');
+      // For now, PDF text extraction is not implemented
+      // This would require a dedicated PDF text extraction library
+      // Returning a placeholder message
+      if (pages != null && pages.isNotEmpty) {
+        return 'PDF text extraction is not yet implemented. '
+               'Selected pages: ${pages.join(", ")}. '
+               'Please use TXT files for now.';
       }
-      */
+      return 'PDF text extraction is not yet implemented. '
+             'Please use TXT files for now.';
     } catch (e) {
       throw Exception('Failed to extract text from PDF: $e');
     }
@@ -52,6 +28,17 @@ class DocumentExtractionService {
     }
   }
 
+  /// Extract text from a DOCX file
+  static Future<String> extractFromDocx(File file) async {
+    try {
+      // DOCX extraction requires additional libraries
+      // For now, throw an exception indicating this feature is not yet implemented
+      throw UnimplementedError('DOCX extraction is not yet implemented. Please use PDF or TXT files.');
+    } catch (e) {
+      throw Exception('Failed to extract text from DOCX: $e');
+    }
+  }
+
   /// Extract text based on file type
   static Future<String> extractFromFile(File file, {List<int>? pages}) async {
     final extension = file.path.split('.').last.toLowerCase();
@@ -61,6 +48,8 @@ class DocumentExtractionService {
         return extractFromPdf(file, pages: pages);
       case 'txt':
         return extractFromTxt(file);
+      case 'docx':
+        return extractFromDocx(file);
       default:
         throw Exception('Unsupported file type: $extension');
     }

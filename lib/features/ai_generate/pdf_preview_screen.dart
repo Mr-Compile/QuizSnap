@@ -1,8 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-// import 'package:syncfusion_flutter_pdf/pdf.dart';
-// import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:pdfx/pdfx.dart';
 import '../../core/services/document_extraction_service.dart';
 import 'text_preview_screen.dart';
 
@@ -23,7 +21,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
   String? _errorMessage;
   final Set<int> _selectedPages = {};
   int _totalPages = 0;
-  // PdfViewerController? _pdfViewerController;
+  PdfController? _pdfController;
 
   @override
   void initState() {
@@ -31,19 +29,27 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
     _loadPdf();
   }
 
+  @override
+  void dispose() {
+    _pdfController?.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadPdf() async {
     try {
       final bytes = await widget.file.readAsBytes();
+      _pdfController = PdfController(
+        document: PdfDocument.openData(bytes),
+      );
       
-      // TODO: Load PDF to get page count with compatible library
-      // final doc = PdfDocument(inputBytes: bytes);
+      // Get page count
+      final pdfDocument = await _pdfController!.document;
+      final pageCount = pdfDocument.pagesCount;
+      
       setState(() {
-        _totalPages = 1; // Placeholder
+        _totalPages = pageCount;
         _isLoading = false;
-        _errorMessage = 'PDF preview temporarily disabled - need compatible PDF library';
       });
-      
-      // _pdfViewerController = PdfViewerController();
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -153,7 +159,13 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
         ),
         // PDF Viewer
         Expanded(
-          child: _buildErrorState(),
+          child: _pdfController != null
+              ? PdfView(
+                  controller: _pdfController!,
+                )
+              : const Center(
+                  child: CircularProgressIndicator(),
+                ),
         ),
       ],
     );

@@ -30,6 +30,7 @@ class QuizSnapApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => DatabaseProvider()),
+        // GroqProvider will auto-initialize from secure storage in its constructor
         ChangeNotifierProvider(create: (_) => GroqProvider()),
         ProxyProvider<DatabaseProvider, AiQuotaProvider>(
           update: (context, dbProvider, previous) {

@@ -3,8 +3,8 @@ import 'package:local_auth/local_auth.dart';
 import '../services/secure_storage_service.dart';
 
 class SecurityProvider with ChangeNotifier {
-  final SecureStorageService _secureStorage = SecureStorageService();
-  final LocalAuthentication _localAuth = LocalAuthentication();
+  final SecureStorageService _secureStorage;
+  final LocalAuthentication _localAuth;
 
   bool _isPinEnabled = false;
   bool _isBiometricEnabled = false;
@@ -17,6 +17,8 @@ class SecurityProvider with ChangeNotifier {
   bool get isLocked => _isLocked;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  SecurityProvider() : _secureStorage = SecureStorageService(), _localAuth = LocalAuthentication();
 
   // Initialize security settings
   Future<void> initialize() async {

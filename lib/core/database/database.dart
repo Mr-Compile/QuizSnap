@@ -6,6 +6,7 @@ import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 import 'dart:io';
 
 part 'database.g.dart';
+part 'database_json_extensions.dart';
 
 class Folders extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -447,6 +448,39 @@ class AppDatabase extends _$AppDatabase {
   Future<int> createStudySession(StudySessionsCompanion session) =>
       into(studySessions).insert(session);
 
+  // AI Usage Queries
+  Future<List<AiUsageData>> getAllAiUsage() => (select(aiUsage)).get();
+
+  Future<AiUsageData?> getAiUsageForDate(String date) => (select(aiUsage)
+        ..where((tbl) => tbl.date.equals(date)))
+      .getSingleOrNull();
+
+  Future<int> createAiUsage(AiUsageCompanion usage) => into(aiUsage).insert(usage);
+
+  Future<bool> updateAiUsage(AiUsageData usage) => update(aiUsage).replace(usage);
+
+  Future<int> deleteAllAiUsage() => (delete(aiUsage)).go();
+
+  // Extracted Documents Queries
+  Future<List<ExtractedDocument>> getAllExtractedDocuments() => (select(extractedDocuments)).get();
+
+  Future<ExtractedDocument?> getExtractedDocumentById(int id) => (select(extractedDocuments)
+        ..where((tbl) => tbl.id.equals(id)))
+      .getSingleOrNull();
+
+  Future<int> createExtractedDocument(ExtractedDocumentsCompanion doc) => into(extractedDocuments).insert(doc);
+
+  Future<bool> updateExtractedDocument(ExtractedDocument doc) => update(extractedDocuments).replace(doc);
+
+  Future<bool> deleteExtractedDocument(int id) async {
+    final result = await (delete(extractedDocuments)
+        ..where((tbl) => tbl.id.equals(id)))
+      .go();
+    return result > 0;
+  }
+
+  Future<int> deleteAllExtractedDocuments() => (delete(extractedDocuments)).go();
+
   // Delete all methods for backup restore
   Future<int> deleteAllQuizResults() => (delete(quizResults)).go();
   Future<int> deleteAllStudySessions() => (delete(studySessions)).go();
@@ -605,8 +639,8 @@ class AppDatabase extends _$AppDatabase {
         .then((results) {
           if (results.isEmpty) return 0.0;
           final totalScore = results.fold<double>(
-              0.0, (sum, result) => sum + result.score);
-          return totalScore / results.length;
+              0.0, (sum, result) => sum + (result.score.toDouble()));
+          return totalScore / results.length.toDouble();
         });
   }
 
@@ -635,13 +669,23 @@ class AppDatabase extends _$AppDatabase {
       }
 
       final activity = activityMap[dateKey]!;
+      final newCardsStudied = activity.cardsStudied + session.cardsStudied;
+      final newStudyTimeMinutes = activity.studyTimeMinutes + (session.durationSeconds / 60).round();
+      
+      // Calculate weighted average accuracy
+      double newAccuracy;
+      if (newCardsStudied > 0) {
+        final totalCorrect = (activity.cardsStudied * activity.accuracy / 100).round() + session.cardsCorrect;
+        newAccuracy = (totalCorrect / newCardsStudied) * 100;
+      } else {
+        newAccuracy = activity.accuracy;
+      }
+      
       activityMap[dateKey] = DailyStudyActivity(
         date: activity.date,
-        cardsStudied: activity.cardsStudied + session.cardsStudied,
-        studyTimeMinutes: activity.studyTimeMinutes + (session.durationSeconds / 60).round(),
-        accuracy: session.cardsStudied > 0
-            ? ((activity.cardsStudied * activity.accuracy + session.cardsCorrect) / (activity.cardsStudied + session.cardsStudied)) * 100
-            : activity.accuracy,
+        cardsStudied: newCardsStudied,
+        studyTimeMinutes: newStudyTimeMinutes,
+        accuracy: newAccuracy,
       );
     }
 
@@ -680,10 +724,15 @@ class AppDatabase extends _$AppDatabase {
       }
     }
 
+    final totalCards = cards.length;
+    final masteredPercentage = totalCards > 0 ? (mastered.toDouble() / totalCards.toDouble() * 100.0) : 0.0;
+    final learningPercentage = totalCards > 0 ? (learning.toDouble() / totalCards.toDouble() * 100.0) : 0.0;
+    final newCardsPercentage = totalCards > 0 ? (newCards.toDouble() / totalCards.toDouble() * 100.0) : 0.0;
+
     return [
-      MasteryDistribution(level: 'Mastered', count: mastered, percentage: cards.isEmpty ? 0.0 : mastered / cards.length * 100),
-      MasteryDistribution(level: 'Learning', count: learning, percentage: cards.isEmpty ? 0.0 : learning / cards.length * 100),
-      MasteryDistribution(level: 'New', count: newCards, percentage: cards.isEmpty ? 0.0 : newCards / cards.length * 100),
+      MasteryDistribution(level: 'Mastered', count: mastered, percentage: masteredPercentage),
+      MasteryDistribution(level: 'Learning', count: learning, percentage: learningPercentage),
+      MasteryDistribution(level: 'New', count: newCards, percentage: newCardsPercentage),
     ];
   }
 
@@ -712,10 +761,14 @@ class AppDatabase extends _$AppDatabase {
         totalCorrect += card.correctCount;
       }
 
+      final accuracy = totalReviews > 0 
+          ? (totalCorrect.toDouble() / totalReviews.toDouble() * 100.0) 
+          : 0.0;
+
       accuracies.add(DeckAccuracy(
         deckId: deck.id,
         deckName: deck.name,
-        accuracy: totalReviews > 0 ? (totalCorrect / totalReviews * 100) : 0.0,
+        accuracy: accuracy,
         totalCards: cards.length,
       ));
     }
@@ -723,11 +776,6 @@ class AppDatabase extends _$AppDatabase {
     accuracies.sort((a, b) => a.accuracy.compareTo(b.accuracy));
     return accuracies;
   }
-
-  // AI Usage Queries
-  Future<AiUsageData?> getAiUsageForDate(String date) => (select(aiUsage)
-        ..where((tbl) => tbl.date.equals(date)))
-      .getSingleOrNull();
 
   Future<int> getRemainingQuota() async {
     final today = DateTime.now();
@@ -790,24 +838,6 @@ class AppDatabase extends _$AppDatabase {
         ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)])
         ..limit(limit))
       .get();
-
-  // Extracted Documents Queries
-  Future<List<ExtractedDocument>> getAllExtractedDocuments() => (select(extractedDocuments)
-        ..orderBy([(tbl) => OrderingTerm.desc(tbl.createdAt)]))
-      .get();
-
-  Future<ExtractedDocument?> getExtractedDocumentById(int id) => (select(extractedDocuments)
-        ..where((tbl) => tbl.id.equals(id)))
-      .getSingleOrNull();
-
-  Future<int> createExtractedDocument(ExtractedDocumentsCompanion document) => into(extractedDocuments).insert(document);
-
-  Future<bool> updateExtractedDocument(ExtractedDocument document) => update(extractedDocuments).replace(document);
-
-  Future<bool> deleteExtractedDocument(int id) async {
-    await (delete(extractedDocuments)..where((tbl) => tbl.id.equals(id))).go();
-    return true;
-  }
 
   Future<List<ExtractedDocument>> searchExtractedDocuments(String query) => (select(extractedDocuments)
         ..where((tbl) => tbl.fileName.like('%$query%'))

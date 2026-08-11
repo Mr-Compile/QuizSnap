@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/groq_provider.dart';
+import '../../core/models/groq_models.dart';
+import '../../core/services/secure_storage_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -17,16 +19,29 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _obscureKey = true;
   bool _hasChanges = false;
+  String? _maskedApiKey;
+  late final SecureStorageService _secureStorage;
 
   @override
   void initState() {
     super.initState();
+    _secureStorage = SecureStorageService();
     _loadExistingKey();
   }
 
   Future<void> _loadExistingKey() async {
     // We don't load the actual key for security, just check if it exists
     // The key is loaded from secure storage when needed
+    final groqProvider = context.read<GroqProvider>();
+    if (!groqProvider.hasAttemptedAutoInit) {
+      await groqProvider.retryInitialization();
+    }
+    
+    // Load masked API key for display
+    _maskedApiKey = await _secureStorage.getMaskedGroqApiKey();
+    
+    // Update UI to show if key is configured
+    setState(() {});
   }
 
   @override
@@ -188,6 +203,51 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
                         ],
                       ),
                       const SizedBox(height: AppTheme.spacingLg),
+                      if (_maskedApiKey != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(AppTheme.spacingMd),
+                          decoration: BoxDecoration(
+                            color: AppTheme.bambooGreen600.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.key,
+                                color: AppTheme.bambooGreen600,
+                                size: 20,
+                              ),
+                              const SizedBox(width: AppTheme.spacingSm),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'API Key Configured',
+                                      style: AppTheme.labelMedium.copyWith(
+                                        color: AppTheme.bambooGreen600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppTheme.spacingXs),
+                                    Text(
+                                      _maskedApiKey!,
+                                      style: AppTheme.bodySmall.copyWith(
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacingLg),
+                        Text(
+                          'Update API Key',
+                          style: AppTheme.labelLarge,
+                        ),
+                        const SizedBox(height: AppTheme.spacingSm),
+                      ],
                       Form(
                         key: _formKey,
                         child: Column(
@@ -254,7 +314,53 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
                 ),
               ),
               const SizedBox(height: AppTheme.spacingLg),
-              if (groqProvider.isInitialized)
+              if (groqProvider.isInitialized) ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppTheme.spacingLg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Model Selection',
+                          style: AppTheme.titleMedium,
+                        ),
+                        const SizedBox(height: AppTheme.spacingMd),
+                        Text(
+                          'Selected: ${groqProvider.selectedModel}',
+                          style: AppTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: AppTheme.spacingMd),
+                        DropdownButtonFormField<String>(
+                          initialValue: groqProvider.selectedModel,
+                          decoration: const InputDecoration(
+                            labelText: 'AI Model',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: GroqModels.supportedModels.map((model) {
+                            return DropdownMenuItem(
+                              value: model,
+                              child: Text(GroqModels.getDisplayName(model)),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              groqProvider.setSelectedModel(value);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: AppTheme.spacingSm),
+                        Text(
+                          '${GroqModels.getDisplayName(GroqModels.getDefaultModel())} is recommended for best performance',
+                          style: AppTheme.bodySmall.copyWith(
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingLg),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(AppTheme.spacingLg),
@@ -277,6 +383,7 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
                     ),
                   ),
                 ),
+              ],
               const SizedBox(height: AppTheme.spacingLg),
               Card(
                 child: Padding(

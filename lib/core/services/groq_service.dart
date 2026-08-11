@@ -6,23 +6,29 @@ import 'secure_storage_service.dart';
 class GroqService {
   String? _apiKey;
   Groq? _client;
+  String? _currentModel;
   final PromptTemplateRepository _templateRepository = PromptTemplateRepository();
-  final SecureStorageService _secureStorage = SecureStorageService();
+  final SecureStorageService _secureStorage;
 
   bool get isInitialized => _apiKey != null && _client != null;
+  String? get currentModel => _currentModel;
 
-  Future<void> initialize(String apiKey) async {
+  GroqService() : _secureStorage = SecureStorageService();
+
+  Future<void> initialize(String apiKey, {String? model}) async {
     _apiKey = apiKey;
+    _currentModel = model;
     _client = Groq(apiKey: apiKey);
     await _templateRepository.initialize();
     // Store the API key securely
     await _secureStorage.storeGroqApiKey(apiKey);
   }
 
-  Future<void> initializeFromSecureStorage() async {
+  Future<void> initializeFromSecureStorage({String? model}) async {
     final apiKey = await _secureStorage.getGroqApiKey();
     if (apiKey != null && apiKey.isNotEmpty) {
       _apiKey = apiKey;
+      _currentModel = model;
       _client = Groq(apiKey: apiKey);
       await _templateRepository.initialize();
     }
@@ -33,6 +39,7 @@ class GroqService {
     required PromptTemplate template,
     required int questionCount,
     Map<String, String>? additionalVariables,
+    String? model,
   }) async {
     if (!isInitialized) {
       throw Exception('Groq service not initialized. Please set API key first.');
@@ -62,6 +69,7 @@ class GroqService {
     required PromptType type,
     required int questionCount,
     Difficulty? difficulty,
+    String? model,
   }) async {
     if (!isInitialized) {
       throw Exception('Groq service not initialized. Please set API key first.');
@@ -78,6 +86,7 @@ class GroqService {
       content: content,
       template: template.copyWith(difficulty: selectedDifficulty),
       questionCount: questionCount,
+      model: model,
     );
   }
 
@@ -85,6 +94,7 @@ class GroqService {
     required String question,
     required String correctAnswer,
     required List<String> wrongAnswers,
+    String? model,
   }) async {
     if (!isInitialized) {
       throw Exception('Groq service not initialized. Please set API key first.');
@@ -111,6 +121,7 @@ Provide a clear, concise explanation that helps students understand the concept.
     required String topic,
     required String content,
     int cardCount = 10,
+    String? model,
   }) async {
     if (!isInitialized) {
       throw Exception('Groq service not initialized. Please set API key first.');
@@ -143,6 +154,7 @@ BACK: [answer]''';
   Future<String> summarizeContent({
     required String content,
     int maxLength = 200,
+    String? model,
   }) async {
     if (!isInitialized) {
       throw Exception('Groq service not initialized. Please set API key first.');
@@ -165,5 +177,6 @@ $content''';
   void clearApiKey() {
     _apiKey = null;
     _client = null;
+    _currentModel = null;
   }
 }

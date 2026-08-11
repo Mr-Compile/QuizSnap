@@ -1,7 +1,6 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-// import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:pdfx/pdfx.dart';
 import '../../core/services/document_extraction_service.dart';
 import 'text_preview_screen.dart';
 
@@ -25,7 +24,7 @@ class _TextHighlightSelectionScreenState extends State<TextHighlightSelectionScr
   String? _errorMessage;
   String _selectedText = '';
   final TextEditingController _textController = TextEditingController();
-  // PdfViewerController? _pdfViewerController;
+  PdfController? _pdfController;
 
   @override
   void initState() {
@@ -36,6 +35,7 @@ class _TextHighlightSelectionScreenState extends State<TextHighlightSelectionScr
   @override
   void dispose() {
     _textController.dispose();
+    _pdfController?.dispose();
     super.dispose();
   }
 
@@ -46,6 +46,14 @@ class _TextHighlightSelectionScreenState extends State<TextHighlightSelectionScr
 
     try {
       final text = await DocumentExtractionService.extractFromFile(widget.file);
+      
+      // Initialize PDF controller if it's a PDF file
+      if (widget.fileType == 'pdf') {
+        final bytes = await widget.file.readAsBytes();
+        _pdfController = PdfController(
+          document: PdfDocument.openData(bytes),
+        );
+      }
       
       setState(() {
         _textController.text = text;
@@ -157,36 +165,13 @@ class _TextHighlightSelectionScreenState extends State<TextHighlightSelectionScr
         ),
         // PDF Viewer
         Expanded(
-          child: FutureBuilder<Uint8List>(
-            future: widget.file.readAsBytes(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text('Error: ${snapshot.error}'),
-                );
-              }
-              // TODO: Replace with compatible PDF viewer
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.picture_as_pdf, size: 64, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(height: 16),
-                    Text('PDF viewer temporarily disabled'),
-                  ],
+          child: _pdfController != null
+              ? PdfView(
+                  controller: _pdfController!,
+                )
+              : const Center(
+                  child: CircularProgressIndicator(),
                 ),
-              );
-              /*
-              return SfPdfViewer.memory(
-                snapshot.data!,
-                controller: _pdfViewerController,
-              );
-              */
-            },
-          ),
         ),
       ],
     );

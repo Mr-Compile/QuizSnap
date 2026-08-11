@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/ai_quota_provider.dart';
+import '../../core/navigation/app_routes.dart';
 import '../../shared/widgets/app_bar.dart';
-import 'appearance_screen.dart';
-import 'security_settings_screen.dart';
-import 'reminder_settings_screen.dart';
-import 'database_maintenance_screen.dart';
-import 'ai_usage_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -29,12 +26,7 @@ class SettingsScreen extends StatelessWidget {
                 subtitle: const Text('Theme, colors, and display options'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AppearanceScreen(),
-                    ),
-                  );
+                  GoRouter.of(context).push(AppRoutes.appearance);
                 },
               ),
             ],
@@ -48,12 +40,7 @@ class SettingsScreen extends StatelessWidget {
                 subtitle: const Text('PIN lock, biometrics, and API keys'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SecuritySettingsScreen(),
-                    ),
-                  );
+                  GoRouter.of(context).push(AppRoutes.security);
                 },
               ),
               ListTile(
@@ -62,12 +49,7 @@ class SettingsScreen extends StatelessWidget {
                 subtitle: const Text('Configure study notification schedule'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ReminderSettingsScreen(),
-                    ),
-                  );
+                  GoRouter.of(context).push(AppRoutes.reminderSettings);
                 },
               ),
             ],
@@ -86,12 +68,7 @@ class SettingsScreen extends StatelessWidget {
                         : const Text('View your AI usage statistics'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AiUsageScreen(),
-                        ),
-                      );
+                      GoRouter.of(context).push(AppRoutes.aiUsage);
                     },
                   );
                 },
@@ -102,17 +79,21 @@ class SettingsScreen extends StatelessWidget {
             title: 'Data Management',
             children: [
               ListTile(
+                leading: const Icon(Icons.backup_outlined),
+                title: const Text('Backup & Restore'),
+                subtitle: const Text('Create backups and restore your data'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  GoRouter.of(context).push(AppRoutes.backupRestoreEnhanced);
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.storage_outlined),
                 title: const Text('Database Maintenance'),
                 subtitle: const Text('Check integrity and repair database'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const DatabaseMaintenanceScreen(),
-                    ),
-                  );
+                  GoRouter.of(context).push(AppRoutes.databaseMaintenance);
                 },
               ),
             ],

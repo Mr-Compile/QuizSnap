@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/services/document_extraction_service.dart';
+import '../../core/services/file_management_service.dart';
 import 'document_scope_selection_screen.dart';
 import 'text_preview_screen.dart';
 
@@ -21,6 +22,7 @@ class FilePickerBottomSheet extends StatefulWidget {
 class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
   bool _isLoading = false;
   String? _errorMessage;
+  final FileManagementService _fileManagementService = FileManagementService();
 
   @override
   Widget build(BuildContext context) {
@@ -141,23 +143,41 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
             allowedExtensions: ['txt'],
           );
           break;
+        case 'docx':
+          result = await FilePicker.platform.pickFiles(
+            type: FileType.custom,
+            allowedExtensions: ['docx'],
+          );
+          break;
         default:
           result = await FilePicker.platform.pickFiles();
       }
 
       if (result != null && result.files.isNotEmpty && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
+        final originalFile = File(result.files.single.path!);
+        
+        // Copy file to app storage to avoid permission issues
+        final copiedFilePath = await _fileManagementService.copyFileToAppStorage(originalFile);
+        final copiedFile = File(copiedFilePath);
         
         if (!mounted) return;
         
         Navigator.of(context).pop();
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('File imported successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
         
         // Navigate to document scope selection screen
         if (widget.fileType.toLowerCase() == 'pdf') {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => DocumentScopeSelectionScreen(
-                file: file,
+                file: copiedFile,
                 fileType: widget.fileType,
               ),
             ),
@@ -165,10 +185,32 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
         } else if (widget.fileType.toLowerCase() == 'txt') {
           // For TXT, extract text and go to text preview
           try {
-            final text = await DocumentExtractionService.extractFromFile(file);
+            final text = await DocumentExtractionService.extractFromFile(copiedFile);
             if (!mounted) return;
             
-            final fileName = file.path.split('/').last;
+            final fileName = copiedFile.path.split('/').last;
+            
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => TextPreviewScreen(
+                  text: text,
+                  source: fileName,
+                ),
+              ),
+            );
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to extract text: $e')),
+            );
+          }
+        } else if (widget.fileType.toLowerCase() == 'docx') {
+          // For DOCX, extract text and go to text preview
+          try {
+            final text = await DocumentExtractionService.extractFromFile(copiedFile);
+            if (!mounted) return;
+            
+            final fileName = copiedFile.path.split('/').last;
             
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -201,8 +243,40 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
   Future<bool> _requestStoragePermission() async {
     if (Platform.isAndroid) {
       final status = await Permission.storage.request();
-      return status.isGranted;
+      if (status.isGranted) {
+        return true;
+      } else if (status.isPermanentlyDenied) {
+        // Show dialog to guide user to settings
+        _showPermissionDialog();
+        return false;
+      }
+      return false;
     }
     return true;
+  }
+
+  void _showPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Permission Required'),
+        content: const Text(
+          'Storage permission is required to import files. Please enable it in app settings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              openAppSettings();
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
   }
 }

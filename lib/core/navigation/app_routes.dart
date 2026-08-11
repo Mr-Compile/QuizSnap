@@ -67,12 +67,17 @@ class AppRoutes {
   static const String exportPdfPreview = '/export/pdf-preview';
   static const String backupHistory = '/export/backups';
   static const String backupRestore = '/export/backups/restore';
+  static const String backupRestoreEnhanced = '/export/backups/restore-enhanced';
+  static const String importPreview = '/export/backups/import-preview';
+  static const String changeBackupFolder = '/export/backups/change-folder';
 
   // Settings routes
   static const String settingsHome = '/settings';
   static const String appearance = '/settings/appearance';
   static const String security = '/settings/security';
-  static const String apiConfiguration = '/settings/api';
+  static const String apiConfiguration = '/settings/api-config';
+  static const String aiUsage = '/settings/ai-usage';
+  static const String authorizedQuota = '/settings/authorized-quota';
   static const String pinLock = '/settings/pin-lock';
   static const String setPin = '/settings/pin-set';
   static const String reminderSettings = '/settings/reminders';
