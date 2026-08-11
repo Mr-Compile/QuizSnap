@@ -529,6 +529,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
             type: widget.type,
             difficulty: widget.difficulty,
             questionCount: widget.questions.length,
+            model: groqProvider.selectedModel,
           );
           break;
           
@@ -539,6 +540,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
             type: widget.type,
             difficulty: widget.difficulty,
             questionCount: _selectedQuestions.length,
+            model: groqProvider.selectedModel,
           );
           break;
           
@@ -551,6 +553,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
               type: widget.type,
               difficulty: widget.difficulty,
               questionCount: rejectedCount,
+              model: groqProvider.selectedModel,
             );
             // Combine approved with regenerated
             newQuestions = [..._selectedQuestions, ...regeneratedQuestions];

@@ -61,6 +61,7 @@ class QuestionGenerationService {
     required PromptType type,
     required Difficulty difficulty,
     required int questionCount,
+    String? model,
   }) async {
     // Truncate text if too long
     final truncatedText = DocumentExtractionService.truncateText(sourceText);
@@ -71,6 +72,7 @@ class QuestionGenerationService {
       type: type,
       questionCount: questionCount,
       difficulty: difficulty,
+      model: model,
     );
 
     // Parse the response into structured questions

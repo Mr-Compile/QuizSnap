@@ -273,6 +273,7 @@ class ExamProvider with ChangeNotifier {
         question: question.question,
         correctAnswer: question.correctAnswer,
         wrongAnswers: wrongAnswers,
+        model: _groqService.currentModel,
       );
 
       // Cache the explanation

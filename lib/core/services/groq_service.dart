@@ -1,5 +1,6 @@
 import 'package:groq/groq.dart';
 import '../models/prompt_template.dart';
+import '../models/groq_models.dart';
 import '../repositories/prompt_template_repository.dart';
 import 'secure_storage_service.dart';
 
@@ -17,8 +18,14 @@ class GroqService {
 
   Future<void> initialize(String apiKey, {String? model}) async {
     _apiKey = apiKey;
-    _currentModel = model;
-    _client = Groq(apiKey: apiKey);
+    _currentModel = model ?? GroqModels.getDefaultModel();
+    
+    // Initialize Groq client with configuration including model
+    final configuration = Configuration(
+      model: _currentModel!,
+    );
+    _client = Groq(apiKey: apiKey, configuration: configuration);
+    
     await _templateRepository.initialize();
     // Store the API key securely
     await _secureStorage.storeGroqApiKey(apiKey);
@@ -28,8 +35,14 @@ class GroqService {
     final apiKey = await _secureStorage.getGroqApiKey();
     if (apiKey != null && apiKey.isNotEmpty) {
       _apiKey = apiKey;
-      _currentModel = model;
-      _client = Groq(apiKey: apiKey);
+      _currentModel = model ?? GroqModels.getDefaultModel();
+      
+      // Initialize Groq client with configuration including model
+      final configuration = Configuration(
+        model: _currentModel!,
+      );
+      _client = Groq(apiKey: apiKey, configuration: configuration);
+      
       await _templateRepository.initialize();
     }
   }
@@ -43,6 +56,13 @@ class GroqService {
   }) async {
     if (!isInitialized) {
       throw Exception('Groq service not initialized. Please set API key first.');
+    }
+
+    // Update model if specified and different from current
+    if (model != null && model != _currentModel) {
+      _currentModel = model;
+      final configuration = Configuration(model: _currentModel!);
+      _client = Groq(apiKey: _apiKey!, configuration: configuration);
     }
 
     final variables = {
@@ -100,6 +120,13 @@ class GroqService {
       throw Exception('Groq service not initialized. Please set API key first.');
     }
 
+    // Update model if specified and different from current
+    if (model != null && model != _currentModel) {
+      _currentModel = model;
+      final configuration = Configuration(model: _currentModel!);
+      _client = Groq(apiKey: _apiKey!, configuration: configuration);
+    }
+
     final prompt = '''You are an expert educator. Explain why the correct answer is correct and why the other options are incorrect.
 
 Question: $question
@@ -125,6 +152,13 @@ Provide a clear, concise explanation that helps students understand the concept.
   }) async {
     if (!isInitialized) {
       throw Exception('Groq service not initialized. Please set API key first.');
+    }
+
+    // Update model if specified and different from current
+    if (model != null && model != _currentModel) {
+      _currentModel = model;
+      final configuration = Configuration(model: _currentModel!);
+      _client = Groq(apiKey: _apiKey!, configuration: configuration);
     }
 
     final prompt = '''You are an expert educator. Based on the following content about "$topic", create $cardCount flashcards.
@@ -158,6 +192,13 @@ BACK: [answer]''';
   }) async {
     if (!isInitialized) {
       throw Exception('Groq service not initialized. Please set API key first.');
+    }
+
+    // Update model if specified and different from current
+    if (model != null && model != _currentModel) {
+      _currentModel = model;
+      final configuration = Configuration(model: _currentModel!);
+      _client = Groq(apiKey: _apiKey!, configuration: configuration);
     }
 
     final prompt = '''Summarize the following content in approximately $maxLength words. Focus on the key points and main ideas.

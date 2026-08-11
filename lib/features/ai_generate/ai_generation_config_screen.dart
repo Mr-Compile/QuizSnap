@@ -316,6 +316,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
         type: _selectedType,
         difficulty: _selectedDifficulty,
         questionCount: _questionCount,
+        model: groqProvider.selectedModel,
       );
 
       if (!mounted) return;

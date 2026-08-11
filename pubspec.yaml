@@ -43,7 +43,7 @@ dependencies:
   timezone: ^0.9.2
   
   # AI (for Phase 2)
-  groq: ^0.0.1
+  groq: ^1.1.1
   
   # Document Processing (for Phase 2)
   file_picker: ^8.3.7

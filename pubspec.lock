@@ -580,10 +580,10 @@ packages:
     dependency: "direct main"
     description:
       name: groq
-      sha256: "82747add424c96e43de8580e806941960de0cadd21e5d1c8e297036762137cfd"
+      sha256: c042a2536c60c6bfe38a12eb85daf004a0cd913d6acb003c22e909cd6ddaba4e
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.7"
+    version: "1.1.1"
   hooks:
     dependency: transitive
     description:

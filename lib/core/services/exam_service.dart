@@ -129,6 +129,7 @@ CORRECT: [A, B, C, or D]''';
           content: prompt,
           type: PromptType.multipleChoice,
           questionCount: 1,
+          model: _groqService.currentModel,
         );
 
         final parsedQuestion = _parseAIQuestion(response, flashcard);
