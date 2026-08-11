@@ -102,7 +102,7 @@ class _MasteryBreakdownScreenState extends State<MasteryBreakdownScreen> {
     );
   }
 
-  List<PieChartSectionData> _createPieSections(BuildContext context, distribution) {
+  List<PieChartSectionData> _createPieSections(BuildContext context, List<dynamic> distribution) {
     final colors = [
       Colors.green, // Mastered
       Colors.orange, // Learning

@@ -41,6 +41,28 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
   }
 
   Future<void> _showPasswordDialog(String action, Future<bool> Function() actionCallback) async {
+    // If authorization is not enabled, proceed without password
+    if (!_isAuthEnabled) {
+      final success = await actionCallback();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? 'Action completed successfully' : 'Action failed'),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+        // Refresh quota status
+        context.read<AiQuotaProvider>().refreshQuota();
+        // Reload last modification time
+        final quotaProvider = context.read<AiQuotaProvider>();
+        final lastMod = await quotaProvider.service.getLastModificationTime();
+        setState(() {
+          _lastModificationTime = lastMod;
+        });
+      }
+      return;
+    }
+
     final passwordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
@@ -354,88 +376,61 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
               ],
               
               // Authorized actions
-              if (_isAuthEnabled) ...[
-                Text(
-                  'Authorized Actions',
-                  style: AppTheme.titleLarge,
-                ),
-                const SizedBox(height: AppTheme.spacingMd),
-                _buildActionCard(
-                  context,
-                  title: 'Increase Quota',
-                  description: 'Add more requests to today\'s quota',
-                  icon: Icons.add_circle,
-                  color: Colors.green,
-                  onTap: () => _showIncreaseQuotaDialog(),
-                ),
-                const SizedBox(height: AppTheme.spacingMd),
-                _buildActionCard(
-                  context,
-                  title: 'Decrease Quota',
-                  description: 'Reduce today\'s quota limit',
-                  icon: Icons.remove_circle,
-                  color: Colors.orange,
-                  onTap: () => _showDecreaseQuotaDialog(),
-                ),
-                const SizedBox(height: AppTheme.spacingMd),
-                _buildActionCard(
-                  context,
-                  title: 'Reset Today\'s Usage',
-                  description: 'Reset usage count to zero',
-                  icon: Icons.refresh,
-                  color: Colors.blue,
-                  onTap: () => _showPasswordDialog('Reset Usage', () async {
-                    final quotaProvider = context.read<AiQuotaProvider>();
-                    return await quotaProvider.service.resetTodayUsage();
-                  }),
-                ),
-                const SizedBox(height: AppTheme.spacingMd),
-                _buildActionCard(
-                  context,
-                  title: 'Set Custom Limit',
-                  description: 'Set a specific daily limit',
-                  icon: Icons.tune,
-                  color: Colors.purple,
-                  onTap: () => _showCustomLimitDialog(),
-                ),
-                const SizedBox(height: AppTheme.spacingMd),
-                _buildActionCard(
-                  context,
-                  title: 'Restore Default',
-                  description: 'Restore the default 15 request limit',
-                  icon: Icons.restore,
-                  color: Colors.red,
-                  onTap: () => _showPasswordDialog('Restore Default', () async {
-                    final quotaProvider = context.read<AiQuotaProvider>();
-                    return await quotaProvider.service.restoreDefaultLimit();
-                  }),
-                ),
-              ] else ...[
-                CustomCard(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.lock_open,
-                        size: 48,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: AppTheme.spacingMd),
-                      Text(
-                        'Authorization Required',
-                        style: AppTheme.titleMedium,
-                      ),
-                      const SizedBox(height: AppTheme.spacingSm),
-                      Text(
-                        'Enable authorization to access quota management controls',
-                        style: AppTheme.bodySmall.copyWith(
-                          color: Colors.grey,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              Text(
+                'Authorized Actions',
+                style: AppTheme.titleLarge,
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              _buildActionCard(
+                context,
+                title: 'Increase Quota',
+                description: 'Add more requests to today\'s quota',
+                icon: Icons.add_circle,
+                color: Colors.green,
+                onTap: () => _showIncreaseQuotaDialog(),
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              _buildActionCard(
+                context,
+                title: 'Decrease Quota',
+                description: 'Reduce today\'s quota limit',
+                icon: Icons.remove_circle,
+                color: Colors.orange,
+                onTap: () => _showDecreaseQuotaDialog(),
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              _buildActionCard(
+                context,
+                title: 'Reset Today\'s Usage',
+                description: 'Reset usage count to zero',
+                icon: Icons.refresh,
+                color: Colors.blue,
+                onTap: () => _showPasswordDialog('Reset Usage', () async {
+                  final quotaProvider = context.read<AiQuotaProvider>();
+                  return await quotaProvider.service.resetTodayUsage();
+                }),
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              _buildActionCard(
+                context,
+                title: 'Set Custom Limit',
+                description: 'Set a specific daily limit',
+                icon: Icons.tune,
+                color: Colors.purple,
+                onTap: () => _showCustomLimitDialog(),
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              _buildActionCard(
+                context,
+                title: 'Restore Default',
+                description: 'Restore the default 15 request limit',
+                icon: Icons.restore,
+                color: Colors.red,
+                onTap: () => _showPasswordDialog('Restore Default', () async {
+                  final quotaProvider = context.read<AiQuotaProvider>();
+                  return await quotaProvider.service.restoreDefaultLimit();
+                }),
+              ),
             ],
           );
         },

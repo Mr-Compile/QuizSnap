@@ -41,9 +41,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
               }
 
               final summary = snapshot.data![0];
-              final deckAccuracies = snapshot.data![1] as Map<String, double>;
-              final masteryDistribution = snapshot.data![2] as Map<String, int>;
-              final trends = snapshot.data![3] as Map<String, List<double>>;
+              final deckAccuracies = snapshot.data![1] as List;
+              final masteryDistribution = snapshot.data![2] as List;
+              final trends = snapshot.data![3];
 
               final insights = _generateInsights(summary, deckAccuracies, masteryDistribution, trends);
               
@@ -120,14 +120,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   List<StudyInsight> _generateInsights(
     dynamic summary,
-    Map<String, double> deckAccuracies,
-    Map<String, int> masteryDistribution,
-    Map<String, List<double>> trends,
+    List deckAccuracies,
+    List masteryDistribution,
+    dynamic trends,
   ) {
     final insights = <StudyInsight>[];
 
     // Due cards insight
-    final dueToday = summary['dueToday'] as int? ?? 0;
+    final dueToday = summary.dueToday;
     if (dueToday > 20) {
       insights.add(StudyInsight(
         type: InsightType.warning,
@@ -147,7 +147,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
 
     // Streak insight
-    final currentStreak = summary['currentStreak'] as int? ?? 0;
+    final currentStreak = summary.currentStreak;
     if (currentStreak >= 7) {
       insights.add(StudyInsight(
         type: InsightType.achievement,
@@ -167,7 +167,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
 
     // Weak topics insight
-    final weakTopics = deckAccuracies.entries.where((e) => e.value < 70).toList();
+    final weakTopics = deckAccuracies.where((e) => e.accuracy < 70).toList();
     if (weakTopics.isNotEmpty) {
       insights.add(StudyInsight(
         type: InsightType.suggestion,
@@ -179,7 +179,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
 
     // Mastery insight
-    final newCardsCount = masteryDistribution['New'] ?? 0;
+    final newCardsCount = masteryDistribution.where((e) => e.level == 'New').fold<int>(0, (sum, e) => sum + (e.count as int));
     if (newCardsCount > 20) {
       insights.add(StudyInsight(
         type: InsightType.info,
@@ -190,45 +190,36 @@ class _InsightsScreenState extends State<InsightsScreen> {
       ));
     }
 
-    // Trend insight - simplified for now since trends is a Map
-    if (trends.isNotEmpty) {
-      final accuracyValues = trends['accuracy'] ?? [];
-      if (accuracyValues.length >= 2) {
-        final recent = accuracyValues.last;
-        final previous = accuracyValues[accuracyValues.length - 2];
-        if (recent < previous - 10) {
-          insights.add(StudyInsight(
-            type: InsightType.warning,
-            title: 'Performance Declining',
-            description: 'Your accuracy has been decreasing recently. Consider reviewing fundamentals.',
-            icon: Icons.trending_down,
-            priority: InsightPriority.high,
-          ));
-        } else if (recent > previous + 10) {
-          insights.add(StudyInsight(
-            type: InsightType.achievement,
-            title: 'Improving Performance',
-            description: 'Your accuracy has been improving recently. Keep up the great work!',
-            icon: Icons.trending_up,
-            priority: InsightPriority.low,
-          ));
-        }
+    // Trend insight
+    if (trends != null) {
+      if (trends.trend == 'declining') {
+        insights.add(StudyInsight(
+          type: InsightType.warning,
+          title: 'Performance Declining',
+          description: 'Your accuracy has been decreasing recently. Consider reviewing fundamentals.',
+          icon: Icons.trending_down,
+          priority: InsightPriority.high,
+        ));
+      } else if (trends.trend == 'improving') {
+        insights.add(StudyInsight(
+          type: InsightType.achievement,
+          title: 'Improving Performance',
+          description: 'Your accuracy has been improving recently. Keep up the great work!',
+          icon: Icons.trending_up,
+          priority: InsightPriority.low,
+        ));
       }
     }
 
-    // Study time insight - simplified
-    final studyTimeValues = trends['studyTime'] ?? [];
-    if (studyTimeValues.isNotEmpty) {
-      final totalStudyTime = studyTimeValues.reduce((a, b) => a + b);
-      if (totalStudyTime < 60) {
-        insights.add(StudyInsight(
-          type: InsightType.suggestion,
-          title: 'Increase Study Time',
-          description: 'You\'ve studied for ${totalStudyTime.toInt()} minutes recently. Try to study more consistently.',
-          icon: Icons.access_time,
-          priority: InsightPriority.medium,
-        ));
-      }
+    // Study time insight
+    if (trends != null && trends.totalStudyTimeMinutes < 60) {
+      insights.add(StudyInsight(
+        type: InsightType.suggestion,
+        title: 'Increase Study Time',
+        description: 'You\'ve studied for ${trends.totalStudyTimeMinutes} minutes recently. Try to study more consistently.',
+        icon: Icons.access_time,
+        priority: InsightPriority.medium,
+      ));
     }
 
     // Sort by priority
