@@ -247,6 +247,10 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
   }
 
   List<BarChartGroupData> _createBarGroups(BuildContext context, deckAccuracies) {
+    if (deckAccuracies.isEmpty) {
+      return [];
+    }
+
     return deckAccuracies.asMap().entries.map((entry) {
       final accuracy = entry.value.accuracy;
       final color = accuracy >= 80

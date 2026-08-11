@@ -13,7 +13,6 @@ class SecureStorageService {
   static const String _groqApiKeyKey = 'groq_api_key';
   static const String _appPinKey = 'app_pin';
   static const String _pinEnabledKey = 'pin_enabled';
-  static const String _biometricEnabledKey = 'biometric_enabled';
   static const String _quotaAuthPasswordKey = 'quota_auth_password';
   static const String _quotaAuthEnabledKey = 'quota_auth_enabled';
 
@@ -85,22 +84,11 @@ class SecureStorageService {
     return value == 'true';
   }
 
-  // Biometric Enabled State
-  Future<void> setBiometricEnabled(bool enabled) async {
-    await _storage.write(key: _biometricEnabledKey, value: enabled.toString());
-  }
-
-  Future<bool> isBiometricEnabled() async {
-    final value = await _storage.read(key: _biometricEnabledKey);
-    return value == 'true';
-  }
-
   // Clear all security data
   Future<void> clearAllSecurityData() async {
     await clearGroqApiKey();
     await clearPin();
     await setPinEnabled(false);
-    await setBiometricEnabled(false);
     await clearQuotaAuthPassword();
     await setQuotaAuthEnabled(false);
   }

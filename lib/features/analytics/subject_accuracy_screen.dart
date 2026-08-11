@@ -63,10 +63,12 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
       return const SizedBox();
     }
 
-    final overallAccuracy = deckAccuracies.fold<double>(
-      0.0,
-      (sum, deck) => sum + deck.accuracy,
-    ) / deckAccuracies.length;
+    final overallAccuracy = deckAccuracies.isEmpty
+        ? 0.0
+        : deckAccuracies.fold<double>(
+            0.0,
+            (sum, deck) => sum + deck.accuracy,
+          ) / deckAccuracies.length;
 
     final accuracyColor = overallAccuracy >= 80
         ? Colors.green
@@ -228,6 +230,10 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
   }
 
   List<BarChartGroupData> _createBarGroups(BuildContext context, deckAccuracies) {
+    if (deckAccuracies.isEmpty) {
+      return [];
+    }
+
     return deckAccuracies.asMap().entries.map((entry) {
       final accuracy = entry.value.accuracy;
       final color = accuracy >= 80

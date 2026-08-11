@@ -49,35 +49,6 @@ class _PinLockScreenState extends State<PinLockScreen> {
     }
   }
 
-  Future<void> _attemptBiometricUnlock() async {
-    final securityProvider = context.read<SecurityProvider>();
-    
-    if (!securityProvider.isBiometricEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biometric authentication is not enabled')),
-      );
-      return;
-    }
-
-    final success = await securityProvider.attemptBiometricUnlock();
-
-    if (!mounted) return;
-
-    if (success) {
-      setState(() {
-        _failedAttempts = 0;
-      });
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Biometric authentication failed'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   void _showTooManyAttemptsDialog() {
     showDialog(
       context: context,
@@ -206,27 +177,6 @@ class _PinLockScreenState extends State<PinLockScreen> {
                     ),
                   ),
                   const SizedBox(height: AppTheme.spacingLg),
-                  if (securityProvider.isBiometricEnabled)
-                    Column(
-                      children: [
-                        const Text('or'),
-                        const SizedBox(height: AppTheme.spacingMd),
-                        IconButton(
-                          onPressed: _attemptBiometricUnlock,
-                          icon: const Icon(Icons.fingerprint, size: 48),
-                          style: IconButton.styleFrom(
-                            backgroundColor: AppTheme.bambooGreen600.withValues(alpha: 0.1),
-                          ),
-                        ),
-                        const SizedBox(height: AppTheme.spacingSm),
-                        Text(
-                          'Use biometric authentication',
-                          style: AppTheme.bodySmall.copyWith(
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
                   if (_failedAttempts > 0)
                     Padding(
                       padding: const EdgeInsets.only(top: AppTheme.spacingLg),

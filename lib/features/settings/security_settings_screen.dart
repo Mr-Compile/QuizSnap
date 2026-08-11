@@ -69,27 +69,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => _showChangePinDialog(),
                     ),
-                  SwitchListTile(
-                    title: const Text('Biometric Unlock'),
-                    subtitle: const Text('Use fingerprint or face recognition'),
-                    value: securityProvider.isBiometricEnabled,
-                    onChanged: securityProvider.isLoading || !securityProvider.isPinEnabled
-                        ? null
-                        : (value) async {
-                            await securityProvider.setBiometricEnabled(value);
-                            if (!mounted) return;
-
-                            if (securityProvider.errorMessage != null) {
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(this.context).showSnackBar(
-                                SnackBar(
-                                  content: Text(securityProvider.errorMessage!),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          },
-                  ),
                 ],
               ),
               _buildSection(
@@ -410,7 +389,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               ),
               SizedBox(height: 8),
               Text('• PIN lock: 4-digit numeric PIN'),
-              Text('• Biometric: Fingerprint/face recognition (device-dependent)'),
               Text('• Failed attempt protection after 3 incorrect tries'),
               SizedBox(height: 16),
               Text(
@@ -419,7 +397,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               ),
               SizedBox(height: 8),
               Text('• Use a unique PIN you can remember'),
-              Text('• Enable biometrics for convenience when available'),
               Text('• Keep your device OS updated'),
               Text('• Regularly backup your data'),
             ],
@@ -443,7 +420,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         content: const Text(
           'This will remove:\n'
           '• Your PIN\n'
-          '• Biometric settings\n'
           '• API keys\n\n'
           'This action cannot be undone.',
         ),

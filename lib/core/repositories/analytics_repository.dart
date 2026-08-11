@@ -35,9 +35,14 @@ class AnalyticsRepository {
     return _database.getMasteryDistribution();
   }
 
-  // Get accuracy by deck (for weak topics)
-  Future<List<DeckAccuracy>> getAccuracyByDeck() {
-    return _database.getAccuracyByDeck();
+  // Get accuracy by deck (for weak topics) - strongly typed
+  Future<List<DeckAccuracy>> getAccuracyByDeck() async {
+    try {
+      return await _database.getAccuracyByDeck();
+    } catch (e) {
+      // Return empty list on error to prevent crashes
+      return [];
+    }
   }
 
   // Get recent study sessions

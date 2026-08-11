@@ -1,19 +1,26 @@
 import 'dart:io';
+import 'dart:convert';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:archive/archive.dart';
 
 class DocumentExtractionService {
   /// Extract text from a PDF file
   static Future<String> extractFromPdf(File file, {List<int>? pages}) async {
     try {
-      // For now, PDF text extraction is not implemented
-      // This would require a dedicated PDF text extraction library
-      // Returning a placeholder message
-      if (pages != null && pages.isNotEmpty) {
-        return 'PDF text extraction is not yet implemented. '
-               'Selected pages: ${pages.join(", ")}. '
-               'Please use TXT files for now.';
+      final bytes = await file.readAsBytes();
+      final PdfDocument document = PdfDocument(inputBytes: bytes);
+      
+      // Extract text from the entire document
+      final PdfTextExtractor textExtractor = PdfTextExtractor(document);
+      final extractedText = textExtractor.extractText();
+      
+      document.dispose();
+      
+      if (extractedText.trim().isEmpty) {
+        throw Exception('No text could be extracted from PDF');
       }
-      return 'PDF text extraction is not yet implemented. '
-             'Please use TXT files for now.';
+      
+      return extractedText.trim();
     } catch (e) {
       throw Exception('Failed to extract text from PDF: $e');
     }
@@ -31,12 +38,69 @@ class DocumentExtractionService {
   /// Extract text from a DOCX file
   static Future<String> extractFromDocx(File file) async {
     try {
-      // DOCX extraction requires additional libraries
-      // For now, throw an exception indicating this feature is not yet implemented
-      throw UnimplementedError('DOCX extraction is not yet implemented. Please use PDF or TXT files.');
+      // DOCX files are ZIP archives containing XML files
+      // The main content is in word/document.xml
+      final bytes = await file.readAsBytes();
+      final archive = ZipDecoder().decodeBytes(bytes);
+      
+      // Find the document.xml file
+      ArchiveFile? documentFile;
+      for (final file in archive.files) {
+        if (file.name == 'word/document.xml' || file.name.endsWith('word/document.xml')) {
+          documentFile = file;
+          break;
+        }
+      }
+      
+      if (documentFile == null) {
+        throw Exception('Could not find document.xml in DOCX file');
+      }
+      
+      // Extract and decode the XML content
+      final content = documentFile.content as List<int>;
+      final xmlString = utf8.decode(content);
+      
+      // Extract text from XML - remove all tags and decode HTML entities
+      String extractedText = _extractTextFromXml(xmlString);
+      
+      // Clean up the extracted text
+      extractedText = _cleanDocxText(extractedText);
+      
+      if (extractedText.trim().isEmpty) {
+        throw Exception('No text could be extracted from DOCX');
+      }
+      
+      return extractedText;
     } catch (e) {
       throw Exception('Failed to extract text from DOCX: $e');
     }
+  }
+  
+  /// Extract text content from XML by removing tags
+  static String _extractTextFromXml(String xml) {
+    // Remove all XML tags
+    String text = xml.replaceAll(RegExp(r'<[^>]*>'), ' ');
+    
+    // Decode common HTML entities
+    text = text.replaceAll('&lt;', '<');
+    text = text.replaceAll('&gt;', '>');
+    text = text.replaceAll('&amp;', '&');
+    text = text.replaceAll('&quot;', '"');
+    text = text.replaceAll('&apos;', "'");
+    text = text.replaceAll('&nbsp;', ' ');
+    
+    return text;
+  }
+  
+  /// Clean DOCX extracted text
+  static String _cleanDocxText(String text) {
+    // Remove excessive whitespace
+    String cleaned = text.replaceAll(RegExp(r'\s+'), ' ');
+    
+    // Remove special characters that might interfere with AI processing
+    cleaned = cleaned.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F]'), '');
+    
+    return cleaned.trim();
   }
 
   /// Extract text based on file type
@@ -97,5 +161,17 @@ class DocumentExtractionService {
     }
     
     return truncated;
+  }
+
+  /// Extract text from image using OCR (for camera capture)
+  static Future<String> extractFromImage(String imagePath) async {
+    try {
+      // This would be called from the camera OCR screen
+      // The actual OCR processing is done in camera_ocr_screen.dart
+      // This is a placeholder for the service interface
+      throw Exception('OCR processing should be done in camera_ocr_screen.dart');
+    } catch (e) {
+      throw Exception('Failed to extract text from image: $e');
+    }
   }
 }

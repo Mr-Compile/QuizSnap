@@ -1,24 +1,20 @@
 import 'package:flutter/foundation.dart';
-import 'package:local_auth/local_auth.dart';
 import '../services/secure_storage_service.dart';
 
 class SecurityProvider with ChangeNotifier {
   final SecureStorageService _secureStorage;
-  final LocalAuthentication _localAuth;
 
   bool _isPinEnabled = false;
-  bool _isBiometricEnabled = false;
   bool _isLocked = false;
   bool _isLoading = false;
   String? _errorMessage;
 
   bool get isPinEnabled => _isPinEnabled;
-  bool get isBiometricEnabled => _isBiometricEnabled;
   bool get isLocked => _isLocked;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  SecurityProvider() : _secureStorage = SecureStorageService(), _localAuth = LocalAuthentication();
+  SecurityProvider() : _secureStorage = SecureStorageService();
 
   // Initialize security settings
   Future<void> initialize() async {
@@ -27,7 +23,6 @@ class SecurityProvider with ChangeNotifier {
 
     try {
       _isPinEnabled = await _secureStorage.isPinEnabled();
-      _isBiometricEnabled = await _secureStorage.isBiometricEnabled();
       _isLocked = _isPinEnabled;
       _isLoading = false;
       notifyListeners();
@@ -147,67 +142,6 @@ class SecurityProvider with ChangeNotifier {
     }
   }
 
-  // Biometric Authentication
-  Future<bool> canCheckBiometrics() async {
-    return await _localAuth.canCheckBiometrics;
-  }
-
-  Future<List<BiometricType>> getAvailableBiometrics() async {
-    return await _localAuth.getAvailableBiometrics();
-  }
-
-  Future<bool> authenticateWithBiometrics() async {
-    try {
-      return await _localAuth.authenticate(
-        localizedReason: 'Please authenticate to access QuizSnap',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: true,
-        ),
-      );
-    } catch (e) {
-      _errorMessage = e.toString();
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<void> setBiometricEnabled(bool enabled) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      if (enabled) {
-        // Check if biometrics are available
-        final canCheck = await canCheckBiometrics();
-        if (!canCheck) {
-          _errorMessage = 'No biometrics available on this device';
-          _isLoading = false;
-          notifyListeners();
-          return;
-        }
-
-        // Test authentication
-        final authenticated = await authenticateWithBiometrics();
-        if (!authenticated) {
-          _errorMessage = 'Biometric authentication failed';
-          _isLoading = false;
-          notifyListeners();
-          return;
-        }
-      }
-
-      await _secureStorage.setBiometricEnabled(enabled);
-      _isBiometricEnabled = enabled;
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
   // Lock Management
   void lockApp() {
     if (_isPinEnabled) {
@@ -218,18 +152,6 @@ class SecurityProvider with ChangeNotifier {
 
   Future<bool> attemptUnlock(String pin) async {
     return await verifyPin(pin);
-  }
-
-  Future<bool> attemptBiometricUnlock() async {
-    if (!_isBiometricEnabled) return false;
-    
-    final authenticated = await authenticateWithBiometrics();
-    if (authenticated) {
-      _isLocked = false;
-      notifyListeners();
-      return true;
-    }
-    return false;
   }
 
   // Error Management
@@ -246,7 +168,6 @@ class SecurityProvider with ChangeNotifier {
     try {
       await _secureStorage.clearAllSecurityData();
       _isPinEnabled = false;
-      _isBiometricEnabled = false;
       _isLocked = false;
       _isLoading = false;
       notifyListeners();

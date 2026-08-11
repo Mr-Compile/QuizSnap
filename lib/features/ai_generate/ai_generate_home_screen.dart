@@ -6,6 +6,7 @@ import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import 'file_picker_bottom_sheet.dart';
 import 'camera_ocr_screen.dart';
+import 'cached_documents_screen.dart';
 
 class AiGenerateHomeScreen extends StatefulWidget {
   const AiGenerateHomeScreen({super.key});
@@ -25,43 +26,29 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Generate'),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.pushNamed(context, '/settings/api-config');
-            },
-          ),
-        ],
-      ),
-      body: Consumer<GroqProvider>(
-        builder: (context, groqProvider, _) {
-          // Show loading state during auto-initialization
-          if (groqProvider.isAutoInitializing) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Initializing AI service...'),
-                ],
-              ),
-            );
-          }
+    return Consumer<GroqProvider>(
+      builder: (context, groqProvider, _) {
+        // Show loading state during auto-initialization
+        if (groqProvider.isAutoInitializing) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Initializing AI service...'),
+              ],
+            ),
+          );
+        }
 
-          // Show API key setup if not initialized
-          if (!groqProvider.isInitialized) {
-            return _buildApiKeySetup(context, groqProvider);
-          }
+        // Show API key setup if not initialized
+        if (!groqProvider.isInitialized) {
+          return _buildApiKeySetup(context, groqProvider);
+        }
 
-          return _buildImportOptions(context, groqProvider);
-        },
-      ),
+        return _buildImportOptions(context, groqProvider);
+      },
     );
   }
 
@@ -357,9 +344,10 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
   }
 
   void _showCachedDocuments(BuildContext context) {
-    // Navigate to cached documents screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cached documents feature coming soon')),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const CachedDocumentsScreen(),
+      ),
     );
   }
 

@@ -16,7 +16,7 @@ class AuthorizedQuotaScreen extends StatefulWidget {
 class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
   late SecureStorageService _secureStorage;
   // Constant secret key password for authorization
-  static const String _constantSecretKey = 'QuizSnap2024SecureAuth';
+  static const String _constantSecretKey = 'QuizSnap2026';
   bool _isAuthEnabled = false;
   bool _isAuthenticated = false;
   DateTime? _lastModificationTime;

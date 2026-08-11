@@ -481,6 +481,13 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteAllExtractedDocuments() => (delete(extractedDocuments)).go();
 
+  Future<List<ExtractedDocument>> searchExtractedDocuments(String query) {
+    final searchTerm = '%$query%';
+    return (select(extractedDocuments)
+        ..where((tbl) => tbl.fileName.like(searchTerm)))
+      .get();
+  }
+
   // Delete all methods for backup restore
   Future<int> deleteAllQuizResults() => (delete(quizResults)).go();
   Future<int> deleteAllStudySessions() => (delete(studySessions)).go();
@@ -737,44 +744,56 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<List<DeckAccuracy>> getAccuracyByDeck() async {
-    final decks = await getAllDecks();
-    final List<DeckAccuracy> accuracies = [];
+    try {
+      final decks = await getAllDecks();
+      final List<DeckAccuracy> accuracies = [];
 
-    for (final deck in decks) {
-      final cards = await getFlashcardsByDeck(deck.id);
-      
-      if (cards.isEmpty) {
+      for (final deck in decks) {
+        // Skip deleted decks
+        if (deck.deletedAt != null) continue;
+
+        final cards = await getFlashcardsByDeck(deck.id);
+        
+        if (cards.isEmpty) {
+          accuracies.add(DeckAccuracy(
+            deckId: deck.id,
+            deckName: deck.name,
+            accuracy: 0.0,
+            totalCards: 0,
+          ));
+          continue;
+        }
+
+        int totalReviews = 0;
+        int totalCorrect = 0;
+
+        for (final card in cards) {
+          // Skip deleted cards
+          if (card.deletedAt != null) continue;
+          
+          totalReviews += card.reviewCount;
+          totalCorrect += card.correctCount;
+        }
+
+        // Avoid division by zero
+        final accuracy = totalReviews > 0 
+            ? (totalCorrect.toDouble() / totalReviews.toDouble() * 100.0) 
+            : 0.0;
+
         accuracies.add(DeckAccuracy(
           deckId: deck.id,
           deckName: deck.name,
-          accuracy: 0.0,
-          totalCards: 0,
+          accuracy: accuracy,
+          totalCards: cards.length,
         ));
-        continue;
       }
 
-      int totalReviews = 0;
-      int totalCorrect = 0;
-
-      for (final card in cards) {
-        totalReviews += card.reviewCount;
-        totalCorrect += card.correctCount;
-      }
-
-      final accuracy = totalReviews > 0 
-          ? (totalCorrect.toDouble() / totalReviews.toDouble() * 100.0) 
-          : 0.0;
-
-      accuracies.add(DeckAccuracy(
-        deckId: deck.id,
-        deckName: deck.name,
-        accuracy: accuracy,
-        totalCards: cards.length,
-      ));
+      accuracies.sort((a, b) => a.accuracy.compareTo(b.accuracy));
+      return accuracies;
+    } catch (e) {
+      // Return empty list on error to prevent crashes
+      return [];
     }
-
-    accuracies.sort((a, b) => a.accuracy.compareTo(b.accuracy));
-    return accuracies;
   }
 
   Future<int> getRemainingQuota() async {
@@ -837,11 +856,6 @@ class AppDatabase extends _$AppDatabase {
   Future<List<AiUsageData>> getAiUsageHistory({int limit = 30}) => (select(aiUsage)
         ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)])
         ..limit(limit))
-      .get();
-
-  Future<List<ExtractedDocument>> searchExtractedDocuments(String query) => (select(extractedDocuments)
-        ..where((tbl) => tbl.fileName.like('%$query%'))
-        ..orderBy([(tbl) => OrderingTerm.desc(tbl.lastUsedAt)]))
       .get();
 
   Future<void> updateDocumentLastUsed(int id) async {

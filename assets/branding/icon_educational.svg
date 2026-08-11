@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Background circle with bamboo green -->
+  <circle cx="512" cy="512" r="512" fill="#16A34A"/>
+  
+  <!-- Book/document base -->
+  <rect x="200" y="300" width="624" height="450" rx="20" fill="#FFFFFF"/>
+  
+  <!-- Flashcard on top -->
+  <rect x="250" y="250" width="300" height="200" rx="15" fill="#0F172A"/>
+  
+  <!-- Question mark on flashcard -->
+  <text x="400" y="380" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="#FFFFFF" text-anchor="middle">?</text>
+  
+  <!-- Spark/lightbulb icon -->
+  <circle cx="700" cy="350" r="60" fill="#FBBF24"/>
+  <path d="M700 290 L700 310 M640 350 L660 350 M740 350 L760 350 M655 305 L670 320 M745 305 L730 320 M655 395 L670 380 M745 395 L730 380" stroke="#FBBF24" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Decorative elements -->
+  <rect x="250" y="500" width="524" height="8" rx="4" fill="#CBD5E1"/>
+  <rect x="250" y="530" width="400" height="8" rx="4" fill="#CBD5E1"/>
+  <rect x="250" y="560" width="450" height="8" rx="4" fill="#CBD5E1"/>
+  <rect x="250" y="590" width="350" height="8" rx="4" fill="#CBD5E1"/>
+</svg>

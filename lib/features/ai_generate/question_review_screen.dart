@@ -41,6 +41,11 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Show empty state UI if no questions were generated
+    if (widget.questions.isEmpty) {
+      return _buildEmptyState(context);
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Review Questions'),
@@ -670,6 +675,133 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Review Questions'),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.sentiment_dissatisfied,
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'No questions could be generated',
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'The AI could not generate questions from the selected content.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              _buildSuggestionCard(
+                context,
+                icon: Icons.filter_list,
+                title: 'Try selecting fewer pages',
+                description: 'Reducing the content scope may help generate better questions.',
+              ),
+              const SizedBox(height: 12),
+              _buildSuggestionCard(
+                context,
+                icon: Icons.bookmark,
+                title: 'Try a specific chapter or heading',
+                description: 'Focus on a specific section rather than the entire document.',
+              ),
+              const SizedBox(height: 12),
+              _buildSuggestionCard(
+                context,
+                icon: Icons.quiz,
+                title: 'Try a different question type',
+                description: 'Some question types work better with certain content.',
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Regenerate'),
+                  ),
+                  const SizedBox(width: 16),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit Text'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: () {
+                  // Navigate to manual flashcard creation
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
+                icon: const Icon(Icons.add_card),
+                label: const Text('Create Flashcard Manually'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: Theme.of(context).colorScheme.primary,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
