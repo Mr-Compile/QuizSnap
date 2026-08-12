@@ -3,6 +3,7 @@ import '../../core/models/prompt_template.dart';
 import '../../core/models/exam.dart';
 import '../../core/services/groq_service.dart';
 import '../../core/services/document_extraction_service.dart';
+import '../../core/services/text_normalization_service.dart';
 
 class GeneratedQuestion {
   final String question;
@@ -72,9 +73,10 @@ class QuestionGenerationService {
     required int questionCount,
     String? model,
   }) async {
-    // Truncate text if too long
-    final truncatedText = DocumentExtractionService.truncateText(sourceText);
-    
+    // Clean and reconstruct extracted text, then truncate if too long.
+    final cleanedText = TextNormalizationService.cleanForPrompt(sourceText);
+    final truncatedText = DocumentExtractionService.truncateText(cleanedText);
+
     // Generate questions using Groq service
     final response = await _groqService.generateQuestionsWithBuiltInTemplate(
       content: truncatedText,

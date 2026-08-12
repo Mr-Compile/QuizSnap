@@ -2,8 +2,22 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:archive/archive.dart';
+import 'text_normalization_service.dart';
 
 class DocumentExtractionService {
+  /// Returns the total number of pages in a PDF without rendering.
+  static Future<int> getPageCount(File file) async {
+    try {
+      final bytes = await file.readAsBytes();
+      final PdfDocument document = PdfDocument(inputBytes: bytes);
+      final count = document.pages.count;
+      document.dispose();
+      return count;
+    } catch (e) {
+      throw Exception('Failed to determine PDF page count: $e');
+    }
+  }
+
   /// Extract text from a PDF file
   static Future<String> extractFromPdf(File file, {List<int>? pages}) async {
     try {
@@ -19,8 +33,9 @@ class DocumentExtractionService {
       if (extractedText.trim().isEmpty) {
         throw Exception('No text could be extracted from PDF');
       }
-      
-      return extractedText.trim();
+
+      final normalized = TextNormalizationService.reconstruct(extractedText);
+      return normalized;
     } catch (e) {
       throw Exception('Failed to extract text from PDF: $e');
     }
@@ -30,8 +45,10 @@ class DocumentExtractionService {
   static Future<String> extractFromTxt(File file) async {
     try {
       final content = await file.readAsString(encoding: utf8);
-      // Normalize line endings but keep paragraph breaks.
-      return content.replaceAll('\r\n', '\n').replaceAll('\r', '\n').trim();
+      // Normalize line endings, then reconstruct paragraphs/vertical text.
+      return TextNormalizationService.reconstruct(
+        content.replaceAll('\r\n', '\n').replaceAll('\r', '\n'),
+      );
     } catch (e) {
       throw Exception('Failed to extract text from TXT: $e');
     }
@@ -65,14 +82,15 @@ class DocumentExtractionService {
       // Extract text from XML - remove all tags and decode HTML entities
       String extractedText = _extractTextFromXml(xmlString);
       
-      // Clean up the extracted text
+      // Clean up the extracted text and reconstruct readable paragraphs.
       extractedText = _cleanDocxText(extractedText);
-      
-      if (extractedText.trim().isEmpty) {
+      final normalized = TextNormalizationService.reconstruct(extractedText);
+
+      if (normalized.trim().isEmpty) {
         throw Exception('No text could be extracted from DOCX');
       }
-      
-      return extractedText;
+
+      return normalized;
     } catch (e) {
       throw Exception('Failed to extract text from DOCX: $e');
     }
@@ -123,25 +141,7 @@ class DocumentExtractionService {
 
   /// Clean and normalize extracted text while preserving paragraph structure.
   static String cleanText(String text) {
-    // Normalize line endings
-    String cleaned = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
-
-    // Remove page break markers and replace with paragraph breaks
-    cleaned = cleaned.replaceAll('--- Page Break ---', '\n\n');
-
-    // Collapse multiple consecutive spaces into a single space, but keep newlines.
-    cleaned = cleaned.replaceAllMapped(
-      RegExp(r'[ \t]+'),
-      (match) => ' ',
-    );
-
-    // Preserve double newlines (paragraphs) but collapse more than two.
-    cleaned = cleaned.replaceAll(RegExp(r'\n{3,}'), '\n\n');
-
-    // Remove special control characters except newlines and tabs
-    cleaned = cleaned.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');
-
-    return cleaned.trim();
+    return TextNormalizationService.reconstruct(text);
   }
 
   /// Get basic statistics about the text

@@ -4,8 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:pdfx/pdfx.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/document_cache_service.dart';
+import '../../core/services/cached_document_service.dart';
 import '../../core/providers/database_provider.dart';
-import 'text_preview_screen.dart';
+import '../../core/providers/notification_service.dart';
+import '../../shared/widgets/stepper_header.dart';
+import 'analysis_preview_screen.dart';
 
 class PageRangeSelectorScreen extends StatefulWidget {
   final File file;
@@ -43,15 +46,14 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
 
   Future<void> _loadPdfInfo() async {
     try {
+      final pageCount = await DocumentExtractionService.getPageCount(widget.file);
+
+      // Prepare the PDF viewer controller without rendering every page.
       final bytes = await widget.file.readAsBytes();
       _pdfController = PdfController(
         document: PdfDocument.openData(bytes),
       );
-      
-      // Get page count
-      final pdfDocument = await _pdfController!.document;
-      final pageCount = pdfDocument.pagesCount;
-      
+
       setState(() {
         _totalPages = pageCount;
         _isLoading = false;
@@ -78,11 +80,21 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
             ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? _buildErrorState()
-              : _buildPageSelector(),
+      body: Column(
+        children: [
+          const StepperHeader(
+            currentStep: 2,
+            steps: ['Import', 'Scope', 'Select', 'Preview', 'Generate'],
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                    ? _buildErrorState()
+                    : _buildPageSelector(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -494,37 +506,41 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
 
       // Cache the extracted document
       final dbProvider = Provider.of<DatabaseProvider>(context, listen: false);
-      final cacheService = DocumentCacheService(dbProvider);
-      
+      final cacheService = CachedDocumentService(DocumentCacheService(dbProvider));
+
       final sortedPages = _selectedPages.toList()..sort();
+      final rangeText = _formatPageRanges(sortedPages);
+
       await cacheService.cacheDocument(
         fileName: widget.file.path.split('/').last,
         filePath: widget.file.path,
-        extractedText: text,
+        rawText: text,
         selectedScope: 'pages',
-        scopeDetails: {
-          'pages': sortedPages,
-          'rangeText': _formatPageRanges(sortedPages),
-        },
         totalPages: _totalPages,
+        source: 'PDF ($rangeText)',
       );
 
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => TextPreviewScreen(
+          builder: (context) => AnalysisPreviewScreen(
             text: text,
-            source: 'PDF (${_selectedPages.length} pages: ${_formatPageRanges(_selectedPages.toList()..sort())})',
+            source: 'PDF selected pages',
+            scopeType: 'pages',
+            scopeDetails: {
+              'pages': sortedPages,
+              'rangeText': rangeText,
+              'characterCount': text.length,
+            },
+            totalPages: _totalPages,
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to extract text: $e')),
-      );
+
+      context.read<NotificationService>().showErrorTop('Failed to extract text: $e');
     }
   }
 }

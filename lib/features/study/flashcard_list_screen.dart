@@ -105,17 +105,6 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
                                 ],
                               ),
                               const SizedBox(height: AppTheme.spacingSm),
-                              Container(
-                                height: 1,
-                                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-                              ),
-                              const SizedBox(height: AppTheme.spacingSm),
-                              Text(
-                                flashcard.answer,
-                                style: AppTheme.bodyMedium.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
-                                ),
-                              ),
                               if (flashcard.isFavorite) ...[
                                 const SizedBox(height: AppTheme.spacingSm),
                                 Icon(

@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:pdfx/pdfx.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/document_cache_service.dart';
+import '../../core/services/cached_document_service.dart';
 import '../../core/providers/database_provider.dart';
-import 'text_preview_screen.dart';
+import '../../core/providers/notification_service.dart';
+import 'analysis_preview_screen.dart';
 
 class DocumentHeading {
   final String title;
@@ -426,40 +428,42 @@ class _HeadingSelectionScreenState extends State<HeadingSelectionScreen> {
 
       // Cache the extracted document
       final dbProvider = Provider.of<DatabaseProvider>(context, listen: false);
-      final cacheService = DocumentCacheService(dbProvider);
-      
+      final cacheService = CachedDocumentService(DocumentCacheService(dbProvider));
+
       await cacheService.cacheDocument(
         fileName: widget.file.path.split('/').last,
         filePath: widget.file.path,
-        extractedText: text,
+        rawText: text,
         selectedScope: 'headings',
-        scopeDetails: {
-          'headings': headingNames,
-          'pages': pages,
-        },
         totalPages: _totalPages,
+        source: 'PDF sections',
       );
 
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => TextPreviewScreen(
+          builder: (context) => AnalysisPreviewScreen(
             text: text,
-            source: 'PDF (${selectedHeadings.length} sections)',
+            source: 'PDF sections',
+            scopeType: 'headings',
+            scopeDetails: {
+              'headings': headingNames,
+              'pages': pages,
+              'characterCount': text.length,
+            },
+            totalPages: _totalPages,
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _isExtracting = false;
       });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to extract text: $e')),
-      );
+
+      context.read<NotificationService>().showErrorTop('Failed to extract text: $e');
     }
   }
 }

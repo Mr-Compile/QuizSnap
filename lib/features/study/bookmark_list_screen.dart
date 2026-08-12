@@ -131,8 +131,8 @@ class _BookmarkListScreenState extends State<BookmarkListScreen> {
     );
   }
 
-  void _toggleBookmark(BuildContext context, int id) {
-    context.read<DatabaseProvider>().studyRepository.toggleBookmark(id);
-    setState(() {});
+  Future<void> _toggleBookmark(BuildContext context, int id) async {
+    await context.read<DatabaseProvider>().studyRepository.toggleBookmark(id);
+    if (mounted) setState(() {});
   }
 }

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../core/models/prompt_template.dart';
+import '../../core/models/recent_generation.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
 import '../../core/providers/notification_service.dart';
+import '../../core/repositories/recent_generation_repository.dart';
 import '../../core/services/question_generation_service.dart';
+import '../../core/services/text_normalization_service.dart';
 import 'package:provider/provider.dart';
 import 'question_review_screen.dart';
 
@@ -343,6 +346,22 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
 
       if (!mounted) return;
 
+      // Persist the generation to history before navigating.
+      final generationId = DateTime.now().millisecondsSinceEpoch.toString();
+      final cleanedSource = TextNormalizationService.cleanForDisplay(widget.sourceText);
+      final recent = RecentGeneration(
+        id: generationId,
+        title: RecentGenerationRepository.buildTitle(widget.source, _selectedType, questions.length),
+        sourceFile: widget.source,
+        generatedAt: DateTime.now(),
+        questionCount: questions.length,
+        questionsJson: questions.map((q) => q.toJson()).toList(),
+        type: _selectedType,
+        difficulty: _selectedDifficulty,
+        sourceText: cleanedSource,
+      );
+      context.read<RecentGenerationRepository>().addGeneration(recent);
+
       // Navigate to review screen
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -351,15 +370,11 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
             type: _selectedType,
             difficulty: _selectedDifficulty,
             source: widget.source,
-            sourceText: widget.sourceText,
+            sourceText: cleanedSource,
+            generationId: generationId,
           ),
         ),
       );
-      
-      setState(() {
-        _isGenerating = false;
-        _generationProgress = 1.0;
-      });
     } catch (e) {
       if (!mounted) return;
       

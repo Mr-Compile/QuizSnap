@@ -11,7 +11,6 @@ import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/confirmation_dialog.dart';
-import '../../shared/widgets/success_snackbar.dart';
 import 'edit_deck_screen.dart';
 import '../exam/exam_setup_screen.dart';
 
@@ -216,15 +215,6 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
                                     flashcard.question,
                                     style: AppTheme.labelLarge,
                                   ),
-                                  const SizedBox(height: AppTheme.spacingXs),
-                                  Text(
-                                    flashcard.answer,
-                                    style: AppTheme.bodyMedium.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
                                 ],
                               ),
                             );
@@ -288,11 +278,9 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
       final dbProvider = this.context.read<DatabaseProvider>();
       try {
         await dbProvider.deckRepository.deleteDeck(widget.deckId);
+        dbProvider.refreshDecks();
         if (mounted) {
-          SuccessSnackbar.show(
-            this.context,
-            message: 'Deck moved to trash',
-          );
+          this.context.read<NotificationService>().showSuccess('Deck moved to trash');
           Navigator.of(this.context).pop();
         }
       } catch (e) {

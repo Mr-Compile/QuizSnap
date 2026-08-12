@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import '../../core/providers/notification_service.dart';
+import '../../core/services/text_normalization_service.dart';
 import 'text_preview_screen.dart';
 
 class CameraOcrScreen extends StatefulWidget {
@@ -244,7 +247,7 @@ class _CameraOcrScreenState extends State<CameraOcrScreen> {
       final inputImage = InputImage.fromFilePath(image.path);
       final recognizedText = await _textRecognizer.processImage(inputImage);
       
-      final extractedText = recognizedText.text;
+      final extractedText = TextNormalizationService.reconstruct(recognizedText.text);
 
       if (!mounted) return;
 
@@ -263,10 +266,8 @@ class _CameraOcrScreenState extends State<CameraOcrScreen> {
           _isProcessing = false;
           _errorMessage = 'Failed to capture or recognize text: $e';
         });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+
+        context.read<NotificationService>().showErrorTop('Error: $e');
       }
     }
   }

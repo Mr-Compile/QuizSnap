@@ -18,6 +18,10 @@ import 'core/providers/study_session_controller.dart';
 import 'core/providers/backup_provider.dart';
 import 'core/services/explanation_cache_service.dart';
 import 'core/services/study_session_persistence.dart';
+import 'core/repositories/recent_generation_repository.dart';
+import 'core/repositories/cached_document_repository.dart';
+import 'core/providers/highlighted_selection_provider.dart';
+import 'core/providers/page_selection_provider.dart';
 import 'core/navigation/app_router.dart';
 import 'shared/widgets/notification_overlay.dart';
 
@@ -68,6 +72,13 @@ class QuizSnapApp extends StatelessWidget {
           persistence: StudySessionPersistence(prefs),
         )),
         provider_pkg.ChangeNotifierProvider(create: (_) => NotificationService()),
+        provider_pkg.ChangeNotifierProvider(create: (_) => RecentGenerationRepository(prefs)),
+        provider_pkg.ChangeNotifierProxyProvider<DatabaseProvider, CachedDocumentRepository>(
+          create: (context) => CachedDocumentRepository(context.read<DatabaseProvider>()),
+          update: (context, db, previous) => previous ?? CachedDocumentRepository(db),
+        ),
+        provider_pkg.ChangeNotifierProvider(create: (_) => HighlightedSelectionProvider()),
+        provider_pkg.ChangeNotifierProvider(create: (_) => PageSelectionProvider()),
         provider_pkg.ChangeNotifierProxyProvider2<DatabaseProvider, GroqProvider, ExamProvider>(
           create: (context) => ExamProvider(
             flashcardRepository: context.read<DatabaseProvider>().flashcardRepository,
@@ -90,15 +101,14 @@ class QuizSnapApp extends StatelessWidget {
       ],
       child: provider_pkg.Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
-          return NotificationOverlay(
-            child: MaterialApp.router(
-              title: 'QuizSnap',
-              debugShowCheckedModeBanner: false,
-              theme: AppTheme.lightTheme,
-              darkTheme: AppTheme.darkTheme,
-              themeMode: themeProvider.themeMode,
-              routerConfig: AppRouter.router,
-            ),
+          return MaterialApp.router(
+            title: 'QuizSnap',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            routerConfig: AppRouter.router,
+            builder: (context, child) => NotificationOverlay(child: child ?? const SizedBox.shrink()),
           );
         },
       ),

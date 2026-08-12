@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
+import '../../core/providers/notification_service.dart';
+import '../../core/models/recent_generation.dart';
+import '../../core/repositories/recent_generation_repository.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import 'file_picker_bottom_sheet.dart';
 import 'camera_ocr_screen.dart';
 import 'cached_documents_screen.dart';
+import 'recent_generation_details_screen.dart';
+import 'recent_documents_section.dart';
 
 class AiGenerateHomeScreen extends StatefulWidget {
   const AiGenerateHomeScreen({super.key});
@@ -103,16 +108,15 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                           
                           if (apiKey.isEmpty) {
                             groqProvider.clearError();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please enter an API key')),
-                            );
+                            context.read<NotificationService>().showErrorTop('Please enter an API key');
                             return;
                           }
 
+                          final notifier = context.read<NotificationService>();
                           final success = await groqProvider.initialize(apiKey);
                           if (!success && mounted) {
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              SnackBar(content: Text(groqProvider.errorMessage ?? 'Failed to initialize')),
+                            notifier.showErrorTop(
+                              groqProvider.errorMessage ?? 'Failed to initialize',
                             );
                           }
                         },
@@ -224,15 +228,52 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
             ],
           ),
           const SizedBox(height: 24),
+          const RecentDocumentsSection(),
+          const SizedBox(height: 24),
           Text(
             'Recent Generations',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
-          const EmptyState(
-            icon: Icons.history,
-            title: 'No recent generations',
-            subtitle: 'Your recently generated questions will appear here',
+          Consumer<RecentGenerationRepository>(
+            builder: (context, repo, _) {
+              final generations = repo.generations;
+              if (generations.isEmpty) {
+                return const EmptyState(
+                  icon: Icons.history,
+                  title: 'No recent generations',
+                  subtitle: 'Your recently generated questions will appear here',
+                );
+              }
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: generations.length,
+                itemBuilder: (context, index) {
+                  final gen = generations[index];
+                  return CustomCard(
+                    onTap: () => _openRecentGeneration(context, gen),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          gen.title,
+                          style: Theme.of(context).textTheme.titleSmall,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${gen.questionCount} questions • ${gen.savedDeckId != null ? 'Saved' : 'Unsaved'}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ],
       ),
@@ -339,6 +380,14 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openRecentGeneration(BuildContext context, RecentGeneration gen) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => RecentGenerationDetailsScreen(generation: gen),
       ),
     );
   }

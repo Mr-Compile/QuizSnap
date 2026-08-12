@@ -1,8 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
+import 'package:provider/provider.dart';
 import '../../core/services/document_extraction_service.dart';
-import 'text_preview_screen.dart';
+import '../../core/providers/highlighted_selection_provider.dart';
+import '../../shared/widgets/selectable_document_viewer.dart';
+import '../../shared/widgets/selected_text_summary_sheet.dart';
+import 'analysis_preview_screen.dart';
 
 class TextHighlightSelectionScreen extends StatefulWidget {
   final File file;
@@ -200,76 +204,24 @@ class _TextHighlightSelectionScreenState extends State<TextHighlightSelectionScr
             ],
           ),
         ),
-        // Text editor
+        // Selectable viewer
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _textController,
-              maxLines: null,
-              expands: true,
-              decoration: InputDecoration(
-                hintText: 'Select or edit the text to use...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
-              ),
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlignVertical: TextAlignVertical.top,
-              onChanged: (value) {
-                setState(() {
-                  _selectedText = value;
-                });
+            child: SelectableDocumentViewer(
+              text: _textController.text,
+              onSelectionChanged: (value) {
+                setState(() => _selectedText = value);
+                context.read<HighlightedSelectionProvider>().setSelection(value);
               },
             ),
           ),
         ),
-        // Selection info
+        // Selection summary
         if (_selectedText.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.text_fields,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${_selectedText.length} characters selected',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'This text will be used to generate questions',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          SelectedTextSummarySheet(
+            selectedText: _selectedText,
+            onAnalyze: _proceedWithSelection,
           ),
       ],
     );
@@ -285,9 +237,12 @@ class _TextHighlightSelectionScreenState extends State<TextHighlightSelectionScr
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => TextPreviewScreen(
+        builder: (context) => AnalysisPreviewScreen(
           text: _selectedText,
-          source: 'Selected text (${_selectedText.length} characters)',
+          source: 'Selected text',
+          scopeType: 'highlight',
+          scopeDetails: {'characterCount': _selectedText.length},
+          totalPages: 0,
         ),
       ),
     );

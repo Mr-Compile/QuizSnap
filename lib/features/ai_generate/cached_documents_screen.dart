@@ -6,7 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/loading_skeleton.dart';
-import 'text_preview_screen.dart';
+import 'cached_document_details_screen.dart';
 
 class CachedDocumentsScreen extends StatefulWidget {
   const CachedDocumentsScreen({super.key});
@@ -119,14 +119,11 @@ class _CachedDocumentsScreenState extends State<CachedDocumentsScreen> {
     return CustomCard(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
       child: InkWell(
-        onTap: () async {
-          if (doc.extractedText != null) {
+        onTap: () {
+          if (doc.id != null) {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => TextPreviewScreen(
-                  text: doc.extractedText!,
-                  source: doc.filePath?.split('/').last ?? 'Unknown',
-                ),
+                builder: (context) => CachedDocumentDetailsScreen(documentId: doc.id!),
               ),
             );
           }

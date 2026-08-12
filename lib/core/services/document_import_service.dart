@@ -20,6 +20,7 @@ enum DocumentScope {
 }
 
 class ImportResult {
+  final int? id;
   final bool success;
   final String? extractedText;
   final String? filePath;
@@ -28,6 +29,7 @@ class ImportResult {
   final int? totalPages;
 
   ImportResult({
+    this.id,
     required this.success,
     this.extractedText,
     this.filePath,
@@ -238,6 +240,7 @@ class DocumentImportService {
     try {
       final docs = await _cacheService.getAllCachedDocuments();
       return docs.map((doc) => ImportResult(
+        id: doc.id,
         success: true,
         extractedText: doc.extractedText,
         filePath: doc.filePath,

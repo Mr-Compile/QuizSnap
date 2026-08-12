@@ -5,6 +5,7 @@ import '../../core/providers/database_provider.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
 import '../../core/providers/notification_service.dart';
+import '../../core/repositories/recent_generation_repository.dart';
 import '../../core/database/database.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
@@ -21,6 +22,7 @@ class QuestionReviewScreen extends StatefulWidget {
   final Difficulty difficulty;
   final String source;
   final String sourceText;
+  final String? generationId;
 
   const QuestionReviewScreen({
     super.key,
@@ -29,6 +31,7 @@ class QuestionReviewScreen extends StatefulWidget {
     required this.difficulty,
     required this.source,
     this.sourceText = '',
+    this.generationId,
   });
 
   @override
@@ -234,11 +237,12 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            _cleanOptionText(optionText),
+                          child: FormattedStudyText(
+                            text: _cleanOptionText(optionText),
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               decoration: isCorrect ? TextDecoration.underline : null,
                             ),
+                            showActions: false,
                           ),
                         ),
                       ],
@@ -417,9 +421,13 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
       _isSaving = true;
     });
 
+    final recentRepo = widget.generationId != null
+        ? context.read<RecentGenerationRepository>()
+        : null;
+
     try {
       final dbProvider = Provider.of<DatabaseProvider>(context, listen: false);
-      
+
       // Save each question as a flashcard
       for (final question in _selectedQuestions) {
         final answerText = question.answer ?? 
@@ -437,6 +445,11 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
 
       // Update deck card count
       await dbProvider.deckRepository.updateDeckCardCount(_selectedDeckId!);
+
+      // Track that this recent generation was saved to a deck.
+      if (recentRepo != null) {
+        await recentRepo.updateSavedDeckId(widget.generationId!, _selectedDeckId!);
+      }
 
       if (!mounted) return;
 

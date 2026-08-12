@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/document_cache_service.dart';
+import '../../core/services/cached_document_service.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/notification_service.dart';
 import '../../shared/widgets/custom_card.dart';
+import '../../shared/widgets/stepper_header.dart';
 import 'page_range_selector_screen.dart';
-import 'heading_selection_screen.dart';
+import 'heading_tree_selection_screen.dart';
 import 'text_highlight_selection_screen.dart';
-import '../ai_generate/text_preview_screen.dart';
+import 'analysis_preview_screen.dart';
 
 enum DocumentScope {
   entireDocument,
@@ -49,12 +52,9 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
 
     try {
       if (widget.fileType == 'pdf') {
-        // Load PDF to get page count
-        await DocumentExtractionService.extractFromPdf(widget.file);
-        // For PDF, we'll need to get page count from the PDF viewer
-        // For now, we'll set a default or extract it properly
+        final pageCount = await DocumentExtractionService.getPageCount(widget.file);
         setState(() {
-          _totalPages = 10; // Placeholder, will be updated properly
+          _totalPages = pageCount;
           _isLoading = false;
         });
       } else {
@@ -77,11 +77,21 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
       appBar: AppBar(
         title: const Text('Select Document Scope'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? _buildErrorState()
-              : _buildScopeOptions(),
+      body: Column(
+        children: [
+          const StepperHeader(
+            currentStep: 1,
+            steps: ['Import', 'Scope', 'Select', 'Preview', 'Generate'],
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                    ? _buildErrorState()
+                    : _buildScopeOptions(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -311,39 +321,40 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
 
   Future<void> _analyzeEntireDocument() async {
     try {
-      final text = await DocumentExtractionService.extractFromFile(widget.file);
-      
+      final rawText = await DocumentExtractionService.extractFromFile(widget.file);
+
       if (!mounted) return;
 
-      // Cache the extracted document using the copied file path
+      // Cache the extracted document with raw/cleaned versions and sections.
       final dbProvider = Provider.of<DatabaseProvider>(context, listen: false);
-      final cacheService = DocumentCacheService(dbProvider);
-      
+      final cacheService = CachedDocumentService(DocumentCacheService(dbProvider));
+
       await cacheService.cacheDocument(
         fileName: widget.file.path.split('/').last,
-        filePath: widget.file.path, // This is now the copied path in app storage
-        extractedText: text,
+        filePath: widget.file.path,
+        rawText: rawText,
         selectedScope: 'all',
-        scopeDetails: null,
         totalPages: _totalPages,
+        source: 'Entire ${widget.fileType.toUpperCase()}',
       );
 
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => TextPreviewScreen(
-            text: text,
+          builder: (context) => AnalysisPreviewScreen(
+            text: rawText,
             source: 'Entire ${widget.fileType.toUpperCase()}',
+            scopeType: 'all',
+            scopeDetails: const {},
+            totalPages: _totalPages ?? 0,
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to extract text: $e')),
-      );
+
+      context.read<NotificationService>().showErrorTop('Failed to extract text: $e');
     }
   }
 
@@ -358,7 +369,7 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
   void _navigateToHeadingSelector() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => HeadingSelectionScreen(file: widget.file),
+        builder: (context) => HeadingTreeSelectionScreen(file: widget.file),
       ),
     );
   }

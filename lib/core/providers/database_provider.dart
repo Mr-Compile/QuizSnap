@@ -44,6 +44,9 @@ class DatabaseProvider extends ChangeNotifier {
     await initializeDatabase();
   }
 
+  /// Publicly triggers a rebuild for widgets listening to this provider.
+  void refreshDecks() => notifyListeners();
+
   @override
   void dispose() {
     _database?.close();

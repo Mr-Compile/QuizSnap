@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/notification_service.dart';
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
@@ -193,6 +194,9 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
         ),
       );
 
+      // Trigger dependent consumers (e.g. DeckListScreen) to rebuild.
+      dbProvider.refreshDecks();
+
       if (mounted) {
         SuccessSnackbar.show(
           context,
@@ -202,12 +206,7 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error creating deck: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        context.read<NotificationService>().showErrorTop('Error creating deck: $e');
       }
     }
   }
