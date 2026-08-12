@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/models/analytics_data.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -23,8 +24,8 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
       ),
       body: Consumer<DatabaseProvider>(
         builder: (context, dbProvider, child) {
-          return FutureBuilder(
-            future: dbProvider.analyticsRepository.getAccuracyByDeck(),
+          return FutureBuilder<List<SubjectAccuracyData>>(
+            future: dbProvider.analyticsRepository.getSubjectAccuracyData(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const ListSkeleton();
@@ -36,7 +37,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
                 );
               }
 
-              final deckAccuracies = snapshot.data!;
+              final deckAccuracies = snapshot.data ?? <SubjectAccuracyData>[];
               
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
@@ -58,7 +59,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
     );
   }
 
-  Widget _buildOverallAccuracy(BuildContext context, deckAccuracies) {
+  Widget _buildOverallAccuracy(BuildContext context, List<SubjectAccuracyData> deckAccuracies) {
     if (deckAccuracies.isEmpty) {
       return const SizedBox();
     }
@@ -122,7 +123,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
     );
   }
 
-  Widget _buildAccuracyChart(BuildContext context, deckAccuracies) {
+  Widget _buildAccuracyChart(BuildContext context, List<SubjectAccuracyData> deckAccuracies) {
     if (deckAccuracies.isEmpty) {
       return CustomCard(
         child: Column(
@@ -229,7 +230,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
     );
   }
 
-  List<BarChartGroupData> _createBarGroups(BuildContext context, deckAccuracies) {
+  List<BarChartGroupData> _createBarGroups(BuildContext context, List<SubjectAccuracyData> deckAccuracies) {
     if (deckAccuracies.isEmpty) {
       return [];
     }
@@ -256,7 +257,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
     }).toList();
   }
 
-  Widget _buildDeckList(BuildContext context, deckAccuracies) {
+  Widget _buildDeckList(BuildContext context, List<SubjectAccuracyData> deckAccuracies) {
     if (deckAccuracies.isEmpty) {
       return const SizedBox();
     }
@@ -274,7 +275,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
     );
   }
 
-  Widget _buildDeckItem(BuildContext context, deck) {
+  Widget _buildDeckItem(BuildContext context, SubjectAccuracyData deck) {
     final accuracy = deck.accuracy;
     final accuracyColor = accuracy >= 80
         ? Colors.green

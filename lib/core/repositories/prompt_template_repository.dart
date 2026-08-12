@@ -165,6 +165,66 @@ Sample Answer Framework: [brief structure]''',
         isBuiltIn: true,
       ),
 
+      // Mixed Format Template (JSON) - one of each type per batch
+      PromptTemplate(
+        id: 'builtin_mixed',
+        name: 'Mixed Question Formats',
+        description: 'Generate a mix of multiple choice, identification, enumeration, and free-response items in one request.',
+        template: '''Return ONLY a single JSON object with no Markdown and no extra commentary. Use this exact structure:
+
+{
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "difficulty": "[Medium]",
+      "question": "...",
+      "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+      "answer": "A",
+      "explanation": "..."
+    },
+    {
+      "type": "identification",
+      "difficulty": "[Easy]",
+      "question": "...",
+      "answer": "...",
+      "explanation": "..."
+    },
+    {
+      "type": "enumeration",
+      "difficulty": "[Medium]",
+      "question": "...",
+      "options": ["item 1", "item 2"],
+      "answer": "item 1, item 2",
+      "explanation": "..."
+    },
+    {
+      "type": "free_response",
+      "difficulty": "[Hard]",
+      "question": "...",
+      "answer": "...",
+      "explanation": "..."
+    }
+  ]
+}
+
+Rules:
+- Include {count} total items.
+- Multiple choice items must have exactly 4 options and one correct letter A-D.
+- Enumeration items must have 2-5 items.
+- Identification answers must be 1-3 sentences.
+- Free-response answers must be concise conceptual explanations (1-3 sentences).
+- Vary angles: definition, mechanism, application, compare/contrast, cause/effect, process/sequence.
+- Avoid duplicates and compound questions.
+
+Source Material:
+{content}''',
+        type: PromptType.mixed,
+        difficulty: Difficulty.medium,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        isBuiltIn: true,
+      ),
+
       // Study Deck Master Template
       PromptTemplate(
         id: 'builtin_study_deck',

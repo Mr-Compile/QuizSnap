@@ -8,7 +8,7 @@ import '../../features/decks/deck_details_screen.dart';
 import '../../features/decks/create_deck_screen.dart';
 import '../../features/decks/edit_deck_screen.dart';
 import '../../features/flashcards/flashcard_list_screen.dart';
-import '../../features/flashcards/add_flashcard_screen.dart';
+import '../../features/flashcards/create_flashcard_screen.dart';
 import '../../features/flashcards/edit_flashcard_screen.dart';
 import '../../features/study/study_home_screen.dart';
 import '../../features/study/deck_study_screen.dart';
@@ -129,7 +129,7 @@ class AppRouter {
                     path: 'add',
                     builder: (context, state) {
                       final deckId = int.parse(state.pathParameters['deckId']!);
-                      return AddFlashcardScreen(deckId: deckId);
+                      return CreateFlashcardScreen(deckId: deckId);
                     },
                   ),
                   GoRoute(
@@ -194,6 +194,7 @@ class AppRouter {
                 type: extra?['type'] ?? PromptType.multipleChoice,
                 difficulty: extra?['difficulty'] ?? Difficulty.medium,
                 source: extra?['source'] ?? '',
+                sourceText: extra?['sourceText'] ?? '',
               );
             },
           ),

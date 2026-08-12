@@ -1,4 +1,5 @@
 import '../database/database.dart';
+import '../models/analytics_data.dart';
 import 'package:drift/drift.dart';
 
 class AnalyticsRepository {
@@ -33,6 +34,39 @@ class AnalyticsRepository {
   // Get mastery distribution
   Future<List<MasteryDistribution>> getMasteryDistribution() {
     return _database.getMasteryDistribution();
+  }
+
+  // Get typed subject-accuracy data for the Subject Accuracy chart.
+  Future<List<SubjectAccuracyData>> getSubjectAccuracyData() async {
+    final raw = await getAccuracyByDeck();
+    return raw.map((a) => SubjectAccuracyData(
+      deckId: a.deckId,
+      deckName: a.deckName,
+      accuracy: a.accuracy.toDouble(),
+      totalCards: a.totalCards,
+    )).toList();
+  }
+
+  // Get all deck accuracy values as typed deck accuracy data.
+  Future<List<DeckAccuracyData>> getDeckAccuracyData() async {
+    final raw = await getAccuracyByDeck();
+    return raw.map((a) => DeckAccuracyData(
+      deckId: a.deckId,
+      deckName: a.deckName,
+      accuracy: a.accuracy.toDouble(),
+      totalCards: a.totalCards,
+    )).toList();
+  }
+
+  // Get all decks as weak-topic chart items (filtering happens in the UI).
+  Future<List<WeakTopicChartItem>> getWeakTopicChartItems() async {
+    final raw = await getAccuracyByDeck();
+    return raw.map((a) => WeakTopicChartItem(
+      deckId: a.deckId,
+      name: a.deckName,
+      accuracy: a.accuracy.toDouble(),
+      cardCount: a.totalCards,
+    )).toList();
   }
 
   // Get accuracy by deck (for weak topics) - strongly typed

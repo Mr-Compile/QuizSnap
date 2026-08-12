@@ -87,6 +87,7 @@ enum PromptType {
   examSimulation,
   explanation,
   studyDeck,
+  mixed,
 }
 
 enum Difficulty {
@@ -111,6 +112,8 @@ extension PromptTypeExtension on PromptType {
         return 'Explanation';
       case PromptType.studyDeck:
         return 'Study Deck';
+      case PromptType.mixed:
+        return 'Mixed Format';
     }
   }
 
@@ -128,6 +131,8 @@ extension PromptTypeExtension on PromptType {
         return '💡';
       case PromptType.studyDeck:
         return '📚';
+      case PromptType.mixed:
+        return '🎲';
     }
   }
 }

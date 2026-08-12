@@ -181,6 +181,8 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
         return 'Questions with detailed explanations';
       case PromptType.studyDeck:
         return 'Comprehensive study deck with mixed question types';
+      case PromptType.mixed:
+        return 'Multiple formats in one request (multiple choice, identification, enumeration, free-response)';
     }
   }
 
@@ -352,6 +354,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
             type: _selectedType,
             difficulty: _selectedDifficulty,
             source: widget.source,
+            sourceText: widget.sourceText,
           ),
         ),
       );

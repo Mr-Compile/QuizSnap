@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/models/analytics_data.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -23,8 +24,8 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
       ),
       body: Consumer<DatabaseProvider>(
         builder: (context, dbProvider, child) {
-          return FutureBuilder(
-            future: dbProvider.analyticsRepository.getAccuracyByDeck(),
+          return FutureBuilder<List<WeakTopicChartItem>>(
+            future: dbProvider.analyticsRepository.getWeakTopicChartItems(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const ListSkeleton();
@@ -36,17 +37,21 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
                 );
               }
 
-              final deckAccuracies = snapshot.data!;
-              final weakTopics = deckAccuracies.where((d) => d.accuracy < 70).toList();
-              
+              final allItems = snapshot.data ?? <WeakTopicChartItem>[];
+              final weakTopics =
+                  allItems.where((d) => d.isWeak).toList();
+
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (weakTopics.isEmpty) _buildNoWeakTopics(context) else _buildWeakTopicsList(context, weakTopics),
+                    if (weakTopics.isEmpty)
+                      _buildNoWeakTopics(context)
+                    else
+                      _buildWeakTopicsList(context, weakTopics),
                     const SizedBox(height: AppTheme.spacingLg),
-                    _buildAllTopicsChart(context, deckAccuracies),
+                    _buildAllTopicsChart(context, allItems),
                     const SizedBox(height: AppTheme.spacingLg),
                     _buildRecommendations(context, weakTopics),
                   ],
@@ -86,7 +91,8 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
     );
   }
 
-  Widget _buildWeakTopicsList(BuildContext context, weakTopics) {
+  Widget _buildWeakTopicsList(
+      BuildContext context, List<WeakTopicChartItem> weakTopics) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -100,11 +106,9 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
     );
   }
 
-  Widget _buildWeakTopicItem(BuildContext context, topic) {
+  Widget _buildWeakTopicItem(BuildContext context, WeakTopicChartItem topic) {
     final accuracy = topic.accuracy;
-    final accuracyColor = accuracy >= 60
-        ? Colors.orange
-        : Colors.red;
+    final accuracyColor = accuracy >= 60.0 ? Colors.orange : Colors.red;
 
     return CustomCard(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
@@ -121,32 +125,33 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
               const SizedBox(width: AppTheme.spacingSm),
               Expanded(
                 child: Text(
-                  topic.deckName,
+                  topic.name,
                   style: AppTheme.labelLarge,
                 ),
               ),
               Text(
                 '${accuracy.toStringAsFixed(1)}%',
-              style: AppTheme.labelLarge.copyWith(
-                color: accuracyColor,
-                fontWeight: FontWeight.bold,
+                style: AppTheme.labelLarge.copyWith(
+                  color: accuracyColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
             ],
           ),
           const SizedBox(height: AppTheme.spacingSm),
           ClipRRect(
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             child: LinearProgressIndicator(
-              value: accuracy / 100,
-              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+              value: accuracy / 100.0,
+              backgroundColor:
+                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation<Color>(accuracyColor),
               minHeight: 8,
             ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
-            '${topic.totalCards} cards',
+            '${topic.cardCount} cards',
             style: AppTheme.bodySmall.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
@@ -156,8 +161,9 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
     );
   }
 
-  Widget _buildAllTopicsChart(BuildContext context, deckAccuracies) {
-    if (deckAccuracies.isEmpty) {
+  Widget _buildAllTopicsChart(
+      BuildContext context, List<WeakTopicChartItem> items) {
+    if (items.isEmpty) {
       return const SizedBox();
     }
 
@@ -171,7 +177,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
           ),
           const SizedBox(height: AppTheme.spacingMd),
           SizedBox(
-            height: 200.0 + (deckAccuracies.length * 30).toDouble(),
+            height: 200.0 + (items.length * 30).toDouble(),
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
@@ -183,7 +189,10 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
                   horizontalInterval: 20,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.1),
                       strokeWidth: 1,
                     );
                   },
@@ -202,16 +211,21 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
                       reservedSize: 100,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
-                        if (index < 0 || index >= deckAccuracies.length) return const SizedBox();
-                        final deck = deckAccuracies[index];
+                        if (index < 0 || index >= items.length) {
+                          return const SizedBox();
+                        }
+                        final deck = items[index];
                         return Padding(
                           padding: const EdgeInsets.only(top: AppTheme.spacingSm),
                           child: Text(
-                            deck.deckName.length > 10
-                                ? '${deck.deckName.substring(0, 10)}...'
-                                : deck.deckName,
+                            deck.name.length > 10
+                                ? '${deck.name.substring(0, 10)}...'
+                                : deck.name,
                             style: AppTheme.bodySmall.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
                             ),
                           ),
                         );
@@ -227,7 +241,10 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
                         return Text(
                           '${value.toInt()}%',
                           style: AppTheme.bodySmall.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
                           ),
                         );
                       },
@@ -237,7 +254,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
                 borderData: FlBorderData(
                   show: false,
                 ),
-                barGroups: _createBarGroups(context, deckAccuracies),
+                barGroups: _createBarGroups(context, items),
               ),
             ),
           ),
@@ -246,16 +263,17 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
     );
   }
 
-  List<BarChartGroupData> _createBarGroups(BuildContext context, deckAccuracies) {
-    if (deckAccuracies.isEmpty) {
-      return [];
+  List<BarChartGroupData> _createBarGroups(
+      BuildContext context, List<WeakTopicChartItem> items) {
+    if (items.isEmpty) {
+      return <BarChartGroupData>[];
     }
 
-    return deckAccuracies.asMap().entries.map((entry) {
-      final accuracy = entry.value.accuracy.toDouble(); // Ensure double type
-      final color = accuracy >= 80
+    return items.asMap().entries.map((entry) {
+      final accuracy = entry.value.accuracy.toDouble();
+      final color = accuracy >= 80.0
           ? Colors.green
-          : accuracy >= 60
+          : accuracy >= 60.0
               ? Colors.orange
               : Colors.red;
 
@@ -273,7 +291,8 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
     }).toList();
   }
 
-  Widget _buildRecommendations(BuildContext context, weakTopics) {
+  Widget _buildRecommendations(
+      BuildContext context, List<WeakTopicChartItem> weakTopics) {
     if (weakTopics.isEmpty) {
       return const SizedBox();
     }
@@ -343,7 +362,10 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
               Text(
                 description,
                 style: AppTheme.bodySmall.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
                 ),
               ),
             ],

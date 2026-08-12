@@ -7,7 +7,8 @@ import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_skeleton.dart';
-import 'flashcard_card_screen.dart';
+import '../flashcards/flashcard_detail_screen.dart';
+import 'flashcard_study_session_screen.dart';
 
 class FlashcardListScreen extends StatefulWidget {
   final int deckId;
@@ -87,9 +88,21 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                flashcard.question,
-                                style: AppTheme.labelLarge,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      flashcard.question,
+                                      style: AppTheme.labelLarge,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.more_vert, size: 20),
+                                    onPressed: () => _openDetail(context, flashcard),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: AppTheme.spacingSm),
                               Container(
@@ -126,19 +139,23 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
     );
   }
 
+  void _openDetail(BuildContext context, Flashcard flashcard) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FlashcardDetailScreen(
+          flashcardId: flashcard.id,
+          deckName: widget.deckName,
+        ),
+      ),
+    );
+  }
+
   void _startStudy(BuildContext context, List<Flashcard> flashcards) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => FlashcardCardScreen(
+        builder: (context) => FlashcardStudySessionScreen(
+          deckName: widget.deckName,
           flashcards: flashcards,
-          currentIndex: 0,
-          onCardRated: (quality) {
-            context.read<DatabaseProvider>().studyRepository.updateCardReview(
-              flashcards[0].id,
-              quality,
-            );
-            Navigator.of(context).pop();
-          },
         ),
       ),
     );
@@ -147,16 +164,10 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
   void _viewCard(BuildContext context, List<Flashcard> flashcards, int index) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => FlashcardCardScreen(
+        builder: (context) => FlashcardStudySessionScreen(
+          deckName: widget.deckName,
           flashcards: flashcards,
-          currentIndex: index,
-          onCardRated: (quality) {
-            context.read<DatabaseProvider>().studyRepository.updateCardReview(
-              flashcards[index].id,
-              quality,
-            );
-            Navigator.of(context).pop();
-          },
+          initialIndex: index,
         ),
       ),
     );

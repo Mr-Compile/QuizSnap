@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:groq/groq.dart';
 import '../models/prompt_template.dart';
 import '../models/groq_models.dart';
@@ -19,13 +22,12 @@ class GroqService {
   Future<void> initialize(String apiKey, {String? model}) async {
     _apiKey = apiKey;
     _currentModel = model ?? GroqModels.getDefaultModel();
-    
-    // Initialize Groq client with configuration including model
-    final configuration = Configuration(
-      model: _currentModel!,
+
+    _client = Groq(
+      apiKey: apiKey,
+      configuration: _buildConfiguration(_currentModel!),
     );
-    _client = Groq(apiKey: apiKey, configuration: configuration);
-    
+
     await _templateRepository.initialize();
     // Store the API key securely
     await _secureStorage.storeGroqApiKey(apiKey);
@@ -36,15 +38,70 @@ class GroqService {
     if (apiKey != null && apiKey.isNotEmpty) {
       _apiKey = apiKey;
       _currentModel = model ?? GroqModels.getDefaultModel();
-      
-      // Initialize Groq client with configuration including model
-      final configuration = Configuration(
-        model: _currentModel!,
+
+      _client = Groq(
+        apiKey: apiKey,
+        configuration: _buildConfiguration(_currentModel!),
       );
-      _client = Groq(apiKey: apiKey, configuration: configuration);
-      
+
       await _templateRepository.initialize();
     }
+  }
+
+  Configuration _buildConfiguration(String model) {
+    return Configuration(
+      model: model,
+      temperature: 0.25,
+      maxCompletionTokens: 4096,
+      topP: 0.9,
+      seed: 42,
+    );
+  }
+
+  String _buildSystemMessage(PromptTemplate template) {
+    return '''You are an expert educator writing study content for a Flutter flashcard app.
+
+CRITICAL OUTPUT RULES:
+1. NO MARKDOWN. Do not use **, ##, __, leading bullets (- or *), fenced code blocks, or any Markdown.
+2. Write like a real human instructor. Do not write "Here is your exam", "The following questions are generated", "As an AI", or similar robotic openings.
+3. Avoid buzzwords: delve, leverage, tapestry, crucial, fostering.
+4. Every item must be ATOMIC: one concept per item, short answer (1-3 sentences), concise lists for enumeration.
+5. Each item must be labeled with a difficulty: [Easy], [Medium], or [Hard].
+6. Use plain text only. Numbers and letters for lists are allowed.
+7. Prefer returning a single JSON object when the user asks for it; otherwise follow the requested format exactly.''';
+  }
+
+  Future<String> _tryGenerateWithModel({
+    required String model,
+    required String prompt,
+    required String systemMessage,
+  }) async {
+    if (_apiKey == null || _apiKey!.isEmpty) {
+      throw Exception('Groq API key is missing');
+    }
+
+    final client = Groq(
+      apiKey: _apiKey!,
+      configuration: _buildConfiguration(model),
+    );
+
+    client.setCustomInstructionsWith(systemMessage);
+    client.startChat();
+
+    if (kDebugMode) {
+      developer.log('Groq request: model=$model, promptChars=${prompt.length}');
+    }
+
+    final response = await client.sendMessage(prompt).timeout(
+      const Duration(seconds: 120),
+      onTimeout: () {
+        throw TimeoutException(
+          'The AI request timed out after 120 seconds. Please try again or shorten the content.',
+        );
+      },
+    );
+
+    return response.choices.first.message.content;
   }
 
   Future<String> generateQuestions({
@@ -58,13 +115,6 @@ class GroqService {
       throw Exception('Groq service not initialized. Please set API key first.');
     }
 
-    // Update model if specified and different from current
-    if (model != null && model != _currentModel) {
-      _currentModel = model;
-      final configuration = Configuration(model: _currentModel!);
-      _client = Groq(apiKey: _apiKey!, configuration: configuration);
-    }
-
     final variables = {
       'content': content,
       'count': questionCount.toString(),
@@ -74,14 +124,39 @@ class GroqService {
     };
 
     final prompt = _templateRepository.buildPrompt(template, variables);
+    final systemMessage = _buildSystemMessage(template);
 
-    try {
-      _client!.startChat();
-      final response = await _client!.sendMessage(prompt);
-      return response.choices.first.message.content;
-    } catch (e) {
-      throw Exception('Failed to generate questions: $e');
+    final modelChain = GroqModels.getFallbackChain(preferred: model ?? _currentModel);
+
+    for (int i = 0; i < modelChain.length; i++) {
+      final attemptModel = modelChain[i];
+      try {
+        final response = await _tryGenerateWithModel(
+          model: attemptModel,
+          prompt: prompt,
+          systemMessage: systemMessage,
+        );
+        if (model != null && attemptModel != model) {
+          _currentModel = attemptModel;
+          _client = Groq(
+            apiKey: _apiKey!,
+            configuration: _buildConfiguration(attemptModel),
+          );
+        }
+        return response;
+      } on TimeoutException {
+        rethrow;
+      } catch (e) {
+        if (kDebugMode) {
+          developer.log('Groq model $attemptModel failed: $e');
+        }
+        if (i == modelChain.length - 1) {
+          throw Exception('All Groq models failed: $e');
+        }
+      }
     }
+
+    throw Exception('All Groq models failed');
   }
 
   Future<String> generateQuestionsWithBuiltInTemplate({

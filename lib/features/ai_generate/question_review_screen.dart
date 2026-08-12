@@ -7,13 +7,17 @@ import '../../core/providers/ai_quota_provider.dart';
 import '../../core/database/database.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
+import 'package:go_router/go_router.dart';
 import 'regeneration_options_bottom_sheet.dart';
+import 'text_preview_screen.dart';
+import 'ai_generation_config_screen.dart';
 
 class QuestionReviewScreen extends StatefulWidget {
   final List<GeneratedQuestion> questions;
   final PromptType type;
   final Difficulty difficulty;
   final String source;
+  final String sourceText;
 
   const QuestionReviewScreen({
     super.key,
@@ -21,6 +25,7 @@ class QuestionReviewScreen extends StatefulWidget {
     required this.type,
     required this.difficulty,
     required this.source,
+    this.sourceText = '',
   });
 
   @override
@@ -468,6 +473,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         return Icons.lightbulb;
       case PromptType.studyDeck:
         return Icons.menu_book;
+      case PromptType.mixed:
+        return Icons.auto_awesome_mosaic;
     }
   }
 
@@ -683,87 +690,136 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final preview = widget.sourceText.isEmpty
+        ? 'No source text is available.'
+        : widget.sourceText.length > 250
+            ? '${widget.sourceText.substring(0, 250)}...'
+            : widget.sourceText;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Review Questions'),
+        title: const Text('No Questions Generated'),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.sentiment_dissatisfied,
-                size: 64,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Icon(
+              Icons.sentiment_dissatisfied,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'No questions could be generated',
+              style: Theme.of(context).textTheme.headlineSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'The AI could not generate questions from the selected content. You can edit the source text, retry with different settings, or create a flashcard manually.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
-              const SizedBox(height: 24),
-              Text(
-                'No questions could be generated',
-                style: Theme.of(context).textTheme.headlineSmall,
-                textAlign: TextAlign.center,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Extracted text preview',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'The AI could not generate questions from the selected content.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-                textAlign: TextAlign.center,
+              child: Text(
+                preview,
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-              const SizedBox(height: 24),
-              _buildSuggestionCard(
-                context,
-                icon: Icons.filter_list,
-                title: 'Try selecting fewer pages',
-                description: 'Reducing the content scope may help generate better questions.',
-              ),
-              const SizedBox(height: 12),
-              _buildSuggestionCard(
-                context,
-                icon: Icons.bookmark,
-                title: 'Try a specific chapter or heading',
-                description: 'Focus on a specific section rather than the entire document.',
-              ),
-              const SizedBox(height: 12),
-              _buildSuggestionCard(
-                context,
-                icon: Icons.quiz,
-                title: 'Try a different question type',
-                description: 'Some question types work better with certain content.',
-              ),
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Regenerate'),
-                  ),
-                  const SizedBox(width: 16),
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit Text'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextButton.icon(
-                onPressed: () {
-                  // Navigate to manual flashcard creation
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-                icon: const Icon(Icons.add_card),
-                label: const Text('Create Flashcard Manually'),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 32),
+            _buildSuggestionCard(
+              context,
+              icon: Icons.filter_list,
+              title: 'Try selecting fewer pages',
+              description: 'Reducing the content scope may help generate better questions.',
+            ),
+            const SizedBox(height: 12),
+            _buildSuggestionCard(
+              context,
+              icon: Icons.bookmark,
+              title: 'Try a specific chapter or heading',
+              description: 'Focus on a specific section rather than the entire document.',
+            ),
+            const SizedBox(height: 12),
+            _buildSuggestionCard(
+              context,
+              icon: Icons.quiz,
+              title: 'Try a different question type',
+              description: 'Some question types work better with certain content.',
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: _editText,
+              icon: const Icon(Icons.edit),
+              label: const Text('Edit Source Text'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _retryGeneration,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry Generate'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _changeFile,
+              icon: const Icon(Icons.folder_open),
+              label: const Text('Change File'),
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: _createManually,
+              icon: const Icon(Icons.add_card),
+              label: const Text('Create Flashcard Manually'),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  void _editText() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => TextPreviewScreen(
+          text: widget.sourceText,
+          source: widget.source,
+        ),
+      ),
+    );
+  }
+
+  void _retryGeneration() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => AiGenerationConfigScreen(
+          sourceText: widget.sourceText,
+          source: widget.source,
+        ),
+      ),
+    );
+  }
+
+  void _changeFile() {
+    context.go('/ai-generate');
+  }
+
+  void _createManually() {
+    context.go('/decks');
   }
 
   Widget _buildSuggestionCard(
@@ -828,6 +884,7 @@ class GeneratedQuestionEditorScreen extends StatefulWidget {
 }
 
 class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorScreen> {
+  final _formKey = GlobalKey<FormState>();
   late final TextEditingController _questionController;
   late final TextEditingController _answerController;
   late final List<TextEditingController> _optionControllers;
@@ -842,7 +899,9 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
     _optionControllers = widget.question.options
         .map((option) => TextEditingController(text: option))
         .toList();
-    _correctAnswerIndex = widget.question.correctAnswerIndex;
+    _correctAnswerIndex = widget.question.options.isEmpty
+        ? 0
+        : widget.question.correctAnswerIndex.clamp(0, widget.question.options.length - 1);
   }
 
   @override
@@ -875,26 +934,30 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
             _showUnsavedChangesDialog();
           }
         },
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildQuestionField(),
-              const SizedBox(height: 16),
-              _buildAnswerField(),
-              const SizedBox(height: 16),
-              _buildOptionsSection(),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _hasUnsavedChanges ? _saveChanges : null,
-                icon: const Icon(Icons.save),
-                label: const Text('Save Changes'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          onChanged: () => setState(() => _hasUnsavedChanges = true),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildQuestionField(),
+                const SizedBox(height: 16),
+                _buildAnswerField(),
+                const SizedBox(height: 16),
+                _buildOptionsSection(),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _hasUnsavedChanges ? _saveChanges : null,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Save Changes'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.all(16),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -902,25 +965,37 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
   }
 
   Widget _buildQuestionField() {
-    return TextField(
+    return TextFormField(
       controller: _questionController,
       maxLines: 3,
       decoration: const InputDecoration(
         labelText: 'Question',
         border: OutlineInputBorder(),
       ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Question cannot be empty';
+        }
+        return null;
+      },
       onChanged: (_) => setState(() => _hasUnsavedChanges = true),
     );
   }
 
   Widget _buildAnswerField() {
-    return TextField(
+    return TextFormField(
       controller: _answerController,
       maxLines: 2,
       decoration: const InputDecoration(
         labelText: 'Answer',
         border: OutlineInputBorder(),
       ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Answer cannot be empty';
+        }
+        return null;
+      },
       onChanged: (_) => setState(() => _hasUnsavedChanges = true),
     );
   }
@@ -954,24 +1029,36 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
   }
 
   Widget _buildOptionField(int index, TextEditingController controller) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isSelected = _correctAnswerIndex == index;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Radio<int>(
-            value: index,
-            groupValue: _correctAnswerIndex,
-            onChanged: (int? value) {
-              if (value != null) {
-                setState(() {
-                  _correctAnswerIndex = value;
-                  _hasUnsavedChanges = true;
-                });
-              }
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _correctAnswerIndex = index;
+                _hasUnsavedChanges = true;
+              });
             },
+            child: Container(
+              width: 32,
+              height: 32,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? colorScheme.primary : colorScheme.surface,
+                border: Border.all(color: colorScheme.primary),
+              ),
+              child: isSelected
+                  ? Icon(Icons.check, size: 18, color: colorScheme.onPrimary)
+                  : null,
+            ),
           ),
           Expanded(
-            child: TextField(
+            child: TextFormField(
               controller: controller,
               decoration: InputDecoration(
                 labelText: 'Option ${String.fromCharCode(65 + index)}',
@@ -983,6 +1070,12 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
                       )
                     : null,
               ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Option cannot be empty';
+                }
+                return null;
+              },
               onChanged: (_) => setState(() => _hasUnsavedChanges = true),
             ),
           ),
@@ -1012,19 +1105,45 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
   }
 
   void _saveChanges() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final options = _optionControllers.map((c) => c.text.trim()).toList();
+
+    if (options.isNotEmpty) {
+      if (options.length < 2) {
+        _showValidationError('Multiple-choice questions need at least 2 options');
+        return;
+      }
+      if (_correctAnswerIndex < 0 || _correctAnswerIndex >= options.length) {
+        _showValidationError('Please mark the correct answer');
+        return;
+      }
+    }
+
     final editedQuestion = GeneratedQuestion(
       question: _questionController.text.trim(),
       answer: _answerController.text.trim().isEmpty ? null : _answerController.text.trim(),
-      options: _optionControllers.map((c) => c.text.trim()).toList(),
+      options: options,
       correctAnswerIndex: _correctAnswerIndex,
       explanation: widget.question.explanation,
     );
 
     widget.onSave(editedQuestion);
     Navigator.of(context).pop();
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Question saved successfully')),
+    );
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
     );
   }
 

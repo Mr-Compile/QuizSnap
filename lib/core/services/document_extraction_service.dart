@@ -26,10 +26,12 @@ class DocumentExtractionService {
     }
   }
 
-  /// Extract text from a TXT file
+  /// Extract text from a TXT file, preserving UTF-8 encoding and line breaks.
   static Future<String> extractFromTxt(File file) async {
     try {
-      return await file.readAsString();
+      final content = await file.readAsString(encoding: utf8);
+      // Normalize line endings but keep paragraph breaks.
+      return content.replaceAll('\r\n', '\n').replaceAll('\r', '\n').trim();
     } catch (e) {
       throw Exception('Failed to extract text from TXT: $e');
     }
@@ -119,17 +121,26 @@ class DocumentExtractionService {
     }
   }
 
-  /// Clean and normalize extracted text
+  /// Clean and normalize extracted text while preserving paragraph structure.
   static String cleanText(String text) {
-    // Remove excessive whitespace
-    String cleaned = text.replaceAll(RegExp(r'\s+'), ' ');
-    
-    // Remove page break markers if needed
+    // Normalize line endings
+    String cleaned = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+
+    // Remove page break markers and replace with paragraph breaks
     cleaned = cleaned.replaceAll('--- Page Break ---', '\n\n');
-    
-    // Remove special characters that might interfere with AI processing
-    cleaned = cleaned.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F]'), '');
-    
+
+    // Collapse multiple consecutive spaces into a single space, but keep newlines.
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'[ \t]+'),
+      (match) => ' ',
+    );
+
+    // Preserve double newlines (paragraphs) but collapse more than two.
+    cleaned = cleaned.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+    // Remove special control characters except newlines and tabs
+    cleaned = cleaned.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');
+
     return cleaned.trim();
   }
 
