@@ -85,8 +85,9 @@ CRITICAL OUTPUT RULES:
       configuration: _buildConfiguration(model),
     );
 
-    client.setCustomInstructionsWith(systemMessage);
+    // startChat must be called before any instruction or send
     client.startChat();
+    client.setCustomInstructionsWith(systemMessage);
 
     if (kDebugMode) {
       developer.log('Groq request: model=$model, promptChars=${prompt.length}');
