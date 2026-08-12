@@ -49,11 +49,12 @@ class GroqService {
   }
 
   Configuration _buildConfiguration(String model) {
+    // Note: this Groq SDK sends `topP` but the Groq API expects `top_p`.
+    // Passing `topP` causes "Unknown parameter topP" errors, so it is omitted.
     return Configuration(
       model: model,
       temperature: 0.25,
       maxCompletionTokens: 4096,
-      topP: 0.9,
       seed: 42,
     );
   }
