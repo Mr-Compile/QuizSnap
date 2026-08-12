@@ -235,7 +235,7 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
     }
 
     return deckAccuracies.asMap().entries.map((entry) {
-      final accuracy = entry.value.accuracy;
+      final accuracy = entry.value.accuracy.toDouble(); // Ensure double type
       final color = accuracy >= 80
           ? Colors.green
           : accuracy >= 60

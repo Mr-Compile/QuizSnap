@@ -775,7 +775,7 @@ class AppDatabase extends _$AppDatabase {
           totalCorrect += card.correctCount;
         }
 
-        // Avoid division by zero
+        // Avoid division by zero - ensure double type
         final accuracy = totalReviews > 0 
             ? (totalCorrect.toDouble() / totalReviews.toDouble() * 100.0) 
             : 0.0;
@@ -783,8 +783,8 @@ class AppDatabase extends _$AppDatabase {
         accuracies.add(DeckAccuracy(
           deckId: deck.id,
           deckName: deck.name,
-          accuracy: accuracy,
-          totalCards: cards.length,
+          accuracy: accuracy, // Already a double
+          totalCards: cards.length, // Already an int
         ));
       }
 

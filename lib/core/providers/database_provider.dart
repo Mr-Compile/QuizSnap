@@ -8,7 +8,7 @@ import '../repositories/study_repository.dart';
 import '../repositories/analytics_repository.dart';
 
 class DatabaseProvider extends ChangeNotifier {
-  late final AppDatabase _database;
+  AppDatabase? _database;
   late final FolderRepository _folderRepository;
   late final DeckRepository _deckRepository;
   late final FlashcardRepository _flashcardRepository;
@@ -16,7 +16,7 @@ class DatabaseProvider extends ChangeNotifier {
   late final StudyRepository _studyRepository;
   late final AnalyticsRepository _analyticsRepository;
 
-  AppDatabase get database => _database;
+  AppDatabase get database => _database!;
   FolderRepository get folderRepository => _folderRepository;
   DeckRepository get deckRepository => _deckRepository;
   FlashcardRepository get flashcardRepository => _flashcardRepository;
@@ -24,25 +24,29 @@ class DatabaseProvider extends ChangeNotifier {
   StudyRepository get studyRepository => _studyRepository;
   AnalyticsRepository get analyticsRepository => _analyticsRepository;
 
-  DatabaseProvider() {
+  DatabaseProvider();
+
+  Future<AppDatabase> initializeDatabase() async {
+    if (_database != null) return _database!;
+    
     _database = AppDatabase(openConnection());
-    _folderRepository = FolderRepository(_database);
-    _deckRepository = DeckRepository(_database);
-    _flashcardRepository = FlashcardRepository(_database);
-    _tagRepository = TagRepository(_database);
-    _studyRepository = StudyRepository(_database);
-    _analyticsRepository = AnalyticsRepository(_database);
+    _folderRepository = FolderRepository(_database!);
+    _deckRepository = DeckRepository(_database!);
+    _flashcardRepository = FlashcardRepository(_database!);
+    _tagRepository = TagRepository(_database!);
+    _studyRepository = StudyRepository(_database!);
+    _analyticsRepository = AnalyticsRepository(_database!);
+    
+    return _database!;
   }
 
   Future<void> initialize() async {
-    // Database is already initialized in constructor
-    // This method exists for consistency with the initialization flow
-    await Future.delayed(const Duration(milliseconds: 100));
+    await initializeDatabase();
   }
 
   @override
   void dispose() {
-    _database.close();
+    _database?.close();
     super.dispose();
   }
 }

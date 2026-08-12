@@ -86,6 +86,7 @@ enum PromptType {
   enumeration,
   examSimulation,
   explanation,
+  studyDeck,
 }
 
 enum Difficulty {
@@ -108,6 +109,8 @@ extension PromptTypeExtension on PromptType {
         return 'Exam Simulation';
       case PromptType.explanation:
         return 'Explanation';
+      case PromptType.studyDeck:
+        return 'Study Deck';
     }
   }
 
@@ -123,6 +126,8 @@ extension PromptTypeExtension on PromptType {
         return '🎯';
       case PromptType.explanation:
         return '💡';
+      case PromptType.studyDeck:
+        return '📚';
     }
   }
 }

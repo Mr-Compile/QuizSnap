@@ -380,18 +380,17 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
   }
 
   void _editQuestion(GeneratedQuestion question, int index) {
-    // Question editing dialog to be implemented in future version
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Question'),
-        content: const Text('Question editing feature will be available in a future update.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => GeneratedQuestionEditorScreen(
+          question: question,
+          index: index,
+          onSave: (editedQuestion) {
+            setState(() {
+              widget.questions[index] = editedQuestion;
+            });
+          },
+        ),
       ),
     );
   }
@@ -467,6 +466,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         return Icons.assignment;
       case PromptType.explanation:
         return Icons.lightbulb;
+      case PromptType.studyDeck:
+        return Icons.menu_book;
     }
   }
 
@@ -802,6 +803,248 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Question Editor Screen
+class GeneratedQuestionEditorScreen extends StatefulWidget {
+  final GeneratedQuestion question;
+  final int index;
+  final Function(GeneratedQuestion) onSave;
+
+  const GeneratedQuestionEditorScreen({
+    super.key,
+    required this.question,
+    required this.index,
+    required this.onSave,
+  });
+
+  @override
+  State<GeneratedQuestionEditorScreen> createState() => _GeneratedQuestionEditorScreenState();
+}
+
+class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorScreen> {
+  late final TextEditingController _questionController;
+  late final TextEditingController _answerController;
+  late final List<TextEditingController> _optionControllers;
+  late int _correctAnswerIndex;
+  bool _hasUnsavedChanges = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _questionController = TextEditingController(text: widget.question.question);
+    _answerController = TextEditingController(text: widget.question.answer ?? '');
+    _optionControllers = widget.question.options
+        .map((option) => TextEditingController(text: option))
+        .toList();
+    _correctAnswerIndex = widget.question.correctAnswerIndex;
+  }
+
+  @override
+  void dispose() {
+    _questionController.dispose();
+    _answerController.dispose();
+    for (final controller in _optionControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Edit Question ${widget.index + 1}'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: _hasUnsavedChanges ? _saveChanges : null,
+            tooltip: 'Save',
+          ),
+        ],
+      ),
+      body: PopScope(
+        canPop: !_hasUnsavedChanges,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && _hasUnsavedChanges) {
+            _showUnsavedChangesDialog();
+          }
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildQuestionField(),
+              const SizedBox(height: 16),
+              _buildAnswerField(),
+              const SizedBox(height: 16),
+              _buildOptionsSection(),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _hasUnsavedChanges ? _saveChanges : null,
+                icon: const Icon(Icons.save),
+                label: const Text('Save Changes'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuestionField() {
+    return TextField(
+      controller: _questionController,
+      maxLines: 3,
+      decoration: const InputDecoration(
+        labelText: 'Question',
+        border: OutlineInputBorder(),
+      ),
+      onChanged: (_) => setState(() => _hasUnsavedChanges = true),
+    );
+  }
+
+  Widget _buildAnswerField() {
+    return TextField(
+      controller: _answerController,
+      maxLines: 2,
+      decoration: const InputDecoration(
+        labelText: 'Answer',
+        border: OutlineInputBorder(),
+      ),
+      onChanged: (_) => setState(() => _hasUnsavedChanges = true),
+    );
+  }
+
+  Widget _buildOptionsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Options',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            TextButton.icon(
+              onPressed: _addOption,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Option'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ..._optionControllers.asMap().entries.map((entry) {
+          final index = entry.key;
+          final controller = entry.value;
+          return _buildOptionField(index, controller);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildOptionField(int index, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Radio<int>(
+            value: index,
+            groupValue: _correctAnswerIndex,
+            onChanged: (int? value) {
+              if (value != null) {
+                setState(() {
+                  _correctAnswerIndex = value;
+                  _hasUnsavedChanges = true;
+                });
+              }
+            },
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                labelText: 'Option ${String.fromCharCode(65 + index)}',
+                border: const OutlineInputBorder(),
+                suffixIcon: _optionControllers.length > 2
+                    ? IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => _removeOption(index),
+                      )
+                    : null,
+              ),
+              onChanged: (_) => setState(() => _hasUnsavedChanges = true),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addOption() {
+    setState(() {
+      _optionControllers.add(TextEditingController());
+      _hasUnsavedChanges = true;
+    });
+  }
+
+  void _removeOption(int index) {
+    if (_optionControllers.length <= 2) return;
+    
+    setState(() {
+      _optionControllers[index].dispose();
+      _optionControllers.removeAt(index);
+      if (_correctAnswerIndex >= _optionControllers.length) {
+        _correctAnswerIndex = _optionControllers.length - 1;
+      }
+      _hasUnsavedChanges = true;
+    });
+  }
+
+  void _saveChanges() {
+    final editedQuestion = GeneratedQuestion(
+      question: _questionController.text.trim(),
+      answer: _answerController.text.trim().isEmpty ? null : _answerController.text.trim(),
+      options: _optionControllers.map((c) => c.text.trim()).toList(),
+      correctAnswerIndex: _correctAnswerIndex,
+      explanation: widget.question.explanation,
+    );
+
+    widget.onSave(editedQuestion);
+    Navigator.of(context).pop();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Question saved successfully')),
+    );
+  }
+
+  void _showUnsavedChangesDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unsaved Changes'),
+        content: const Text('You have unsaved changes. Do you want to discard them?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop(); // Pop the editor screen
+            },
+            child: const Text('Discard'),
           ),
         ],
       ),

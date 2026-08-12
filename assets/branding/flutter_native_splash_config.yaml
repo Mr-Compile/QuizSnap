@@ -4,16 +4,14 @@
 flutter_native_splash:
   # Light theme configuration
   color: "#FFFFFF"  # White background for light theme
-  image: assets/branding/splash_light.png
   
   # Dark theme configuration
   color_dark: "#020617"  # slate950 background for dark theme
-  image_dark: assets/branding/splash_dark.png
   
   # Android 12+ (Material You) configuration
   android_12:
     # The image parameter sets the splash screen icon image
-    image: assets/branding/icon_foreground.png
+    image: assets/branding/icon_educational.png
     
     # Splash screen background color
     color: "#16A34A"  # bambooGreen600
@@ -22,7 +20,7 @@ flutter_native_splash:
     icon_background_color: "#16A34A"  # bambooGreen600
     
     # Android 12+ specific dark mode
-    image_dark: assets/branding/icon_foreground.png
+    image_dark: assets/branding/icon_educational.png
     color_dark: "#16A34A"  # bambooGreen600
     icon_background_color_dark: "#16A34A"  # bambooGreen600
   

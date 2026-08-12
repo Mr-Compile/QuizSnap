@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -111,7 +112,7 @@ class _BookmarkListScreenState extends State<BookmarkListScreen> {
     );
   }
 
-  void _startStudy(BuildContext context, List<dynamic> flashcards, int startIndex) {
+  void _startStudy(BuildContext context, List<Flashcard> flashcards, int startIndex) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => FlashcardCardScreen(

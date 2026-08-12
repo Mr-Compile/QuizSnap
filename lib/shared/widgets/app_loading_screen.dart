@@ -160,7 +160,7 @@ class _AppLoadingScreenState extends State<AppLoadingScreen>
         ],
       ),
       child: Image.asset(
-        'assets/launcher_icon.png',
+        'assets/branding/icon_educational.svg',
         width: 80,
         height: 80,
         errorBuilder: (context, error, stackTrace) {

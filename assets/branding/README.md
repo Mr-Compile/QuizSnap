@@ -15,14 +15,7 @@ assets/branding/
 ├── AI_IMAGE_PROMPTS.md                # AI image generation prompts
 ├── flutter_launcher_icons_config.yaml # Launcher icons configuration
 ├── flutter_native_splash_config.yaml  # Splash screen configuration
-├── logo_light.png                     # [To be generated] Horizontal logo (light)
-├── logo_dark.png                      # [To be generated] Horizontal logo (dark)
-├── icon_light.png                     # [To be generated] Launcher icon (light bg)
-├── icon_dark.png                      # [To be generated] Launcher icon (dark bg)
-├── icon_foreground.png                # [To be generated] Adaptive icon foreground
-├── splash_light.png                   # [To be generated] Splash screen (light)
-├── splash_dark.png                    # [To be generated] Splash screen (dark)
-└── loading_logo.png                   # [To be generated] Loading animation logo
+└── icon_educational.svg               # Educational icon (book, flashcard, spark)
 ```
 
 ### 🎨 Flutter Widgets
@@ -204,9 +197,6 @@ Style references include Quizlet, Duolingo, Notion, and Google Classroom.
 ### 🔄 To Be Generated (User Action Required)
 - [ ] logo_light.png
 - [ ] logo_dark.png
-- [ ] icon_light.png
-- [ ] icon_dark.png
-- [ ] icon_foreground.png
 - [ ] splash_light.png
 - [ ] splash_dark.png
 - [ ] loading_logo.png
@@ -233,7 +223,7 @@ Style references include Quizlet, Duolingo, Notion, and Google Classroom.
 
 ## Next Steps
 
-1. **Generate Assets:** Use `AI_IMAGE_PROMPTS.md` to create visual assets
+1. **Generate Remaining Assets:** Use `AI_IMAGE_PROMPTS.md` to create remaining visual assets (logos, splash screens)
 2. **Place Assets:** Add generated PNG files to `assets/branding/`
 3. **Generate Icons:** Run `flutter pub run flutter_launcher_icons`
 4. **Generate Splash:** Run `dart run flutter_native_splash:create`

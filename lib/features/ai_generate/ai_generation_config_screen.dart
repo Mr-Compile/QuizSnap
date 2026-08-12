@@ -179,6 +179,8 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
         return 'Mixed question types for exam practice';
       case PromptType.explanation:
         return 'Questions with detailed explanations';
+      case PromptType.studyDeck:
+        return 'Comprehensive study deck with mixed question types';
     }
   }
 

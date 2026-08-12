@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -16,7 +17,7 @@ class TodayReviewScreen extends StatefulWidget {
 }
 
 class _TodayReviewScreenState extends State<TodayReviewScreen> {
-  List<dynamic> _dueCards = [];
+  List<Flashcard> _dueCards = [];
   int _currentIndex = 0;
   int _correctCount = 0;
   int _incorrectCount = 0;
@@ -82,7 +83,7 @@ class _TodayReviewScreenState extends State<TodayReviewScreen> {
     );
   }
 
-  Widget _buildStartScreen(BuildContext context, List<dynamic> dueCards) {
+  Widget _buildStartScreen(BuildContext context, List<Flashcard> dueCards) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppTheme.spacingMd),
       child: Column(
@@ -225,7 +226,7 @@ class _TodayReviewScreenState extends State<TodayReviewScreen> {
     );
   }
 
-  void _startReview(List<dynamic> dueCards) {
+  void _startReview(List<Flashcard> dueCards) {
     setState(() {
       _dueCards = dueCards;
       _currentIndex = 0;

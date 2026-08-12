@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as provider_pkg;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'core/providers/theme_provider.dart';
@@ -10,37 +11,52 @@ import 'core/providers/security_provider.dart';
 import 'core/providers/reminder_provider.dart';
 import 'core/providers/exam_provider.dart';
 import 'core/providers/export_provider.dart';
+import 'core/providers/backup_provider.dart';
 import 'core/services/explanation_cache_service.dart';
 import 'core/navigation/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  runApp(QuizSnapApp(prefs: prefs));
+  
+  // Initialize database for both Provider and Riverpod
+  final dbProvider = DatabaseProvider();
+  final database = await dbProvider.initializeDatabase();
+  
+  runApp(
+    ProviderScope(
+      overrides: [
+        // Override the Riverpod database provider with the actual database instance
+        databaseProvider.overrideWithValue(database),
+      ],
+      child: QuizSnapApp(prefs: prefs, dbProvider: dbProvider),
+    ),
+  );
 }
 
 class QuizSnapApp extends StatelessWidget {
   final SharedPreferences prefs;
+  final DatabaseProvider dbProvider;
 
-  const QuizSnapApp({super.key, required this.prefs});
+  const QuizSnapApp({super.key, required this.prefs, required this.dbProvider});
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
+    return provider_pkg.MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => DatabaseProvider()),
+        provider_pkg.ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        provider_pkg.ChangeNotifierProvider.value(value: dbProvider),
         // GroqProvider will auto-initialize from secure storage in its constructor
-        ChangeNotifierProvider(create: (_) => GroqProvider()),
-        ChangeNotifierProxyProvider<DatabaseProvider, AiQuotaProvider>(
+        provider_pkg.ChangeNotifierProvider(create: (_) => GroqProvider()),
+        provider_pkg.ChangeNotifierProxyProvider<DatabaseProvider, AiQuotaProvider>(
           create: (context) => AiQuotaProvider(context.read<DatabaseProvider>()),
           update: (context, dbProvider, previous) {
             return previous ?? AiQuotaProvider(dbProvider);
           },
         ),
-        ChangeNotifierProvider(create: (_) => SecurityProvider()),
-        ChangeNotifierProvider(create: (_) => ReminderProvider()),
-        ProxyProvider2<DatabaseProvider, GroqProvider, ExamProvider>(
+        provider_pkg.ChangeNotifierProvider(create: (_) => SecurityProvider()),
+        provider_pkg.ChangeNotifierProvider(create: (_) => ReminderProvider()),
+        provider_pkg.ProxyProvider2<DatabaseProvider, GroqProvider, ExamProvider>(
           update: (context, dbProvider, groqProvider, previous) {
             return previous ?? ExamProvider(
               flashcardRepository: dbProvider.flashcardRepository,
@@ -49,13 +65,13 @@ class QuizSnapApp extends StatelessWidget {
             );
           },
         ),
-        ProxyProvider<DatabaseProvider, ExportProvider>(
+        provider_pkg.ProxyProvider<DatabaseProvider, ExportProvider>(
           update: (context, dbProvider, previous) {
             return previous ?? ExportProvider(dbProvider.database);
           },
         ),
       ],
-      child: Consumer<ThemeProvider>(
+      child: provider_pkg.Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp.router(
             title: 'QuizSnap',

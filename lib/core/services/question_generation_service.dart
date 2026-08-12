@@ -93,6 +93,8 @@ class QuestionGenerationService {
           return _parseExamSimulationQuestions(response);
         case PromptType.explanation:
           return _parseExplanationQuestions(response);
+        case PromptType.studyDeck:
+          return _parseStudyDeckQuestions(response);
       }
     } catch (e) {
       throw Exception('Failed to parse generated questions: $e');
@@ -273,6 +275,90 @@ class QuestionGenerationService {
       }
       return q;
     }).toList();
+  }
+
+  /// Parse study deck questions (mixed types with two-section format)
+  List<GeneratedQuestion> _parseStudyDeckQuestions(String response) {
+    final questions = <GeneratedQuestion>[];
+    
+    // Split into sections
+    final sections = response.split(RegExp(r'SECTION 2:|ANSWER KEY', caseSensitive: false));
+    if (sections.length < 2) {
+      // Fallback to multiple choice parsing if sections not found
+      return _parseMultipleChoiceQuestions(response);
+    }
+    
+    final questionsSection = sections[0];
+    final answersSection = sections[1];
+    
+    // Parse questions from section 1
+    final questionBlocks = questionsSection.split(RegExp(r'Item \d+', caseSensitive: false));
+    
+    for (final block in questionBlocks) {
+      if (block.trim().isEmpty) continue;
+      
+      try {
+        final question = _parseStudyDeckItem(block, answersSection);
+        if (question != null) {
+          questions.add(question);
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    
+    return questions;
+  }
+
+  GeneratedQuestion? _parseStudyDeckItem(String questionBlock, String answersSection) {
+    // Extract question type and difficulty
+    final typeMatch = RegExp(r'\| ([^\|]+) \| ([^\|]+)').firstMatch(questionBlock);
+    // ignore: unused_local_variable
+    final questionType = typeMatch?.group(1)?.trim() ?? 'Multiple Choice';
+    // ignore: unused_local_variable
+    final difficulty = typeMatch?.group(2)?.trim() ?? 'Medium';
+    
+    // Extract question prompt
+    final promptMatch = RegExp(r'Question Prompt: (.+?)(?=Options:|$)', dotAll: true).firstMatch(questionBlock);
+    final questionText = promptMatch?.group(1)?.trim() ?? '';
+    
+    if (questionText.isEmpty) return null;
+    
+    // Extract options if present
+    final options = <String>[];
+    final optionRegex = RegExp(r'[A-D]\) (.+?)(?=\n[A-D]|$)', multiLine: true);
+    
+    for (final match in optionRegex.allMatches(questionBlock)) {
+      options.add(match.group(1)?.trim() ?? '');
+    }
+    
+    // Find corresponding answer from section 2
+    final itemNumberMatch = RegExp(r'Item (\d+)').firstMatch(questionBlock);
+    // ignore: unused_local_variable
+    final itemNumber = itemNumberMatch?.group(1) ?? '';
+    
+    final answerMatch = RegExp(r'Item $itemNumber Answer: (.+?)(?=Explanation:|$)', dotAll: true).firstMatch(answersSection);
+    final answer = answerMatch?.group(1)?.trim();
+    
+    final explanationMatch = RegExp(r'Item $itemNumber Explanation: (.+?)(?=Item \d+|$)', dotAll: true).firstMatch(answersSection);
+    final explanation = explanationMatch?.group(1)?.trim();
+    
+    // Determine correct answer index based on options
+    int correctAnswerIndex = 0;
+    if (options.isNotEmpty && answer != null) {
+      final answerIndex = options.indexWhere((opt) => opt.contains(answer) || answer.contains(opt));
+      if (answerIndex >= 0) {
+        correctAnswerIndex = answerIndex;
+      }
+    }
+    
+    return GeneratedQuestion(
+      question: questionText,
+      options: options.isNotEmpty ? options : [answer ?? ''],
+      correctAnswerIndex: correctAnswerIndex,
+      explanation: explanation,
+      answer: answer,
+    );
   }
 
   /// Convert generated questions to exam questions

@@ -164,6 +164,64 @@ Sample Answer Framework: [brief structure]''',
         updatedAt: DateTime.now(),
         isBuiltIn: true,
       ),
+
+      // Study Deck Master Template
+      PromptTemplate(
+        id: 'builtin_study_deck',
+        name: 'Study Deck Generator',
+        description: 'Generate comprehensive study decks with mixed question types and detailed formatting.',
+        template: '''You are an expert educational assessor, exam designer, and master human tutor.
+
+CRITICAL FORMATTING & HUMANIZATION CONSTRAINTS:
+1. STRICTLY ZERO MARKDOWN SYMBOLS: Do NOT use asterisks (**), hashtags (##), double dashes (--), underscores (__), or HTML tags. Use plain text, standard numbered lists (1, 2, 3), clean spacing, and standard punctuation only.
+2. HUMAN WRITING TONE: Write naturally as a human teacher. Do NOT write robotic setup or filler sentences (never write "Here is your exam" or "Based on the provided document"). Avoid AI buzzwords like "delve," "tapestry," "leverage," "crucial," or "fostering."
+3. ATOMIC QUESTIONS: Every item must focus on a single concept. Keep answers concise (1 to 3 sentences or a clean numbered list).
+
+QUESTION TYPES & DISTRIBUTION RULES:
+Incorporate a mix of these 4 formats across every deck:
+- Multiple Choice: 4 options (A, B, C, D) with 1 correct answer and 3 realistic distractors.
+- Identification: Direct prompt or definition asking for a specific term, date, or concept.
+- Enumeration: Prompt requiring a list of 2 to 5 specific items, criteria, or steps.
+- Explanation / Free-Response: Conceptual question requiring a natural, plain-text explanation.
+
+MULTI-ANGLE & VOLUME STRATEGY:
+When testing a primary concept multiple times, do NOT write duplicate questions. Approach the concept from distinct angles across items (e.g., Card 1: Definition/What, Card 2: Mechanism/How, Card 3: Real-world Scenario, Card 4: Compare/Contrast with a related term).
+
+DIFFICULTY TIERS:
+Label every item with its difficulty level: [Easy], [Medium], or [Hard].
+
+OUTPUT STRUCTURE (EXAM SIMULATION):
+Always divide the output into two distinct sections using clean line breaks:
+
+SECTION 1: STUDY FLASHCARDS AND EXAM PAPER
+List all questions sequentially without revealing answers.
+
+Format:
+Item [Number] | [Question Type] | [Difficulty Tier]
+Question Prompt: [Write the prompt here]
+Options (if Multiple Choice):
+A) [Option 1]
+B) [Option 2]
+C) [Option 3]
+D) [Option 4]
+
+SECTION 2: ANSWER KEY AND EXPLANATIONS
+Provide full answers corresponding to Section 1.
+
+Format:
+Item [Number] Answer: [Correct Answer / Key Terms / Enumerated Points]
+Explanation: [Natural explanation of why this is correct. For Multiple Choice, state why key distractors are incorrect.]
+
+Generate {count} study deck items from the source material below.
+
+Source Material:
+{content}''',
+        type: PromptType.studyDeck,
+        difficulty: Difficulty.medium,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        isBuiltIn: true,
+      ),
     ];
   }
 

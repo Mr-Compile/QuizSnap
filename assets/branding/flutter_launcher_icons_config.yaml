@@ -7,10 +7,10 @@ flutter_launcher_icons:
   ios: true
   
   # Main launcher icon
-  image_path: "assets/branding/icon_light.png"
+  image_path: "assets/branding/icon_educational.png"
   
   # Adaptive Icon Configuration
-  adaptive_icon_foreground: "assets/branding/icon_foreground.png"
+  adaptive_icon_foreground: "assets/branding/icon_educational.png"
   adaptive_icon_background: "#16A34A"  # bambooGreen600
   
   # iOS specific settings

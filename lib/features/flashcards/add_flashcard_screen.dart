@@ -25,18 +25,22 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> with BackButton
   final _formKey = GlobalKey<FormState>();
   final _questionController = TextEditingController();
   final _answerController = TextEditingController();
+  final _tagsController = TextEditingController();
   bool _isLoading = false;
+  List<String> _selectedTags = [];
 
   @override
   bool get hasUnsavedChanges {
     return _questionController.text.trim().isNotEmpty || 
-           _answerController.text.trim().isNotEmpty;
+           _answerController.text.trim().isNotEmpty ||
+           _tagsController.text.trim().isNotEmpty;
   }
 
   @override
   void dispose() {
     _questionController.dispose();
     _answerController.dispose();
+    _tagsController.dispose();
     super.dispose();
   }
 
@@ -54,6 +58,10 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> with BackButton
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Deck selector (if needed for standalone creation)
+                _buildDeckSelector(),
+                const SizedBox(height: AppTheme.spacingLg),
+                
                 TextFormField(
                   controller: _questionController,
                   decoration: const InputDecoration(
@@ -83,6 +91,56 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> with BackButton
                     return null;
                   },
                 ),
+                const SizedBox(height: AppTheme.spacingLg),
+                
+                // Tags field
+                TextFormField(
+                  controller: _tagsController,
+                  decoration: InputDecoration(
+                    labelText: 'Tags',
+                    hintText: 'Enter tags separated by commas',
+                    suffixIcon: _selectedTags.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _selectedTags.clear();
+                                _tagsController.clear();
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedTags = value
+                          .split(',')
+                          .map((tag) => tag.trim())
+                          .where((tag) => tag.isNotEmpty)
+                          .toList();
+                    });
+                  },
+                ),
+                
+                if (_selectedTags.isNotEmpty) ...[
+                  const SizedBox(height: AppTheme.spacingSm),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _selectedTags.map((tag) {
+                      return Chip(
+                        label: Text(tag),
+                        onDeleted: () {
+                          setState(() {
+                            _selectedTags.remove(tag);
+                            _tagsController.text = _selectedTags.join(', ');
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+                
                 const SizedBox(height: AppTheme.spacingXl),
                 CustomButton(
                   text: 'Add Flashcard',
@@ -95,6 +153,54 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> with BackButton
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDeckSelector() {
+    // If deckId is provided, show deck info instead of selector
+    return FutureBuilder<Deck>(
+      future: context.read<DatabaseProvider>().deckRepository.getDeckById(widget.deckId),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final deck = snapshot.data!;
+          return Container(
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.style,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: AppTheme.spacingSm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Adding to deck',
+                        style: AppTheme.labelSmall.copyWith(
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                      Text(
+                        deck.name,
+                        style: AppTheme.labelLarge.copyWith(
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 
@@ -112,7 +218,7 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> with BackButton
       final flashcards = await dbProvider.flashcardRepository.getFlashcardsByDeck(widget.deckId);
       final maxOrder = flashcards.isEmpty ? 0 : flashcards.map((f) => f.order).reduce((a, b) => a > b ? a : b);
       
-      await dbProvider.flashcardRepository.createFlashcard(
+      final flashcardId = await dbProvider.flashcardRepository.createFlashcard(
         FlashcardsCompanion(
           question: drift.Value(_questionController.text.trim()),
           answer: drift.Value(_answerController.text.trim()),
@@ -120,6 +226,32 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> with BackButton
           order: drift.Value(maxOrder + 1),
         ),
       );
+
+      // Handle tags
+      if (_selectedTags.isNotEmpty) {
+        for (final tagName in _selectedTags) {
+          // Get or create tag
+          final existingTags = await dbProvider.tagRepository.getAllTags();
+          Tag? tag;
+          try {
+            tag = existingTags.firstWhere((t) => t.name == tagName);
+          } catch (e) {
+            tag = null;
+          }
+          
+          if (tag == null) {
+            // Create new tag
+            final tagId = await dbProvider.database.createTag(TagsCompanion(
+              name: drift.Value(tagName),
+              color: drift.Value('#4CAF50'),
+            ));
+            tag = Tag(id: tagId, name: tagName, color: '#4CAF50', createdAt: DateTime.now(), updatedAt: DateTime.now());
+          }
+          
+          // Associate tag with flashcard
+          await dbProvider.database.addTagToFlashcard(flashcardId, tag.id);
+        }
+      }
 
       // Update deck card count
       await dbProvider.deckRepository.updateDeckCardCount(widget.deckId);

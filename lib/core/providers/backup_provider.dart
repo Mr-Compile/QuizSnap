@@ -6,9 +6,12 @@ import '../repositories/backup_repository.dart';
 import '../services/restore_service.dart';
 import '../services/backup_service_enhanced.dart';
 
-// Database provider
+// Database provider - This should be overridden with the actual database instance
+// The main app should provide this through a ProviderScope override
 final databaseProvider = Provider<AppDatabase>((ref) {
-  throw UnimplementedError('Database provider must be initialized in main.dart');
+  throw UnimplementedError(
+    'Database provider must be provided via ProviderScope overrides in main.dart'
+  );
 });
 
 // Backup repository provider

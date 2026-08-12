@@ -410,6 +410,8 @@ class _TemplateCard extends StatelessWidget {
         return AppTheme.amber600;
       case PromptType.explanation:
         return AppTheme.red600;
+      case PromptType.studyDeck:
+        return AppTheme.cyan600;
     }
   }
 

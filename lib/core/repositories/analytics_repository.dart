@@ -38,7 +38,14 @@ class AnalyticsRepository {
   // Get accuracy by deck (for weak topics) - strongly typed
   Future<List<DeckAccuracy>> getAccuracyByDeck() async {
     try {
-      return await _database.getAccuracyByDeck();
+      final accuracies = await _database.getAccuracyByDeck();
+      // Ensure all values are properly typed
+      return accuracies.map((accuracy) => DeckAccuracy(
+        deckId: accuracy.deckId,
+        deckName: accuracy.deckName,
+        accuracy: accuracy.accuracy.toDouble(),
+        totalCards: accuracy.totalCards,
+      )).toList();
     } catch (e) {
       // Return empty list on error to prevent crashes
       return [];

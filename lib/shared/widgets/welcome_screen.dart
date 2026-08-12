@@ -157,7 +157,7 @@ class WelcomeScreen extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Image.asset(
-        'assets/launcher_icon.png',
+        'assets/branding/icon_educational.svg',
         width: 120,
         height: 120,
         errorBuilder: (context, error, stackTrace) {

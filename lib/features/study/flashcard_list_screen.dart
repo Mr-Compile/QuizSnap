@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -125,7 +126,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
     );
   }
 
-  void _startStudy(BuildContext context, List<dynamic> flashcards) {
+  void _startStudy(BuildContext context, List<Flashcard> flashcards) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => FlashcardCardScreen(
@@ -143,7 +144,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
     );
   }
 
-  void _viewCard(BuildContext context, List<dynamic> flashcards, int index) {
+  void _viewCard(BuildContext context, List<Flashcard> flashcards, int index) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => FlashcardCardScreen(
