@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
 
 class RateCardBottomSheet extends StatelessWidget {
@@ -85,11 +86,15 @@ class RateCardBottomSheet extends StatelessWidget {
     int quality,
   ) {
     return ElevatedButton(
-      onPressed: () => onRated(quality),
+      onPressed: () {
+        HapticFeedback.mediumImpact();
+        onRated(quality);
+      },
       style: ElevatedButton.styleFrom(
         backgroundColor: color.withValues(alpha: 0.1),
         foregroundColor: color,
         padding: const EdgeInsets.all(AppTheme.spacingMd),
+        minimumSize: const Size(double.infinity, 56),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         ),

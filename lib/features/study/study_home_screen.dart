@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/study_session_controller.dart';
+import '../../core/services/study_session_persistence.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/loading_skeleton.dart';
+import 'flashcard_study_session_screen.dart';
 import 'today_review_screen.dart';
 import 'bookmark_list_screen.dart';
 import 'deck_study_screen.dart';
@@ -48,6 +51,8 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                     _buildGreeting(context),
                     const SizedBox(height: AppTheme.spacingLg),
                     _buildStatsCard(context, stats),
+                    const SizedBox(height: AppTheme.spacingLg),
+                    _buildContinueSession(context),
                     const SizedBox(height: AppTheme.spacingLg),
                     _buildQuickActions(context, stats),
                     const SizedBox(height: AppTheme.spacingLg),
@@ -333,6 +338,95 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildContinueSession(BuildContext context) {
+    return Selector<StudySessionController, bool>(
+      selector: (context, controller) =>
+          controller.persistence?.hasUnfinishedSession ?? false,
+      builder: (context, hasSession, _) {
+        if (!hasSession) return const SizedBox.shrink();
+
+        final state = context.read<StudySessionController>().persistence!.load()!;
+        final progress = '${state.currentIndex + 1} / ${state.totalCards}';
+
+        return CustomCard(
+          onTap: () => _continueSession(context, state),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacingMd),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                ),
+                child: Icon(
+                  Icons.play_arrow,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: AppTheme.spacingMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Continue Last Session',
+                      style: AppTheme.labelLarge,
+                    ),
+                    const SizedBox(height: AppTheme.spacingXs),
+                    Text(
+                      state.deckName,
+                      style: AppTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: AppTheme.spacingXs),
+                    Text(
+                      '$progress • ${_formatRelativeTime(state.lastStudiedAt)}',
+                      style: AppTheme.bodySmall.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatRelativeTime(DateTime? time) {
+    if (time == null) return 'unknown time';
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inHours < 1) return '${diff.inMinutes} min ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  void _continueSession(BuildContext context, StudySessionState state) async {
+    final db = context.read<DatabaseProvider>();
+    final flashcards = await db.flashcardRepository.getFlashcardsByDeck(state.deckId);
+    if (flashcards.isEmpty) return;
+
+    if (!mounted) return;
+    if (!context.mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FlashcardStudySessionScreen(
+          flashcards: flashcards,
+          deckId: state.deckId,
+          deckName: state.deckName,
+          initialIndex: state.currentIndex,
+          initialRevealed: state.isRevealed,
+        ),
+      ),
     );
   }
 

@@ -107,6 +107,7 @@ class _TodayReviewScreenState extends State<TodayReviewScreen> {
       MaterialPageRoute(
         builder: (context) => FlashcardStudySessionScreen(
           deckName: 'Today\'s Review',
+          deckId: 0,
           flashcards: dueCards,
         ),
       ),

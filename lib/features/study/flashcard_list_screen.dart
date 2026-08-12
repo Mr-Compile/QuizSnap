@@ -155,6 +155,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
       MaterialPageRoute(
         builder: (context) => FlashcardStudySessionScreen(
           deckName: widget.deckName,
+          deckId: widget.deckId,
           flashcards: flashcards,
         ),
       ),
@@ -166,6 +167,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
       MaterialPageRoute(
         builder: (context) => FlashcardStudySessionScreen(
           deckName: widget.deckName,
+          deckId: widget.deckId,
           flashcards: flashcards,
           initialIndex: index,
         ),

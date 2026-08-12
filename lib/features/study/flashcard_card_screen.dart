@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/flashcard_reveal_provider.dart';
+import '../../core/providers/notification_service.dart';
+import '../../core/services/question_generation_service.dart';
 import '../../core/database/database.dart';
 import 'rate_card_bottom_sheet.dart';
 
@@ -32,32 +36,42 @@ class FlashcardCardScreen extends StatefulWidget {
 }
 
 class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
-  bool _isAnswerRevealed = false;
-
   @override
   Widget build(BuildContext context) {
     final progress = '${widget.currentIndex + 1}/${widget.flashcards.length}';
     final currentCard = widget.flashcards[widget.currentIndex];
+    final revealProvider = context.watch<FlashcardRevealProvider>();
+    final isAnswerRevealed = revealProvider.isRevealed(currentCard.id);
 
     return Column(
       children: [
         Expanded(
-          child: _buildFlashcard(context, currentCard, widget.currentIndex),
+          child: _buildFlashcard(context, currentCard, widget.currentIndex, isAnswerRevealed, revealProvider),
         ),
         _buildProgressIndicator(context, progress),
-        _buildActionButtons(context, currentCard),
+        _buildActionButtons(context, currentCard, isAnswerRevealed, revealProvider),
       ],
     );
   }
 
-  Widget _buildFlashcard(BuildContext context, Flashcard flashcard, int index) {
+  Widget _buildFlashcard(
+    BuildContext context,
+    Flashcard flashcard,
+    int index,
+    bool isAnswerRevealed,
+    FlashcardRevealProvider revealProvider,
+  ) {
     return Container(
       margin: const EdgeInsets.all(AppTheme.spacingMd),
       child: Column(
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _isAnswerRevealed = !_isAnswerRevealed),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                revealProvider.toggle(flashcard.id);
+              },
+              onHorizontalDragEnd: (details) => _handleSwipe(context, details, flashcard, isAnswerRevealed, revealProvider),
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
@@ -88,8 +102,8 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                           IconButton(
                             icon: Icon(
                               flashcard.isFavorite ? Icons.bookmark : Icons.bookmark_border,
-                              color: flashcard.isFavorite 
-                                  ? Theme.of(context).colorScheme.primary 
+                              color: flashcard.isFavorite
+                                  ? Theme.of(context).colorScheme.primary
                                   : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                             onPressed: () => _toggleBookmark(flashcard),
@@ -115,9 +129,10 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                                 ),
                                 const SizedBox(height: AppTheme.spacingMd),
                                 Text(
-                                  flashcard.question,
+                                  QuestionGenerationService.sanitizeText(flashcard.question),
                                   style: AppTheme.headlineSmall,
                                   textAlign: TextAlign.center,
+                                  softWrap: true,
                                 ),
                               ],
                             ),
@@ -125,12 +140,20 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                         ),
                       ),
                     ),
-                    if (_isAnswerRevealed) ...[
-                      Container(
-                        width: double.infinity,
-                        height: 2,
-                        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                    AnimatedOpacity(
+                      opacity: isAnswerRevealed ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 250),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        height: isAnswerRevealed ? null : 0,
+                        child: Container(
+                          width: double.infinity,
+                          height: 2,
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                        ),
                       ),
+                    ),
+                    if (isAnswerRevealed) ...[
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.all(AppTheme.spacingLg),
@@ -147,9 +170,10 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                                   ),
                                   const SizedBox(height: AppTheme.spacingMd),
                                   Text(
-                                    flashcard.answer,
+                                    QuestionGenerationService.sanitizeText(flashcard.answer),
                                     style: AppTheme.headlineSmall,
                                     textAlign: TextAlign.center,
+                                    softWrap: true,
                                   ),
                                 ],
                               ),
@@ -164,18 +188,48 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
             ),
           ),
           const SizedBox(height: AppTheme.spacingMd),
-          if (!_isAnswerRevealed)
+          if (!isAnswerRevealed)
             ElevatedButton.icon(
-              onPressed: () => setState(() => _isAnswerRevealed = true),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                revealProvider.reveal(flashcard.id);
+              },
               icon: const Icon(Icons.visibility),
               label: const Text('Show Answer'),
               style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 48),
+                minimumSize: const Size(double.infinity, 56),
               ),
             ),
         ],
       ),
     );
+  }
+
+  void _handleSwipe(
+    BuildContext context,
+    DragEndDetails details,
+    Flashcard flashcard,
+    bool isAnswerRevealed,
+    FlashcardRevealProvider revealProvider,
+  ) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity == 0) return;
+
+    if (!isAnswerRevealed) {
+      HapticFeedback.lightImpact();
+      revealProvider.reveal(flashcard.id);
+      return;
+    }
+
+    if (velocity > 200) {
+      // Swipe right = Good
+      HapticFeedback.mediumImpact();
+      widget.onCardRated(3);
+    } else if (velocity < -200) {
+      // Swipe left = Again
+      HapticFeedback.heavyImpact();
+      widget.onCardRated(0);
+    }
   }
 
   Widget _buildProgressIndicator(BuildContext context, String progress) {
@@ -205,7 +259,12 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, Flashcard flashcard) {
+  Widget _buildActionButtons(
+    BuildContext context,
+    Flashcard flashcard,
+    bool isAnswerRevealed,
+    FlashcardRevealProvider revealProvider,
+  ) {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingMd),
       child: Column(
@@ -219,13 +278,19 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                     onPressed: widget.onPrevious,
                     icon: const Icon(Icons.arrow_back),
                     label: const Text('Previous'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
                   ),
                 ),
               if (widget.onPrevious != null && widget.currentIndex > 0)
                 const SizedBox(width: AppTheme.spacingSm),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _isAnswerRevealed ? () => _showRateBottomSheet(context) : null,
+                  onPressed: isAnswerRevealed ? () => _showRateBottomSheet(context) : null,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 56),
+                  ),
                   child: const Text('Rate Card'),
                 ),
               ),
@@ -236,6 +301,9 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                     onPressed: widget.onNext,
                     icon: const Icon(Icons.arrow_forward),
                     label: const Text('Next'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
                   ),
                 ),
               ],
@@ -290,18 +358,14 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
           }
         });
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(updatedCard.isFavorite ? 'Card bookmarked' : 'Bookmark removed'),
-            duration: const Duration(seconds: 1),
-          ),
+        context.read<NotificationService>().showToast(
+          updatedCard.isFavorite ? 'Card bookmarked' : 'Bookmark removed',
+          icon: updatedCard.isFavorite ? Icons.bookmark : Icons.bookmark_border,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to toggle bookmark: $e')),
-        );
+        context.read<NotificationService>().showErrorTop('Failed to toggle bookmark: $e');
       }
     }
   }

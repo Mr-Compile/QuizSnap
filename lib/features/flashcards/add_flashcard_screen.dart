@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/notification_service.dart';
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
-import '../../shared/widgets/success_snackbar.dart';
 
 class AddFlashcardScreen extends StatefulWidget {
   final int deckId;
@@ -257,20 +257,12 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> with BackButton
       await dbProvider.deckRepository.updateDeckCardCount(widget.deckId);
 
       if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Flashcard added successfully',
-        );
+        context.read<NotificationService>().showSuccess('Flashcard added successfully');
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error adding flashcard: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        context.read<NotificationService>().showErrorTop('Error adding flashcard: $e');
       }
     } finally {
       if (mounted) {

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/notification_service.dart';
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
-import '../../shared/widgets/success_snackbar.dart';
 
 /// Manual flashcard creation screen.
 ///
@@ -309,20 +309,12 @@ class _CreateFlashcardScreenState extends State<CreateFlashcardScreen>
       await db.deckRepository.updateDeckCardCount(widget.deckId);
 
       if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Flashcard created successfully',
-        );
+        context.read<NotificationService>().showSuccess('Flashcard created successfully');
         Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error creating flashcard: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        context.read<NotificationService>().showErrorTop('Error creating flashcard: $e');
       }
     } finally {
       if (mounted) {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/deck_bookmark_provider.dart';
+import '../../core/providers/notification_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -32,13 +34,30 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
       appBar: CustomAppBar(
         title: 'Deck Details',
         actions: [
+          Consumer<DeckBookmarkProvider>(
+            builder: (context, bookmarks, _) {
+              final isBookmarked = bookmarks.isBookmarked(widget.deckId);
+              return IconButton(
+                icon: Icon(
+                  isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  color: isBookmarked
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+                onPressed: () => bookmarks.toggleBookmark(widget.deckId),
+                tooltip: isBookmarked ? 'Remove bookmark' : 'Bookmark deck',
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () => _navigateToEditDeck(context),
+            tooltip: 'Edit deck',
           ),
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () => _confirmDelete(context),
+            tooltip: 'Delete deck',
           ),
         ],
       ),
@@ -143,17 +162,19 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
                     const SizedBox(height: AppTheme.spacingLg),
                     CustomCard(
                       child: CustomButton(
-                        text: 'Start Exam',
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => ExamSetupScreen(
-                                deckId: widget.deckId,
-                                deckName: deck.name,
-                              ),
-                            ),
-                          );
-                        },
+                        text: deck.cardCount > 0 ? 'Start Exam' : 'No cards to start',
+                        onPressed: deck.cardCount > 0
+                            ? () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => ExamSetupScreen(
+                                      deckId: widget.deckId,
+                                      deckName: deck.name,
+                                    ),
+                                  ),
+                                );
+                              }
+                            : null,
                         icon: Icons.quiz,
                         fullWidth: true,
                       ),
@@ -276,12 +297,7 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(this.context).showSnackBar(
-            SnackBar(
-              content: Text('Error deleting deck: $e'),
-              backgroundColor: Theme.of(this.context).colorScheme.error,
-            ),
-          );
+          this.context.read<NotificationService>().showErrorTop('Error deleting deck: $e');
         }
       }
     }

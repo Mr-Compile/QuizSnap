@@ -116,17 +116,33 @@ class QuestionGenerationService {
   /// First attempts a strict JSON response, then falls back to the
   /// plain-text template format, and finally returns a single fallback
   /// question so that valid content never produces an empty list.
-  /// Remove Markdown and clean AI output so it renders safely in Text widgets.
+  /// Remove Markdown and clean AI output so it renders safely in Text widgets
+  /// while preserving paragraph breaks and line numbers.
   static String sanitizeText(String text) {
-    return text
+    // Normalize line endings first
+    String cleaned = text
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n');
+
+    // Remove Markdown formatting without touching newlines
+    cleaned = cleaned
         .replaceAll(RegExp(r'\*\*'), '') // bold
         .replaceAll(RegExp(r'__'), '') // underline
-        .replaceAll(RegExp(r'##+\s*'), '') // headings
+        .replaceAll(RegExp(r'#+\s*'), '') // headings
         .replaceAll(RegExp(r'^\s*[-*]\s+', multiLine: true), '') // leading bullets
         .replaceAll(RegExp(r'```[\s\S]*?```'), '') // fenced code blocks
-        .replaceAll(RegExp(r'`([^`]*)`'), r'$1') // inline code markers
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
+        .replaceAll(RegExp(r'`([^`]*)`'), r'$1'); // inline code markers
+
+    // Remove excessive spaces/tabs, but keep newlines
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'[ \t]+'),
+      (match) => ' ',
+    );
+
+    // Preserve double newlines (paragraphs), collapse more than two
+    cleaned = cleaned.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+    return cleaned.trim();
   }
 
   List<GeneratedQuestion> _sanitizeQuestions(List<GeneratedQuestion> questions) {

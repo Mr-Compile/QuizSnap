@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/exam.dart';
 import '../../core/providers/exam_provider.dart';
+import '../../core/utils/explanation_sanitizer.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/custom_card.dart';
+import '../../shared/widgets/formatted_study_text.dart';
 import 'full_explanation_screen.dart';
 
 class AnswerExplanationBottomSheet extends StatefulWidget {
@@ -260,9 +262,11 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
         ),
         const SizedBox(height: AppTheme.spacingMd),
         CustomCard(
-          child: Text(
-            _explanation!,
-            style: AppTheme.bodyLarge,
+          child: FormattedStudyText(
+            text: ExplanationSanitizer.sanitize(_explanation),
+            style: AppTheme.bodyLarge.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ),
       ],

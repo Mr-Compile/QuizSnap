@@ -204,16 +204,17 @@ CRITICAL OUTPUT RULES:
       _client = Groq(apiKey: _apiKey!, configuration: configuration);
     }
 
-    final prompt = '''You are an expert educator. Explain why the correct answer is correct and why the other options are incorrect.
-
-Question: $question
+    final prompt = '''Question: $question
 Correct Answer: $correctAnswer
 Wrong Answers: ${wrongAnswers.join(', ')}
 
-Provide a clear, concise explanation that helps students understand the concept.''';
+Explain why the correct answer is correct and why the other options are incorrect. Be direct and student-friendly.''';
 
     try {
       _client!.startChat();
+      _client!.setCustomInstructionsWith(
+        'You are an expert educator. Keep explanations short (1-3 sentences). Do NOT use Markdown, headings, bullet points, bold (**), or underlines (__). Write in plain text directly to the point.',
+      );
       final response = await _client!.sendMessage(prompt);
       return response.choices.first.message.content;
     } catch (e) {

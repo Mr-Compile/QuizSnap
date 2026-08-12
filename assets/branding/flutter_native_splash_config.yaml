@@ -3,10 +3,10 @@
 
 flutter_native_splash:
   # Light theme configuration
-  color: "#FFFFFF"  # White background for light theme
+  color: "#16A34A"  # bambooGreen600 background for light theme
   
   # Dark theme configuration
-  color_dark: "#020617"  # slate950 background for dark theme
+  color_dark: "#16A34A"  # bambooGreen600 background for dark theme
   
   # Android 12+ (Material You) configuration
   android_12:

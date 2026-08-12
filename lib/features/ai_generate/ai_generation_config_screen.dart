@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/prompt_template.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
+import '../../core/providers/notification_service.dart';
 import '../../core/services/question_generation_service.dart';
 import 'package:provider/provider.dart';
 import 'question_review_screen.dart';
@@ -285,9 +286,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
     final quotaProvider = Provider.of<AiQuotaProvider>(context, listen: false);
     
     if (!groqProvider.isInitialized) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please configure your Groq API key first')),
-      );
+      context.read<NotificationService>().showInfoTop('Please configure your Groq API key first');
       return;
     }
 
@@ -336,9 +335,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
       // Validate questions
       final issues = generationService.validateQuestions(questions);
       if (issues.isNotEmpty && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Some questions have issues: ${issues.first}')),
-        );
+        context.read<NotificationService>().showWarningTop('Some questions have issues: ${issues.first}');
       }
 
       // Step 5: Saving
@@ -370,10 +367,8 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
         _isGenerating = false;
         _generationProgress = 0.0;
       });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Generation failed: $e')),
-      );
+
+      context.read<NotificationService>().showErrorTop('Generation failed: $e');
     }
   }
 

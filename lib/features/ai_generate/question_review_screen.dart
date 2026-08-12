@@ -4,10 +4,13 @@ import '../../core/models/prompt_template.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
+import '../../core/providers/notification_service.dart';
 import '../../core/database/database.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
 import 'package:go_router/go_router.dart';
+import '../../core/utils/explanation_sanitizer.dart';
+import '../../shared/widgets/formatted_study_text.dart';
 import 'regeneration_options_bottom_sheet.dart';
 import 'text_preview_screen.dart';
 import 'ai_generation_config_screen.dart';
@@ -192,8 +195,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                question.question,
+              FormattedStudyText(
+                text: question.question,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               if (question.options.isNotEmpty) ...[
@@ -232,7 +235,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            optionText,
+                            _cleanOptionText(optionText),
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               decoration: isCorrect ? TextDecoration.underline : null,
                             ),
@@ -261,7 +264,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Answer: ${question.answer}',
+                          'Answer: ${QuestionGenerationService.sanitizeText(question.answer ?? '')}',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.onPrimaryContainer,
                           ),
@@ -288,8 +291,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          question.explanation!,
+                        child: FormattedStudyText(
+                          text: ExplanationSanitizer.sanitize(question.explanation),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: Theme.of(context).colorScheme.onTertiaryContainer,
                           ),
@@ -437,11 +440,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Successfully saved ${_selectedQuestions.length} questions'),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-        ),
+      context.read<NotificationService>().showSuccess(
+        'Successfully saved ${_selectedQuestions.length} questions',
       );
 
       // Navigate back to home
@@ -452,10 +452,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
       setState(() {
         _isSaving = false;
       });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save questions: $e')),
-      );
+
+      context.read<NotificationService>().showErrorTop('Failed to save questions: $e');
     }
   }
 
@@ -489,6 +487,12 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
       case Difficulty.expert:
         return Colors.purple;
     }
+  }
+
+  String _cleanOptionText(String optionText) {
+    final sanitized = QuestionGenerationService.sanitizeText(optionText);
+    // Strip leading A) / B. / C - etc. because the UI already shows the letter.
+    return sanitized.replaceFirst(RegExp(r'^\s*[A-Da-d][).\-]?\s*'), '').trim();
   }
 
   void _showRegenerationOptions() {
@@ -593,10 +597,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
       setState(() {
         _isSaving = false;
       });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Regeneration failed: $e')),
-      );
+
+      context.read<NotificationService>().showErrorTop('Regeneration failed: $e');
     }
   }
 
@@ -662,8 +664,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
               setState(() {
                 // For now, just show a message
               });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Questions updated with regenerated versions')),
+              context.read<NotificationService>().showSuccess(
+                'Questions updated with regenerated versions',
               );
             },
             child: const Text('Use New'),
@@ -1133,18 +1135,11 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
     widget.onSave(editedQuestion);
     Navigator.of(context).pop();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Question saved successfully')),
-    );
+    context.read<NotificationService>().showSuccess('Question saved successfully');
   }
 
   void _showValidationError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ),
-    );
+    context.read<NotificationService>().showErrorTop(message);
   }
 
   void _showUnsavedChangesDialog() {

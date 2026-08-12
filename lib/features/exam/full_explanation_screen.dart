@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/models/exam.dart';
+import '../../core/utils/explanation_sanitizer.dart';
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/formatted_study_text.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 
@@ -228,9 +230,12 @@ class FullExplanationScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppTheme.spacingLg),
-          Text(
-            explanation!,
-            style: AppTheme.bodyLarge,
+          FormattedStudyText(
+            text: ExplanationSanitizer.sanitize(explanation),
+            style: AppTheme.bodyLarge.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            showActions: true,
           ),
         ],
       ),

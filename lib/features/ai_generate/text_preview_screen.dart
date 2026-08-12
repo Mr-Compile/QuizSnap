@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/services/document_extraction_service.dart';
+import '../../shared/widgets/formatted_study_text.dart';
 import 'ai_generation_config_screen.dart';
 
 class TextPreviewScreen extends StatefulWidget {
@@ -91,25 +92,39 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
               ],
             ),
           ),
-          // Text editor
+          // Text editor / formatted preview
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                controller: _textController,
-                maxLines: null,
-                expands: true,
-                readOnly: !_isEditing,
-                decoration: InputDecoration(
-                  hintText: 'Edit the extracted text if needed...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                   ),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlignVertical: TextAlignVertical.top,
+                child: _isEditing
+                    ? TextField(
+                        controller: _textController,
+                        maxLines: null,
+                        expands: true,
+                        decoration: const InputDecoration(
+                          hintText: 'Edit the extracted text if needed...',
+                          contentPadding: EdgeInsets.all(16),
+                          border: InputBorder.none,
+                        ),
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlignVertical: TextAlignVertical.top,
+                      )
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: FormattedStudyText(
+                          text: _textController.text,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          showActions: true,
+                        ),
+                      ),
               ),
             ),
           ),

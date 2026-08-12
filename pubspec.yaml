@@ -104,8 +104,8 @@ flutter_launcher_icons:
     generate: false
 
 flutter_native_splash:
-  color: "#FFFFFF"
-  color_dark: "#020617"
+  color: "#16A34A"
+  color_dark: "#16A34A"
   android_12:
     image: assets/branding/icon_educational.png
     color: "#16A34A"

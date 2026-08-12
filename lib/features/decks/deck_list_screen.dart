@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/deck_bookmark_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -26,7 +28,7 @@ class _DeckListScreenState extends State<DeckListScreen> {
       ),
       body: Consumer<DatabaseProvider>(
         builder: (context, dbProvider, child) {
-          return FutureBuilder(
+          return FutureBuilder<List<Deck>>(
             future: dbProvider.deckRepository.getAllDecks(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -54,61 +56,42 @@ class _DeckListScreenState extends State<DeckListScreen> {
                 );
               }
 
-              return ListView.builder(
-                itemCount: decks.length,
-                itemBuilder: (context, index) {
-                  final deck = decks[index];
-                  return CustomCard(
-                    onTap: () => _navigateToDeckDetails(context, deck),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Color(int.parse(deck.color.replaceFirst('#', '0xFF'))),
-                            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                          ),
-                          child: const Icon(
-                            Icons.style,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: AppTheme.spacingMd),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                deck.name,
-                                style: AppTheme.labelLarge,
-                              ),
-                              const SizedBox(height: AppTheme.spacingXs),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.credit_card,
-                                    size: 14,
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                                  ),
-                                  const SizedBox(width: AppTheme.spacingXs),
-                                  Text(
-                                    '${deck.cardCount} cards',
-                                    style: AppTheme.bodySmall.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+              return Consumer<DeckBookmarkProvider>(
+                builder: (context, bookmarkProvider, _) {
+                  final sorted = bookmarkProvider.sortBookmarkedFirst(
+                    decks,
+                    (deck) => deck.id,
+                  );
+                  final bookmarked = sorted.where((d) => bookmarkProvider.isBookmarked(d.id)).toList();
+                  final others = sorted.where((d) => !bookmarkProvider.isBookmarked(d.id)).toList();
+
+                  return ListView(
+                    padding: const EdgeInsets.all(AppTheme.spacingMd),
+                    children: [
+                      if (bookmarked.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+                          child: Text(
+                            'Bookmarked Decks',
+                            style: AppTheme.labelLarge.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                           ),
                         ),
-                        Icon(
-                          Icons.chevron_right,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                        ),
+                        ...bookmarked.map((deck) => _buildDeckCard(context, deck, bookmarkProvider)),
+                        const SizedBox(height: AppTheme.spacingLg),
                       ],
-                    ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+                        child: Text(
+                          'All Decks',
+                          style: AppTheme.labelLarge.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ),
+                      ...others.map((deck) => _buildDeckCard(context, deck, bookmarkProvider)),
+                    ],
                   );
                 },
               );
@@ -119,6 +102,73 @@ class _DeckListScreenState extends State<DeckListScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateToCreateDeck(context),
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildDeckCard(BuildContext context, Deck deck, DeckBookmarkProvider bookmarkProvider) {
+    final isBookmarked = bookmarkProvider.isBookmarked(deck.id);
+
+    return CustomCard(
+      onTap: () => _navigateToDeckDetails(context, deck),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Color(int.parse(deck.color.replaceFirst('#', '0xFF'))),
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
+            child: const Icon(
+              Icons.style,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: AppTheme.spacingMd),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  deck.name,
+                  style: AppTheme.labelLarge,
+                ),
+                const SizedBox(height: AppTheme.spacingXs),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.credit_card,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                    const SizedBox(width: AppTheme.spacingXs),
+                    Text(
+                      '${deck.cardCount} cards',
+                      style: AppTheme.bodySmall.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+              color: isBookmarked
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+            onPressed: () => bookmarkProvider.toggleBookmark(deck.id),
+            tooltip: isBookmarked ? 'Remove bookmark' : 'Bookmark deck',
+          ),
+          Icon(
+            Icons.chevron_right,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+          ),
+        ],
       ),
     );
   }

@@ -1,23 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../../core/providers/database_provider.dart';
 import '../../core/database/database.dart';
+import '../../core/providers/database_provider.dart';
+import '../../core/providers/flashcard_reveal_provider.dart';
+import '../../core/providers/notification_service.dart';
+import '../../core/providers/study_session_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
-import 'flashcard_card_screen.dart';
+import '../../shared/widgets/flashcard_flip_card.dart';
 
-/// Full-screen study session that cycles through a list of flashcards,
-/// persists SM-2 ratings, handles bookmarks, and supports delete/restore.
+/// Full-screen study session that uses [StudySessionController] as the
+/// single source of truth. Supports resume, 3D flip, swipe ratings,
+/// bookmarks, and a session completion screen.
 class FlashcardStudySessionScreen extends StatefulWidget {
   final List<Flashcard> flashcards;
   final String? deckName;
+  final int deckId;
   final int initialIndex;
+  final bool initialRevealed;
 
   const FlashcardStudySessionScreen({
     super.key,
     required this.flashcards,
     this.deckName,
+    this.deckId = 0,
     this.initialIndex = 0,
+    this.initialRevealed = false,
   });
 
   @override
@@ -27,90 +36,108 @@ class FlashcardStudySessionScreen extends StatefulWidget {
 
 class _FlashcardStudySessionScreenState
     extends State<FlashcardStudySessionScreen> {
-  late List<Flashcard> _flashcards;
-  late int _currentIndex;
-  int _correctCount = 0;
-  int _incorrectCount = 0;
-  bool _isLoading = false;
-
   @override
   void initState() {
     super.initState();
-    _flashcards = List.from(widget.flashcards);
-    _currentIndex = widget.initialIndex >= 0 &&
-            widget.initialIndex < _flashcards.length
-        ? widget.initialIndex
-        : 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FlashcardRevealProvider>().clear();
+      context.read<StudySessionController>().startSession(
+        flashcards: widget.flashcards,
+        deckId: widget.deckId,
+        deckName: widget.deckName ?? 'Study Session',
+        startIndex: widget.initialIndex,
+        startRevealed: widget.initialRevealed,
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_flashcards.isEmpty) {
-      return Scaffold(
-        appBar: CustomAppBar(
-          title: widget.deckName ?? 'Study Session',
-        ),
-        body: const Center(
-          child: Text('No cards to study.'),
-        ),
-      );
-    }
+    return Consumer<StudySessionController>(
+      builder: (context, controller, _) {
+        if (!controller.hasCards) {
+          return _buildEmptyState(context);
+        }
 
-    if (_currentIndex >= _flashcards.length) {
-      return _buildSummaryScreen(context);
-    }
+        if (controller.isComplete) {
+          return _buildCompletionScreen(context, controller);
+        }
 
-    final progress =
-        '${_currentIndex + 1} / ${_flashcards.length}';
+        final card = controller.currentCard!;
+        final progress = '${controller.currentIndex + 1} / ${controller.totalCards}';
 
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: widget.deckName ?? 'Study Session',
-        actions: [
-          Center(
+        return Scaffold(
+          appBar: CustomAppBar(
+            title: controller.deckName,
+            actions: [
+              _buildBookmarkButton(context, card),
+              _buildEndSessionButton(context),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: AppTheme.spacingMd),
+                  child: Text(
+                    progress,
+                    style: AppTheme.labelLarge,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.only(right: AppTheme.spacingMd),
-              child: Text(
-                progress,
-                style: AppTheme.labelLarge,
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Column(
+                children: [
+                  LinearProgressIndicator(
+                    value: controller.progress,
+                    backgroundColor: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: FlashcardFlipCard(
+                      question: card.question,
+                      answer: card.answer,
+                      isRevealed: controller.isRevealed,
+                      onTap: controller.toggleReveal,
+                      onHorizontalDragEnd: (details) => _handleSwipe(context, details, controller),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildBottomControls(context, controller),
+                ],
               ),
             ),
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Scaffold(
+      appBar: CustomAppBar(
+        title: widget.deckName ?? 'Study Session',
       ),
-      body: Column(
-        children: [
-          LinearProgressIndicator(
-            value: (_currentIndex + 1) / _flashcards.length,
-          ),
-          Expanded(
-            child: FlashcardCardScreen(
-              flashcards: _flashcards,
-              currentIndex: _currentIndex,
-              onCardRated: _onCardRated,
-              onPrevious: _currentIndex > 0 ? _onPrevious : null,
-              onNext: _currentIndex < _flashcards.length - 1
-                  ? _onNext
-                  : null,
-              onDelete: () => _onDelete(_flashcards[_currentIndex]),
-            ),
-          ),
-          if (_isLoading) const LinearProgressIndicator(),
-        ],
+      body: const Center(
+        child: Text('No cards to study.'),
       ),
     );
   }
 
-  Widget _buildSummaryScreen(BuildContext context) {
-    final total = _correctCount + _incorrectCount;
-    final accuracy = total > 0 ? (_correctCount / total * 100).round() : 0;
+  Widget _buildCompletionScreen(BuildContext context, StudySessionController controller) {
+    final summary = controller.sessionSummary;
+    final minutes = summary.timeSpent.inMinutes;
+    final seconds = summary.timeSpent.inSeconds % 60;
 
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Session Complete',
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -126,23 +153,26 @@ class _FlashcardStudySessionScreenState
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.spacingLg),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStat(context, 'Correct', _correctCount, Colors.green),
-                ),
-                Expanded(
-                  child: _buildStat(context, 'Incorrect', _incorrectCount, Colors.red),
-                ),
-                Expanded(
-                  child: _buildStat(context, 'Accuracy', '$accuracy%', Colors.blue),
-                ),
-              ],
-            ),
+            _buildSummaryCard(context, summary, minutes, seconds),
             const SizedBox(height: AppTheme.spacingXl),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Back to Study'),
+              onPressed: () {
+                controller.endSession();
+                Navigator.of(context).pop();
+              },
+              child: const Text('Return Home'),
+            ),
+            const SizedBox(height: AppTheme.spacingSm),
+            OutlinedButton(
+              onPressed: () {
+                controller.endSession();
+                controller.startSession(
+                  flashcards: widget.flashcards,
+                  deckId: widget.deckId,
+                  deckName: widget.deckName ?? 'Study Session',
+                );
+              },
+              child: const Text('Continue Studying'),
             ),
           ],
         ),
@@ -150,121 +180,267 @@ class _FlashcardStudySessionScreenState
     );
   }
 
-  Widget _buildStat(BuildContext context, String label, dynamic value, Color color) {
+  Widget _buildSummaryCard(BuildContext context, SessionSummary summary, int minutes, int seconds) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: Column(
+          children: [
+            _buildSummaryRow(context, 'Cards Studied', '${summary.cardsStudied} / ${summary.totalCards}'),
+            _buildSummaryRow(context, 'Average Confidence', summary.averageConfidence.toStringAsFixed(1)),
+            _buildSummaryRow(context, 'Time Spent', '${minutes}m ${seconds}s'),
+            _buildSummaryRow(context, 'Due Tomorrow', summary.dueTomorrowCount.toString()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppTheme.bodyMedium.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+          Text(
+            value,
+            style: AppTheme.bodyMedium.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomControls(BuildContext context, StudySessionController controller) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      child: controller.isRevealed
+          ? _buildRatingControls(context, controller)
+          : _buildConfidenceControls(context, controller),
+    );
+  }
+
+  Widget _buildConfidenceControls(BuildContext context, StudySessionController controller) {
     return Column(
+      key: const ValueKey('confidence'),
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          value.toString(),
-          style: AppTheme.headlineSmall.copyWith(
-            color: color,
-            fontWeight: FontWeight.bold,
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: controller.revealCurrentCard,
+            child: const Text('Tap to Reveal Answer'),
           ),
         ),
-        const SizedBox(height: AppTheme.spacingXs),
-        Text(
-          label,
-          style: AppTheme.bodySmall.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _buildConfidenceButton(context, 'Sure', Icons.check_circle, controller.revealCurrentCard),
+            const SizedBox(width: 8),
+            _buildConfidenceButton(context, 'Maybe', Icons.help, controller.revealCurrentCard),
+            const SizedBox(width: 8),
+            _buildConfidenceButton(context, 'No', Icons.cancel, controller.revealCurrentCard),
+          ],
         ),
       ],
     );
   }
 
-  Future<void> _onCardRated(int quality) async {
-    final card = _flashcards[_currentIndex];
+  Widget _buildConfidenceButton(BuildContext context, String label, IconData icon, VoidCallback onTap) {
+    return Expanded(
+      child: Semantics(
+        button: true,
+        label: label,
+        child: Material(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onTap();
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              height: 64,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 20),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: AppTheme.labelSmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-    setState(() => _isLoading = true);
+  Widget _buildRatingControls(BuildContext context, StudySessionController controller) {
+    return Column(
+      key: const ValueKey('rating'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            _buildRatingButton(context, 'Again', Colors.red, 0, controller),
+            const SizedBox(width: 8),
+            _buildRatingButton(context, 'Hard', Colors.orange, 2, controller),
+            const SizedBox(width: 8),
+            _buildRatingButton(context, 'Good', Colors.blue, 3, controller),
+            const SizedBox(width: 8),
+            _buildRatingButton(context, 'Easy', Colors.green, 4, controller),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: controller.currentIndex > 0 ? controller.previousCard : null,
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Previous'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: !controller.isLastCard ? controller.nextCard : null,
+                icon: const Icon(Icons.arrow_forward),
+                label: const Text('Next'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
+  Widget _buildRatingButton(
+    BuildContext context,
+    String label,
+    Color color,
+    int quality,
+    StudySessionController controller,
+  ) {
+    return Expanded(
+      child: Semantics(
+        button: true,
+        label: label,
+        child: ElevatedButton(
+          onPressed: () => _rateCard(context, controller, quality),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color.withValues(alpha: 0.15),
+            foregroundColor: color,
+            minimumSize: const Size(56, 56),
+          ),
+          child: Text(label),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _rateCard(BuildContext context, StudySessionController controller, int quality) async {
+    HapticFeedback.mediumImpact();
+    final db = context.read<DatabaseProvider>();
+    await controller.rateAndAdvance(
+      quality: quality,
+      onPersist: (id, q) async {
+        await db.studyRepository.updateCardReview(id, q);
+      },
+    );
+  }
+
+  void _handleSwipe(BuildContext context, DragEndDetails details, StudySessionController controller) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity == 0) return;
+
+    if (!controller.isRevealed) {
+      HapticFeedback.lightImpact();
+      controller.revealCurrentCard();
+      return;
+    }
+
+    if (velocity > 200) {
+      _rateCard(context, controller, 3); // Good
+    } else if (velocity < -200) {
+      _rateCard(context, controller, 0); // Again
+    }
+  }
+
+  Widget _buildBookmarkButton(BuildContext context, Flashcard card) {
+    return IconButton(
+      icon: Icon(
+        card.isFavorite ? Icons.bookmark : Icons.bookmark_border,
+        color: card.isFavorite
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.onSurface,
+      ),
+      onPressed: () => _toggleBookmark(context, card),
+      tooltip: card.isFavorite ? 'Remove bookmark' : 'Bookmark card',
+    );
+  }
+
+  Future<void> _toggleBookmark(BuildContext context, Flashcard card) async {
+    final db = context.read<DatabaseProvider>();
+    final updated = card.copyWith(isFavorite: !card.isFavorite);
     try {
-      final db = context.read<DatabaseProvider>();
-      await db.studyRepository.updateCardReview(card.id, quality);
-
-      if (quality >= 3) {
-        _correctCount++;
-      } else {
-        _incorrectCount++;
-      }
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          if (_currentIndex < _flashcards.length - 1) {
-            _currentIndex++;
-          } else {
-            _currentIndex = _flashcards.length;
-          }
-        });
-      }
+      await db.flashcardRepository.updateFlashcard(updated);
+      if (!context.mounted) return;
+      context.read<NotificationService>().showToast(
+        updated.isFavorite ? 'Card bookmarked' : 'Bookmark removed',
+        icon: updated.isFavorite ? Icons.bookmark : Icons.bookmark_border,
+      );
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save rating: $e')),
-        );
-      }
+      if (!context.mounted) return;
+      context.read<NotificationService>().showErrorTop('Failed to toggle bookmark: $e');
     }
   }
 
-  void _onPrevious() {
-    if (_currentIndex > 0) {
-      setState(() => _currentIndex--);
-    }
+  Widget _buildEndSessionButton(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.exit_to_app),
+      onPressed: () => _confirmEndSession(context),
+      tooltip: 'End session',
+    );
   }
 
-  void _onNext() {
-    // Skip current card without rating.
-    if (_currentIndex < _flashcards.length - 1) {
-      setState(() => _currentIndex++);
-    }
-  }
-
-  Future<void> _onDelete(Flashcard card) async {
-    final confirmed = await showDialog<bool>(
+  void _confirmEndSession(BuildContext context) {
+    showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Card'),
-        content: const Text('Delete this card from the deck?'),
+        title: const Text('End Session'),
+        content: const Text('End this study session? Your progress is saved.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: const Text('Delete'),
+            onPressed: () {
+              context.read<StudySessionController>().endSession();
+              Navigator.of(context)
+                ..pop()
+                ..pop();
+            },
+            child: const Text('End'),
           ),
         ],
       ),
     );
-
-    if (confirmed != true || !mounted) return;
-
-    try {
-      final db = context.read<DatabaseProvider>();
-      await db.flashcardRepository.deleteFlashcard(card.id);
-
-      if (mounted) {
-        setState(() {
-          _flashcards.removeAt(_currentIndex);
-          if (_currentIndex >= _flashcards.length && _flashcards.isNotEmpty) {
-            _currentIndex = _flashcards.length - 1;
-          }
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Card deleted')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete: $e')),
-        );
-      }
-    }
   }
 }

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/notification_service.dart';
 import '../../core/database/database.dart';
+import '../../shared/widgets/formatted_study_text.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -50,9 +52,7 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading flashcard: $e')),
-        );
+        context.read<NotificationService>().showErrorTop('Error loading flashcard: $e');
       }
     }
   }
@@ -111,8 +111,8 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
-                  Text(
-                    card.question,
+                  FormattedStudyText(
+                    text: card.question,
                     style: AppTheme.bodyMedium,
                   ),
                 ],
@@ -130,8 +130,8 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
-                  Text(
-                    card.answer,
+                  FormattedStudyText(
+                    text: card.answer,
                     style: AppTheme.bodyMedium,
                   ),
                 ],
@@ -221,16 +221,12 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
       final db = context.read<DatabaseProvider>();
       await db.flashcardRepository.deleteFlashcard(card.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Flashcard deleted')),
-        );
+        context.read<NotificationService>().showSuccess('Flashcard deleted');
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete: $e')),
-        );
+        context.read<NotificationService>().showErrorTop('Failed to delete: $e');
       }
     }
   }

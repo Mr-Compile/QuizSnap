@@ -11,9 +11,15 @@ import 'core/providers/security_provider.dart';
 import 'core/providers/reminder_provider.dart';
 import 'core/providers/exam_provider.dart';
 import 'core/providers/export_provider.dart';
+import 'core/providers/notification_service.dart';
+import 'core/providers/deck_bookmark_provider.dart';
+import 'core/providers/flashcard_reveal_provider.dart';
+import 'core/providers/study_session_controller.dart';
 import 'core/providers/backup_provider.dart';
 import 'core/services/explanation_cache_service.dart';
+import 'core/services/study_session_persistence.dart';
 import 'core/navigation/app_router.dart';
+import 'shared/widgets/notification_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,7 +62,18 @@ class QuizSnapApp extends StatelessWidget {
         ),
         provider_pkg.ChangeNotifierProvider(create: (_) => SecurityProvider()),
         provider_pkg.ChangeNotifierProvider(create: (_) => ReminderProvider()),
-        provider_pkg.ProxyProvider2<DatabaseProvider, GroqProvider, ExamProvider>(
+        provider_pkg.ChangeNotifierProvider(create: (_) => DeckBookmarkProvider(prefs)),
+        provider_pkg.ChangeNotifierProvider(create: (_) => FlashcardRevealProvider()),
+        provider_pkg.ChangeNotifierProvider(create: (_) => StudySessionController(
+          persistence: StudySessionPersistence(prefs),
+        )),
+        provider_pkg.ChangeNotifierProvider(create: (_) => NotificationService()),
+        provider_pkg.ChangeNotifierProxyProvider2<DatabaseProvider, GroqProvider, ExamProvider>(
+          create: (context) => ExamProvider(
+            flashcardRepository: context.read<DatabaseProvider>().flashcardRepository,
+            cacheService: ExplanationCacheService(prefs),
+            groqService: context.read<GroqProvider>().service,
+          ),
           update: (context, dbProvider, groqProvider, previous) {
             return previous ?? ExamProvider(
               flashcardRepository: dbProvider.flashcardRepository,
@@ -73,13 +90,15 @@ class QuizSnapApp extends StatelessWidget {
       ],
       child: provider_pkg.Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
-          return MaterialApp.router(
-            title: 'QuizSnap',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: themeProvider.themeMode,
-            routerConfig: AppRouter.router,
+          return NotificationOverlay(
+            child: MaterialApp.router(
+              title: 'QuizSnap',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeProvider.themeMode,
+              routerConfig: AppRouter.router,
+            ),
           );
         },
       ),
