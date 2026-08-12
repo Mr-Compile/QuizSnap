@@ -72,9 +72,9 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.8,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLg)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLg)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -108,7 +108,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
       width: 40,
       height: 4,
       decoration: BoxDecoration(
-        color: AppTheme.slate300,
+        color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(2),
       ),
     );
@@ -140,7 +140,6 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
 
   Widget _buildQuestion() {
     return CustomCard(
-      color: AppTheme.slate50,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -161,8 +160,9 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
   }
 
   Widget _buildCorrectAnswer() {
+    final colorScheme = Theme.of(context).colorScheme;
     return CustomCard(
-      color: AppTheme.emerald50,
+      color: colorScheme.primaryContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -170,14 +170,14 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
             children: [
               Icon(
                 Icons.check_circle,
-                color: AppTheme.emerald600,
+                color: colorScheme.primary,
                 size: 20,
               ),
               const SizedBox(width: AppTheme.spacingSm),
               Text(
                 'Correct Answer',
                 style: AppTheme.labelMedium.copyWith(
-                  color: AppTheme.emerald600,
+                  color: colorScheme.primary,
                 ),
               ),
             ],
@@ -187,7 +187,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
             widget.question.correctAnswer,
             style: AppTheme.bodyLarge.copyWith(
               fontWeight: FontWeight.bold,
-              color: AppTheme.emerald700,
+              color: colorScheme.onPrimaryContainer,
             ),
           ),
         ],
@@ -206,20 +206,21 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
     }
 
     if (_errorMessage != null) {
+      final colorScheme = Theme.of(context).colorScheme;
       return CustomCard(
-        color: AppTheme.red50,
+        color: colorScheme.errorContainer,
         child: Column(
           children: [
             Icon(
               Icons.error_outline,
-              color: AppTheme.red600,
+              color: colorScheme.error,
               size: 48,
             ),
             const SizedBox(height: AppTheme.spacingMd),
             Text(
               'Failed to load explanation',
               style: AppTheme.labelLarge.copyWith(
-                color: AppTheme.red600,
+                color: colorScheme.error,
               ),
             ),
             const SizedBox(height: AppTheme.spacingSm),

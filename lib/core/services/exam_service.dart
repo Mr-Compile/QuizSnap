@@ -282,9 +282,20 @@ CORRECT: [A, B, C, or D]''';
 
     final correctCount = answers.where((a) => a.isCorrect).length;
     final incorrectCount = answers.where((a) => !a.isCorrect && a.selectedAnswerIndex != null).length;
-    final unansweredCount = questions.length - answers.length;
-    final percentage = questions.isNotEmpty 
-        ? (correctCount / questions.length) * 100 
+    final unansweredCount = questions.where((q) {
+      final answer = answers.firstWhere(
+        (a) => a.questionId == q.id,
+        orElse: () => UserAnswer(
+          questionId: q.id,
+          isCorrect: false,
+          answeredAt: DateTime.now(),
+          timeSpent: Duration.zero,
+        ),
+      );
+      return answer.selectedAnswerIndex == null;
+    }).length;
+    final percentage = questions.isNotEmpty
+        ? (correctCount / questions.length) * 100
         : 0.0;
 
     final completedExam = exam.copyWith(

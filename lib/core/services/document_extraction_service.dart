@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:archive/archive.dart';
 import 'text_normalization_service.dart';
+import 'unified_text_cleaner.dart';
 
 class DocumentExtractionService {
   /// Returns the total number of pages in a PDF without rendering.
@@ -45,8 +46,8 @@ class DocumentExtractionService {
   static Future<String> extractFromTxt(File file) async {
     try {
       final content = await file.readAsString(encoding: utf8);
-      // Normalize line endings, then reconstruct paragraphs/vertical text.
-      return TextNormalizationService.reconstruct(
+      // Normalize line endings, then run the TXT-specific cleaner.
+      return TxtTextCleaner.clean(
         content.replaceAll('\r\n', '\n').replaceAll('\r', '\n'),
       );
     } catch (e) {
@@ -84,7 +85,7 @@ class DocumentExtractionService {
       
       // Clean up the extracted text and reconstruct readable paragraphs.
       extractedText = _cleanDocxText(extractedText);
-      final normalized = TextNormalizationService.reconstruct(extractedText);
+      final normalized = DocxTextCleaner.clean(extractedText);
 
       if (normalized.trim().isEmpty) {
         throw Exception('No text could be extracted from DOCX');

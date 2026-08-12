@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/exam_provider.dart';
+import '../../core/providers/database_provider.dart';
 import '../../core/models/exam.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -25,7 +26,6 @@ class ExamQuestionScreen extends StatefulWidget {
 
 class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
   Timer? _timer;
-  int? _selectedAnswerIndex;
 
   @override
   void initState() {
@@ -70,23 +70,8 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
   }
 
   void _selectAnswer(int index) {
-    setState(() => _selectedAnswerIndex = index);
-  }
-
-  void _submitAnswer() {
-    if (_selectedAnswerIndex == null) return;
-
     final examProvider = context.read<ExamProvider>();
-    examProvider.submitAnswer(_selectedAnswerIndex!);
-    setState(() => _selectedAnswerIndex = null);
-
-    // Auto-advance to next question
-    if (examProvider.currentQuestionIndex < examProvider.totalQuestions - 1) {
-      examProvider.goToNextQuestion();
-    } else {
-      // Last question - show submit confirmation
-      _showSubmitConfirmation();
-    }
+    examProvider.submitAnswer(index);
   }
 
   void _showSubmitConfirmation() {
@@ -103,9 +88,26 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
 
   Future<void> _submitExam() async {
     _timer?.cancel();
-    
+
     final examProvider = context.read<ExamProvider>();
-    await examProvider.completeExam();
+    final result = await examProvider.completeExam();
+
+    if (mounted) {
+      final db = context.read<DatabaseProvider>();
+      try {
+        await db.analyticsRepository.createQuizResult(
+          deckId: result.exam.deckId,
+          totalQuestions: result.questions.length,
+          correctAnswers: result.correctCount,
+          score: result.percentage / 100,
+          durationSeconds: result.totalTime.inSeconds,
+          quizType: 'exam',
+        );
+        db.refreshAnalytics();
+      } catch (e) {
+        // Analytics persistence is best-effort; do not block exam flow.
+      }
+    }
 
     if (mounted) {
       Navigator.of(context).pushReplacement(
@@ -170,7 +172,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         body: Consumer<ExamProvider>(
           builder: (context, examProvider, child) {
             final question = examProvider.currentQuestion;
-            
+
             if (question == null) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -188,7 +190,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
                         const SizedBox(height: AppTheme.spacingLg),
                         _buildQuestionCard(question),
                         const SizedBox(height: AppTheme.spacingXl),
-                        _buildAnswerOptions(question),
+                        _buildAnswerOptions(question, examProvider),
                         const SizedBox(height: AppTheme.spacingXl),
                         _buildNavigationButtons(examProvider),
                       ],
@@ -209,9 +211,9 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         final remaining = examProvider.remainingTime;
         final minutes = remaining.inMinutes;
         final seconds = remaining.inSeconds % 60;
-        
+
         final isLow = remaining.inMinutes < 5;
-        
+
         return Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppTheme.spacingMd,
@@ -229,16 +231,16 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
               Icon(
                 Icons.timer,
                 size: 16,
-                color: isLow 
-                    ? Colors.red 
+                color: isLow
+                    ? Colors.red
                     : Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: AppTheme.spacingXs),
               Text(
                 '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
                 style: AppTheme.labelMedium.copyWith(
-                  color: isLow 
-                      ? Colors.red 
+                  color: isLow
+                      ? Colors.red
                       : Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,
                 ),
@@ -252,7 +254,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
 
   Widget _buildProgressBar(ExamProvider examProvider) {
     final progress = (examProvider.answeredCount / examProvider.totalQuestions).clamp(0.0, 1.0);
-    
+
     return LinearProgressIndicator(
       value: progress,
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -300,12 +302,23 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     );
   }
 
-  Widget _buildAnswerOptions(ExamQuestion question) {
+  Widget _buildAnswerOptions(ExamQuestion question, ExamProvider examProvider) {
+    final answer = examProvider.currentAnswers?.firstWhere(
+      (a) => a.questionId == question.id,
+      orElse: () => UserAnswer(
+        questionId: question.id,
+        selectedAnswerIndex: null,
+        isCorrect: false,
+        answeredAt: DateTime.now(),
+        timeSpent: Duration.zero,
+      ),
+    );
+
     return Column(
       children: question.options.asMap().entries.map((entry) {
         final index = entry.key;
         final option = entry.value;
-        final isSelected = _selectedAnswerIndex == index;
+        final isSelected = answer?.selectedAnswerIndex == index;
 
         return Padding(
           padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
@@ -378,20 +391,14 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
 
   Widget _buildNavigationButtons(ExamProvider examProvider) {
     final isLastQuestion = examProvider.currentQuestionIndex >= examProvider.totalQuestions - 1;
-    
+
     return Row(
       children: [
         if (examProvider.currentQuestionIndex > 0)
           Expanded(
             child: CustomButton(
               text: 'Previous',
-              onPressed: () {
-                if (_selectedAnswerIndex != null) {
-                  examProvider.submitAnswer(_selectedAnswerIndex!);
-                  setState(() => _selectedAnswerIndex = null);
-                }
-                examProvider.goToPreviousQuestion();
-              },
+              onPressed: () => examProvider.goToPreviousQuestion(),
               isOutlined: true,
               icon: Icons.arrow_back,
             ),
@@ -401,11 +408,9 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         Expanded(
           child: CustomButton(
             text: isLastQuestion ? 'Finish Exam' : 'Next',
-            onPressed: _selectedAnswerIndex != null
-                ? isLastQuestion
-                    ? _showSubmitConfirmation
-                    : _submitAnswer
-                : null,
+            onPressed: isLastQuestion
+                ? _showSubmitConfirmation
+                : () => examProvider.goToNextQuestion(),
             icon: isLastQuestion ? Icons.check : Icons.arrow_forward,
           ),
         ),

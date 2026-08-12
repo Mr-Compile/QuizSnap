@@ -7,7 +7,11 @@ class FlashcardRepository {
 
   Future<List<Flashcard>> getAllFlashcards() => _database.getAllFlashcards();
 
+  Future<List<Flashcard>> getActiveFlashcards() => _database.getActiveFlashcards();
+
   Future<List<Flashcard>> getFlashcardsByDeck(int deckId) => _database.getFlashcardsByDeck(deckId);
+
+  Future<List<Flashcard>> getActiveFlashcardsByDeck(int deckId) => _database.getActiveFlashcardsByDeck(deckId);
 
   Future<Flashcard> getFlashcardById(int id) => _database.getFlashcardById(id);
 
@@ -32,4 +36,8 @@ class FlashcardRepository {
   Future<void> updateFlashcardReviewSM2(int id, int quality) => _database.updateFlashcardReviewSM2(id, quality);
 
   Future<List<Flashcard>> searchFlashcards(String query) => _database.searchFlashcards(query);
+
+  Future<List<Flashcard>> searchActiveFlashcards(String query) => _database.searchActiveFlashcards(query);
+
+  Future<bool> moveFlashcard(int id, int newDeckId) => _database.moveFlashcard(id, newDeckId);
 }

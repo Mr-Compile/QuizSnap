@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/exam_provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -38,7 +39,18 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
     if (exam != null && questions != null && answers != null) {
       final correctCount = answers.where((a) => a.isCorrect).length;
       final incorrectCount = answers.where((a) => !a.isCorrect && a.selectedAnswerIndex != null).length;
-      final unansweredCount = questions.isNotEmpty ? questions.length - answers.length : 0;
+      final unansweredCount = questions.where((q) {
+        final answer = answers.firstWhere(
+          (a) => a.questionId == q.id,
+          orElse: () => UserAnswer(
+            questionId: q.id,
+            isCorrect: false,
+            answeredAt: DateTime.now(),
+            timeSpent: Duration.zero,
+          ),
+        );
+        return answer.selectedAnswerIndex == null;
+      }).length;
       final percentage = questions.isNotEmpty
           ? (correctCount / questions.length) * 100
           : 0.0;
@@ -322,11 +334,13 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
         ),
         const SizedBox(height: AppTheme.spacingMd),
         CustomButton(
-          text: 'Back to Home',
+          text: 'Back to Deck',
           onPressed: () {
             final examProvider = context.read<ExamProvider>();
             examProvider.clearExam();
-            Navigator.of(context).popUntil((route) => route.isFirst);
+            if (mounted) {
+              context.go('/decks/${result.exam.deckId}');
+            }
           },
           isOutlined: true,
           fullWidth: true,

@@ -47,7 +47,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildPerformanceOverview(context, summary),
+                    _buildPerformanceOverview(context, summary, results),
                     const SizedBox(height: AppTheme.spacingLg),
                     _buildScoreChart(context, results),
                     const SizedBox(height: AppTheme.spacingLg),
@@ -62,7 +62,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
     );
   }
 
-  Widget _buildPerformanceOverview(BuildContext context, summary) {
+  Widget _buildPerformanceOverview(BuildContext context, summary, List results) {
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,7 +88,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
                 child: _buildOverviewItem(
                   context,
                   'Total Quizzes',
-                  '0',
+                  '${results.length}',
                   Icons.quiz,
                   Colors.blue,
                 ),

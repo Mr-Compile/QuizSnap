@@ -37,7 +37,7 @@ class SettingsScreen extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.security_outlined),
                 title: const Text('Security'),
-                subtitle: const Text('PIN lock, biometrics, and API keys'),
+                subtitle: const Text('PIN lock and API keys'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   GoRouter.of(context).push(AppRoutes.security);
@@ -94,6 +94,24 @@ class SettingsScreen extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   GoRouter.of(context).push(AppRoutes.databaseMaintenance);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Trash'),
+                subtitle: const Text('Restore or permanently delete items'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  GoRouter.of(context).push(AppRoutes.trash);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_sweep),
+                title: const Text('Trash Settings'),
+                subtitle: const Text('Auto-cleanup and trash management'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  GoRouter.of(context).push(AppRoutes.trashSettings);
                 },
               ),
             ],

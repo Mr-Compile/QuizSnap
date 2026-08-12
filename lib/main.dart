@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as provider_pkg;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,17 +23,24 @@ import 'core/repositories/recent_generation_repository.dart';
 import 'core/repositories/cached_document_repository.dart';
 import 'core/providers/highlighted_selection_provider.dart';
 import 'core/providers/page_selection_provider.dart';
+import 'core/providers/trash_provider.dart';
+import 'core/providers/flashcard_selection_provider.dart';
+import 'core/services/cleanup_scheduler.dart';
+import 'core/services/trash_service.dart';
 import 'core/navigation/app_router.dart';
 import 'shared/widgets/notification_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  
+
   // Initialize database for both Provider and Riverpod
   final dbProvider = DatabaseProvider();
   final database = await dbProvider.initializeDatabase();
-  
+
+  // Schedule a one-time trash cleanup in the background; the scheduler starts the daily timer disabled by default.
+  unawaited(CleanupScheduler(database: database, prefs: prefs).runNow());
+
   runApp(
     ProviderScope(
       overrides: [
@@ -79,6 +87,15 @@ class QuizSnapApp extends StatelessWidget {
         ),
         provider_pkg.ChangeNotifierProvider(create: (_) => HighlightedSelectionProvider()),
         provider_pkg.ChangeNotifierProvider(create: (_) => PageSelectionProvider()),
+        provider_pkg.ChangeNotifierProvider(create: (_) => FlashcardSelectionProvider()),
+        provider_pkg.ChangeNotifierProvider(
+          create: (context) => TrashProvider(
+            TrashService(
+              deckRepository: context.read<DatabaseProvider>().deckRepository,
+              flashcardRepository: context.read<DatabaseProvider>().flashcardRepository,
+            ),
+          ),
+        ),
         provider_pkg.ChangeNotifierProxyProvider2<DatabaseProvider, GroqProvider, ExamProvider>(
           create: (context) => ExamProvider(
             flashcardRepository: context.read<DatabaseProvider>().flashcardRepository,

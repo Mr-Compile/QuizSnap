@@ -60,9 +60,10 @@ Explanation: [why this is correct]''',
         template: '''You are an expert educator. Based on the following study material, generate {count} identification questions.
 
 Requirements:
-- Questions should ask for specific terms, concepts, or definitions
-- Answers should be concise (1-3 sentences maximum)
-- Focus on key terminology and important concepts
+- Questions should ask for a specific term, date, place, name, or definition
+- Answers must be 1-2 words whenever possible, and never exceed 4 words
+- Do NOT return full sentences, explanations, or articles ("the", "a", "an")
+- If the answer is a sentence, extract only the key term
 - Difficulty level: {difficulty}
 
 Study Material:
@@ -70,7 +71,7 @@ Study Material:
 
 Format each question as:
 Question: [question text]
-Answer: [concise answer]''',
+Answer: [1-2 word answer]''',
         type: PromptType.identification,
         difficulty: Difficulty.easy,
         createdAt: DateTime.now(),
@@ -88,6 +89,8 @@ Answer: [concise answer]''',
 Requirements:
 - Questions should ask for lists of items, steps, characteristics, etc.
 - Specify the number of items expected
+- Each item must be 1-3 words only (use names, places, foods, terms, or short phrases)
+- Do NOT use explanatory sentences; each line should be a list item only
 - Items should be distinct and meaningful
 - Difficulty level: {difficulty}
 

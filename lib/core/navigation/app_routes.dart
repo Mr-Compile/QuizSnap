@@ -82,6 +82,7 @@ class AppRoutes {
   static const String setPin = '/settings/pin-set';
   static const String reminderSettings = '/settings/reminders';
   static const String databaseMaintenance = '/settings/database';
+  static const String trashSettings = '/settings/trash';
 
   // Folder routes
   static const String folders = '/folders';
@@ -97,6 +98,9 @@ class AppRoutes {
 
   // Trash routes
   static const String trash = '/trash';
+
+  // Move flashcards route
+  static const String moveFlashcards = '/move-flashcards';
 
   // Error routes
   static const String notFound = '/404';

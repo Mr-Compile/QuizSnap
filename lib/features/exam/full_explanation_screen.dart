@@ -33,9 +33,9 @@ class FullExplanationScreen extends StatelessWidget {
             const SizedBox(height: AppTheme.spacingXl),
             _buildExplanationCard(context),
             const SizedBox(height: AppTheme.spacingXl),
-            _buildKeyConcepts(),
+            _buildKeyConcepts(context),
             const SizedBox(height: AppTheme.spacingXl),
-            _buildRelatedInfo(),
+            _buildRelatedInfo(context),
           ],
         ),
       ),
@@ -88,6 +88,7 @@ class FullExplanationScreen extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spacingLg),
           _buildAnswerOption(
+            context,
             index: question.correctAnswerIndex,
             text: question.correctAnswer,
             isCorrect: true,
@@ -97,6 +98,7 @@ class FullExplanationScreen extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
               child: _buildAnswerOption(
+                context,
                 index: entry.key,
                 text: entry.value,
                 isCorrect: false,
@@ -108,22 +110,24 @@ class FullExplanationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAnswerOption({
+  Widget _buildAnswerOption(
+    BuildContext context, {
     required int index,
     required String text,
     required bool isCorrect,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingMd),
       decoration: BoxDecoration(
-        color: isCorrect 
-            ? AppTheme.emerald50 
-            : AppTheme.red50,
+        color: isCorrect
+            ? colorScheme.primaryContainer
+            : colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         border: Border.all(
-          color: isCorrect 
-              ? AppTheme.emerald600 
-              : AppTheme.red600,
+          color: isCorrect
+              ? colorScheme.primary
+              : colorScheme.error,
           width: 1.5,
         ),
       ),
@@ -134,16 +138,16 @@ class FullExplanationScreen extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: isCorrect 
-                  ? AppTheme.emerald600 
-                  : AppTheme.red600,
+              color: isCorrect
+                  ? colorScheme.primary
+                  : colorScheme.error,
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             ),
             child: Center(
               child: Text(
                 String.fromCharCode(65 + index),
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -158,18 +162,18 @@ class FullExplanationScreen extends StatelessWidget {
                   children: [
                     Icon(
                       isCorrect ? Icons.check_circle : Icons.cancel,
-                      color: isCorrect 
-                          ? AppTheme.emerald600 
-                          : AppTheme.red600,
+                      color: isCorrect
+                          ? colorScheme.primary
+                          : colorScheme.error,
                       size: 20,
                     ),
                     const SizedBox(width: AppTheme.spacingXs),
                     Text(
                       isCorrect ? 'Correct Answer' : 'Incorrect Option',
                       style: AppTheme.labelMedium.copyWith(
-                        color: isCorrect 
-                            ? AppTheme.emerald700 
-                            : AppTheme.red700,
+                        color: isCorrect
+                            ? colorScheme.onPrimaryContainer
+                            : colorScheme.onErrorContainer,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -242,7 +246,7 @@ class FullExplanationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildKeyConcepts() {
+  Widget _buildKeyConcepts(BuildContext context) {
     // Extract key concepts from the explanation (simplified version)
     final concepts = _extractKeyConcepts();
 
@@ -250,6 +254,7 @@ class FullExplanationScreen extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +263,7 @@ class FullExplanationScreen extends StatelessWidget {
             children: [
               Icon(
                 Icons.lightbulb,
-                color: AppTheme.amber600,
+                color: colorScheme.tertiary,
               ),
               const SizedBox(width: AppTheme.spacingSm),
               Text(
@@ -274,8 +279,8 @@ class FullExplanationScreen extends StatelessWidget {
             children: concepts.map((concept) {
               return Chip(
                 label: Text(concept),
-                backgroundColor: AppTheme.amber50,
-                side: BorderSide(color: AppTheme.amber600),
+                backgroundColor: colorScheme.tertiaryContainer,
+                side: BorderSide(color: colorScheme.tertiary),
               );
             }).toList(),
           ),
@@ -284,7 +289,8 @@ class FullExplanationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRelatedInfo() {
+  Widget _buildRelatedInfo(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,7 +299,7 @@ class FullExplanationScreen extends StatelessWidget {
             children: [
               Icon(
                 Icons.info,
-                color: AppTheme.amber600,
+                color: colorScheme.tertiary,
               ),
               const SizedBox(width: AppTheme.spacingSm),
               Text(
@@ -307,7 +313,7 @@ class FullExplanationScreen extends StatelessWidget {
             'Review similar questions to reinforce your understanding of this topic. '
             'Consider creating flashcards for concepts you find challenging.',
             style: AppTheme.bodyLarge.copyWith(
-              color: AppTheme.slate600,
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],

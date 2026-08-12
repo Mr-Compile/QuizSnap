@@ -7,6 +7,8 @@ class DeckRepository {
 
   Future<List<Deck>> getAllDecks() => _database.getAllDecks();
 
+  Future<List<Deck>> getActiveDecks() => _database.getActiveDecks();
+
   Future<List<Deck>> getDecksByFolder(int folderId) => _database.getDecksByFolder(folderId);
 
   Future<Deck> getDeckById(int id) => _database.getDeckById(id);
@@ -26,4 +28,6 @@ class DeckRepository {
   Future<void> updateDeckCardCount(int deckId) => _database.updateDeckCardCount(deckId);
 
   Future<List<Deck>> searchDecks(String query) => _database.searchDecks(query);
+
+  Future<List<Deck>> searchActiveDecks(String query) => _database.searchActiveDecks(query);
 }

@@ -10,6 +10,7 @@ import '../../features/decks/edit_deck_screen.dart';
 import '../../features/flashcards/flashcard_list_screen.dart';
 import '../../features/flashcards/create_flashcard_screen.dart';
 import '../../features/flashcards/edit_flashcard_screen.dart';
+import '../../features/flashcards/move_flashcard_screen.dart';
 import '../../features/study/study_home_screen.dart';
 import '../../features/study/deck_study_screen.dart';
 import '../../features/study/flashcard_card_screen.dart';
@@ -58,6 +59,7 @@ import '../../features/settings/pin_lock_screen.dart';
 import '../../features/settings/set_pin_screen.dart';
 import '../../features/settings/reminder_settings_screen.dart';
 import '../../features/settings/database_maintenance_screen.dart';
+import '../../features/settings/trash_settings_screen.dart';
 import '../../features/folders/folder_list_screen.dart';
 import '../../features/folders/create_folder_screen.dart';
 import '../../features/tags/tag_management_screen.dart';
@@ -438,6 +440,10 @@ class AppRouter {
             path: 'database',
             builder: (context, state) => const DatabaseMaintenanceScreen(),
           ),
+          GoRoute(
+            path: 'trash',
+            builder: (context, state) => const TrashSettingsScreen(),
+          ),
         ],
       ),
 
@@ -476,6 +482,20 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.trash,
         builder: (context, state) => const TrashScreen(),
+      ),
+
+      // Move flashcards route
+      GoRoute(
+        path: AppRoutes.moveFlashcards,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final flashcardIds = (extra?['flashcardIds'] as List?)?.cast<int>() ?? [];
+          final sourceDeckId = extra?['sourceDeckId'] as int? ?? 0;
+          return MoveFlashcardScreen(
+            flashcardIds: flashcardIds,
+            sourceDeckId: sourceDeckId,
+          );
+        },
       ),
 
       // Error routes
@@ -543,5 +563,12 @@ extension AppRouterNavigation on BuildContext {
 
   void navigateToTrash() {
     go(AppRoutes.trash);
+  }
+
+  void navigateToMoveFlashcards(List<int> flashcardIds, int sourceDeckId) {
+    go(AppRoutes.moveFlashcards, extra: {
+      'flashcardIds': flashcardIds,
+      'sourceDeckId': sourceDeckId,
+    });
   }
 }

@@ -4,6 +4,7 @@ import '../../core/models/exam.dart';
 import '../../core/services/groq_service.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/text_normalization_service.dart';
+import '../../core/services/question_validation_service.dart';
 
 class GeneratedQuestion {
   final String question;
@@ -638,23 +639,31 @@ class QuestionGenerationService {
   /// Validate generated questions
   List<String> validateQuestions(List<GeneratedQuestion> questions) {
     final issues = <String>[];
-    
+
     for (int i = 0; i < questions.length; i++) {
       final question = questions[i];
-      
+
       if (question.question.trim().isEmpty) {
         issues.add('Question ${i + 1}: Empty question text');
       }
-      
+
       if (question.options.isEmpty) {
         issues.add('Question ${i + 1}: No options provided');
       }
-      
+
       if (question.correctAnswerIndex < 0 || question.correctAnswerIndex >= question.options.length) {
         issues.add('Question ${i + 1}: Invalid correct answer index');
       }
+
+      if (question.answer != null && question.answer!.isNotEmpty) {
+        if (question.options.length <= 1) {
+          issues.addAll(IdentificationAnswerValidator.validate(question.answer!, i));
+        } else {
+          issues.addAll(EnumerationFormatter.validate(question.answer!, i));
+        }
+      }
     }
-    
+
     return issues;
   }
 }

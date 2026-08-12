@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/deck_bookmark_provider.dart';
+import '../../core/navigation/app_routes.dart';
+import '../../core/providers/notification_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -23,8 +26,15 @@ class _DeckListScreenState extends State<DeckListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(
+      appBar: CustomAppBar(
         title: 'Decks',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Trash',
+            onPressed: () => GoRouter.of(context).push(AppRoutes.trash),
+          ),
+        ],
       ),
       body: Consumer<DatabaseProvider>(
         builder: (context, dbProvider, child) {
@@ -161,7 +171,14 @@ class _DeckListScreenState extends State<DeckListScreen> {
                   ? Theme.of(context).colorScheme.primary
                   : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
             ),
-            onPressed: () => bookmarkProvider.toggleBookmark(deck.id),
+            onPressed: () async {
+              await bookmarkProvider.toggleBookmark(deck.id);
+              if (context.mounted) {
+                context.read<NotificationService>().showSuccess(
+                  isBookmarked ? 'Bookmark removed' : 'Deck bookmarked',
+                );
+              }
+            },
             tooltip: isBookmarked ? 'Remove bookmark' : 'Bookmark deck',
           ),
           Icon(

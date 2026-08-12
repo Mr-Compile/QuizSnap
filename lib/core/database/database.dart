@@ -189,6 +189,8 @@ class AppDatabase extends _$AppDatabase {
         ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
       .get();
 
+  Future<List<Deck>> getActiveDecks() => getAllDecks();
+
   Future<List<Deck>> getDecksByFolder(int folderId) => (select(decks)
         ..where((tbl) => tbl.folderId.equals(folderId))
         ..where((tbl) => tbl.deletedAt.isNull())
@@ -205,15 +207,28 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateDeck(Deck deck) => update(decks).replace(deck);
 
   Future<bool> deleteDeck(int id) async {
+    final now = DateTime.now();
     final deck = await getDeckById(id);
-    final updatedDeck = deck.copyWith(deletedAt: Value(DateTime.now()));
+    final updatedDeck = deck.copyWith(deletedAt: Value(now));
+    // Soft-delete related flashcards so they no longer appear in study lists.
+    await (update(flashcards)
+          ..where((tbl) => tbl.deckId.equals(id)))
+        .write(FlashcardsCompanion(deletedAt: Value(now)));
     return await update(decks).replace(updatedDeck);
   }
 
   Future<bool> restoreDeck(int id) async {
-    final deck = await getDeckById(id);
+    final deck = await (select(decks)
+          ..where((tbl) => tbl.id.equals(id)))
+        .getSingle();
     final updatedDeck = deck.copyWith(deletedAt: const Value(null));
-    return await update(decks).replace(updatedDeck);
+    // Restore related flashcards along with the deck.
+    await (update(flashcards)
+          ..where((tbl) => tbl.deckId.equals(id)))
+        .write(const FlashcardsCompanion(deletedAt: Value(null)));
+    final result = await update(decks).replace(updatedDeck);
+    await updateDeckCardCount(id);
+    return result;
   }
 
   Future<List<Deck>> getDeletedDecks() => (select(decks)
@@ -222,6 +237,17 @@ class AppDatabase extends _$AppDatabase {
     .get();
 
   Future<void> permanentlyDeleteDeck(int id) async {
+    // Remove related flashcards and their tag links first to avoid FK violations.
+    final flashcardIds = await (select(flashcards)
+          ..where((tbl) => tbl.deckId.equals(id)))
+        .map((row) => row.id)
+        .get();
+    for (final flashcardId in flashcardIds) {
+      await (delete(flashcardTags)
+            ..where((tbl) => tbl.flashcardId.equals(flashcardId)))
+          .go();
+    }
+    await (delete(flashcards)..where((tbl) => tbl.deckId.equals(id))).go();
     await (delete(decks)..where((tbl) => tbl.id.equals(id))).go();
   }
 
@@ -245,11 +271,15 @@ class AppDatabase extends _$AppDatabase {
       ..orderBy([(tbl) => OrderingTerm.asc(tbl.order)]))
     .get();
 
+  Future<List<Flashcard>> getActiveFlashcards() => getAllFlashcards();
+
   Future<List<Flashcard>> getFlashcardsByDeck(int deckId) => (select(flashcards)
         ..where((tbl) => tbl.deckId.equals(deckId))
         ..where((tbl) => tbl.deletedAt.isNull())
         ..orderBy([(tbl) => OrderingTerm.asc(tbl.order)]))
       .get();
+
+  Future<List<Flashcard>> getActiveFlashcardsByDeck(int deckId) => getFlashcardsByDeck(deckId);
 
   Future<Flashcard> getFlashcardById(int id) => (select(flashcards)
         ..where((tbl) => tbl.id.equals(id))
@@ -265,13 +295,19 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> deleteFlashcard(int id) async {
     final flashcard = await getFlashcardById(id);
     final updatedFlashcard = flashcard.copyWith(deletedAt: Value(DateTime.now()));
-    return await update(flashcards).replace(updatedFlashcard);
+    final result = await update(flashcards).replace(updatedFlashcard);
+    await updateDeckCardCount(flashcard.deckId);
+    return result;
   }
 
   Future<bool> restoreFlashcard(int id) async {
-    final flashcard = await getFlashcardById(id);
+    final flashcard = await (select(flashcards)
+          ..where((tbl) => tbl.id.equals(id)))
+        .getSingle();
     final updatedFlashcard = flashcard.copyWith(deletedAt: const Value(null));
-    return await update(flashcards).replace(updatedFlashcard);
+    final result = await update(flashcards).replace(updatedFlashcard);
+    await updateDeckCardCount(flashcard.deckId);
+    return result;
   }
 
   Future<List<Flashcard>> getDeletedFlashcards() => (select(flashcards)
@@ -280,7 +316,38 @@ class AppDatabase extends _$AppDatabase {
     .get();
 
   Future<void> permanentlyDeleteFlashcard(int id) async {
+    final flashcard = await (select(flashcards)
+          ..where((tbl) => tbl.id.equals(id)))
+        .getSingle();
+    await (delete(flashcardTags)
+          ..where((tbl) => tbl.flashcardId.equals(id)))
+        .go();
     await (delete(flashcards)..where((tbl) => tbl.id.equals(id))).go();
+    await updateDeckCardCount(flashcard.deckId);
+  }
+
+  Future<bool> moveFlashcard(int id, int newDeckId) async {
+    final flashcard = await (select(flashcards)
+          ..where((tbl) => tbl.id.equals(id)))
+        .getSingle();
+    final existingCards = await (select(flashcards)
+          ..where((tbl) => tbl.deckId.equals(newDeckId))
+          ..where((tbl) => tbl.deletedAt.isNull()))
+        .get();
+    final maxOrder = existingCards.isEmpty
+        ? 0
+        : existingCards.map((f) => f.order).reduce((a, b) => a > b ? a : b);
+    final oldDeckId = flashcard.deckId;
+
+    final updatedFlashcard = flashcard.copyWith(
+      deckId: newDeckId,
+      order: maxOrder + 1,
+      deletedAt: const Value(null),
+    );
+    final result = await update(flashcards).replace(updatedFlashcard);
+    await updateDeckCardCount(oldDeckId);
+    await updateDeckCardCount(newDeckId);
+    return result;
   }
 
   Future<List<Flashcard>> getFavoriteFlashcards() => (select(flashcards)
@@ -508,6 +575,8 @@ class AppDatabase extends _$AppDatabase {
       .get();
   }
 
+  Future<List<Flashcard>> searchActiveFlashcards(String query) => searchFlashcards(query);
+
   Future<List<Deck>> searchDecks(String query) {
     final searchTerm = '%$query%';
     return (select(decks)
@@ -517,6 +586,8 @@ class AppDatabase extends _$AppDatabase {
         ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
       .get();
   }
+
+  Future<List<Deck>> searchActiveDecks(String query) => searchDecks(query);
 
   Future<List<Folder>> searchFolders(String query) {
     final searchTerm = '%$query%';

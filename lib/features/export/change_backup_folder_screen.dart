@@ -1,10 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:open_filex/open_filex.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../core/providers/backup_provider.dart';
+import '../../core/providers/notification_service.dart';
 
 class ChangeBackupFolderScreen extends ConsumerStatefulWidget {
   const ChangeBackupFolderScreen({super.key});
@@ -165,6 +169,30 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
             icon: Icons.folder,
             onPressed: _selectCustomFolder,
           ),
+          if (_selectedPath != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'Test Write',
+                    icon: Icons.check_circle,
+                    isOutlined: true,
+                    onPressed: _testWrite,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: CustomButton(
+                    text: 'Open Folder',
+                    icon: Icons.open_in_new,
+                    isOutlined: true,
+                    onPressed: _openFolder,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -196,8 +224,16 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
 
   Future<void> _selectCustomFolder() async {
     try {
+      final hasPermission = await ref.read(backupOperationProvider.notifier).requestStoragePermission();
+      if (!hasPermission) {
+        if (mounted) {
+          context.read<NotificationService>().showErrorTop('Storage permission is required to select a folder');
+        }
+        return;
+      }
+
       final directoryPath = await FilePicker.platform.getDirectoryPath();
-      
+
       if (directoryPath != null && mounted) {
         setState(() {
           _selectedPath = directoryPath;
@@ -205,9 +241,7 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to select folder: $e')),
-        );
+        context.read<NotificationService>().showErrorTop('Failed to select folder: $e');
       }
     }
   }
@@ -217,27 +251,49 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
 
     try {
       await ref.read(backupOperationProvider.notifier).setCustomBackupPath(_selectedPath);
-      
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_selectedPath == null 
-                ? 'Reset to default backup location' 
-                : 'Custom backup location saved'),
-            backgroundColor: Colors.green,
-          ),
+        context.read<NotificationService>().showSuccess(
+          _selectedPath == null
+              ? 'Reset to default backup location'
+              : 'Custom backup location saved',
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save changes: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        context.read<NotificationService>().showErrorTop('Failed to save changes: $e');
+      }
+    }
+  }
+
+  Future<void> _testWrite() async {
+    if (_selectedPath == null) return;
+    try {
+      final testFile = File('$_selectedPath/quizsnap_test.txt');
+      await testFile.writeAsString('QuizSnap test write successful');
+      await testFile.delete();
+      if (mounted) {
+        context.read<NotificationService>().showSuccess('Write test passed');
+      }
+    } catch (e) {
+      if (mounted) {
+        context.read<NotificationService>().showErrorTop('Write test failed: $e');
+      }
+    }
+  }
+
+  Future<void> _openFolder() async {
+    if (_selectedPath == null) return;
+    try {
+      final result = await OpenFilex.open(_selectedPath!);
+      if (result.type != ResultType.done && mounted) {
+        context.read<NotificationService>().showErrorTop('Could not open folder');
+      }
+    } catch (e) {
+      if (mounted) {
+        context.read<NotificationService>().showErrorTop('Failed to open folder: $e');
       }
     }
   }

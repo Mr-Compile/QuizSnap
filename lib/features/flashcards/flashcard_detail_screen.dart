@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:drift/drift.dart' as drift;
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_service.dart';
+import '../../core/navigation/app_routes.dart';
 import '../../core/database/database.dart';
 import '../../shared/widgets/formatted_study_text.dart';
 import '../../core/theme/app_theme.dart';
@@ -78,6 +81,22 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
       appBar: CustomAppBar(
         title: widget.deckName ?? 'Flashcard',
         actions: [
+          IconButton(
+            icon: Icon(card.isFavorite ? Icons.bookmark : Icons.bookmark_border),
+            color: card.isFavorite ? Theme.of(context).colorScheme.primary : null,
+            onPressed: () => _toggleBookmark(card),
+            tooltip: card.isFavorite ? 'Remove bookmark' : 'Bookmark card',
+          ),
+          IconButton(
+            icon: const Icon(Icons.content_copy),
+            onPressed: () => _duplicateCard(card),
+            tooltip: 'Duplicate',
+          ),
+          IconButton(
+            icon: const Icon(Icons.drive_file_move),
+            onPressed: () => _moveCard(card),
+            tooltip: 'Move',
+          ),
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () => _shareCard(card),
@@ -180,6 +199,47 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
     );
   }
 
+  Future<void> _toggleBookmark(Flashcard card) async {
+    try {
+      final db = context.read<DatabaseProvider>();
+      await db.flashcardRepository.updateFlashcard(
+        card.copyWith(isFavorite: !card.isFavorite),
+      );
+      if (mounted) {
+        context.read<NotificationService>().showSuccess(
+          card.isFavorite ? 'Bookmark removed' : 'Flashcard bookmarked',
+        );
+        _loadCard();
+      }
+    } catch (e) {
+      if (mounted) {
+        context.read<NotificationService>().showErrorTop('Failed to bookmark: $e');
+      }
+    }
+  }
+
+  Future<void> _duplicateCard(Flashcard card) async {
+    try {
+      final db = context.read<DatabaseProvider>();
+      await db.flashcardRepository.createFlashcard(
+        FlashcardsCompanion(
+          question: drift.Value('${card.question} (Copy)'),
+          answer: drift.Value(card.answer),
+          deckId: drift.Value(card.deckId),
+          order: drift.Value(card.order + 1),
+        ),
+      );
+      await db.deckRepository.updateDeckCardCount(card.deckId);
+      if (mounted) {
+        context.read<NotificationService>().showSuccess('Flashcard duplicated');
+      }
+    } catch (e) {
+      if (mounted) {
+        context.read<NotificationService>().showErrorTop('Failed to duplicate: $e');
+      }
+    }
+  }
+
   void _shareCard(Flashcard card) {
     final text = 'Question:\n${card.question}\n\nAnswer:\n${card.answer}';
     Share.share(text, subject: 'QuizSnap Flashcard');
@@ -193,12 +253,24 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
     ).then((_) => _loadCard());
   }
 
+  void _moveCard(Flashcard card) {
+    GoRouter.of(context).push(
+      AppRoutes.moveFlashcards,
+      extra: {
+        'flashcardIds': [card.id],
+        'sourceDeckId': card.deckId,
+      },
+    ).then((_) {
+      if (mounted) _loadCard();
+    });
+  }
+
   Future<void> _confirmDelete(Flashcard card) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Flashcard'),
-        content: const Text('Delete this flashcard?'),
+        title: const Text('Move to Trash'),
+        content: const Text('Move this flashcard to Trash? You can restore it later.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),

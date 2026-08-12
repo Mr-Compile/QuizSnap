@@ -37,10 +37,18 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: 'Review Answers',
-        bottom: TabBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        appBar: CustomAppBar(
+          title: 'Review Answers',
+          leading: const BackButton(),
+          bottom: TabBar(
           controller: _tabController,
           tabs: const [
             Tab(text: 'All'),
@@ -79,6 +87,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
           ),
         ],
       ),
+    ),
     );
   }
 

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/services/document_extraction_service.dart';
+import '../../core/services/unified_text_cleaner.dart';
+import '../../core/providers/notification_service.dart';
+import 'package:provider/provider.dart';
 import '../../shared/widgets/formatted_study_text.dart';
 import 'ai_generation_config_screen.dart';
 
@@ -20,13 +23,17 @@ class TextPreviewScreen extends StatefulWidget {
 class _TextPreviewScreenState extends State<TextPreviewScreen> {
   late TextEditingController _textController;
   late Map<String, int> _statistics;
+  late String _originalText;
   bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
-    _textController = TextEditingController(text: widget.text);
-    _statistics = DocumentExtractionService.getTextStatistics(widget.text);
+    _originalText = widget.text;
+    _textController = TextEditingController(
+      text: UnifiedTextCleaner.clean(widget.text, sourceHint: 'txt'),
+    );
+    _statistics = DocumentExtractionService.getTextStatistics(_textController.text);
   }
 
   @override
@@ -142,22 +149,47 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
               ],
             ),
             child: SafeArea(
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Back'),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _rearrange,
+                          icon: const Icon(Icons.auto_fix_high),
+                          label: const Text('Retry Arrangement'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _resetToOriginal,
+                          icon: const Icon(Icons.undo),
+                          label: const Text('Reset to Original'),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _textController.text.trim().isEmpty
-                          ? null
-                          : _proceedToGeneration,
-                      child: const Text('Generate Questions'),
-                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Back'),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _textController.text.trim().isEmpty
+                              ? null
+                              : _proceedToGeneration,
+                          child: const Text('Generate Questions'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -194,6 +226,24 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
         ],
       ),
     );
+  }
+
+  void _rearrange() {
+    final current = _textController.text.trim();
+    final cleaned = UnifiedTextCleaner.clean(current, sourceHint: 'txt');
+    setState(() {
+      _textController.text = cleaned;
+      _statistics = DocumentExtractionService.getTextStatistics(cleaned);
+    });
+    context.read<NotificationService>().showSuccess('Text rearranged');
+  }
+
+  void _resetToOriginal() {
+    setState(() {
+      _textController.text = _originalText;
+      _statistics = DocumentExtractionService.getTextStatistics(_originalText);
+    });
+    context.read<NotificationService>().showInfoTop('Reset to original text');
   }
 
   void _proceedToGeneration() {

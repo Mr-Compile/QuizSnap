@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/notification_service.dart';
+import '../../core/providers/trash_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
+import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
-import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/error_state.dart';
+import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/confirmation_dialog.dart';
-import '../../shared/widgets/success_snackbar.dart';
 
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
@@ -19,6 +21,15 @@ class TrashScreen extends StatefulWidget {
 
 class _TrashScreenState extends State<TrashScreen> {
   int _selectedTab = 0; // 0: Folders, 1: Decks, 2: Flashcards
+  String _searchQuery = '';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<TrashProvider>().load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +40,8 @@ class _TrashScreenState extends State<TrashScreen> {
       body: Column(
         children: [
           _buildTabBar(),
+          _buildSearchBar(),
+          _buildBulkActions(),
           Expanded(
             child: _buildTrashContent(),
           ),
@@ -89,26 +102,74 @@ class _TrashScreenState extends State<TrashScreen> {
     );
   }
 
-  Widget _buildTrashContent() {
-    return Consumer<DatabaseProvider>(
-      builder: (context, dbProvider, child) {
-        switch (_selectedTab) {
-          case 0:
-            return _buildFolderTrash(dbProvider);
-          case 1:
-            return _buildDeckTrash(dbProvider);
-          case 2:
-            return _buildFlashcardTrash(dbProvider);
-          default:
-            return const SizedBox.shrink();
-        }
-      },
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingLg,
+        vertical: AppTheme.spacingSm,
+      ),
+      child: TextField(
+        decoration: InputDecoration(
+          labelText: 'Search trash',
+          hintText: 'Search by name or question',
+          prefixIcon: const Icon(Icons.search),
+          border: const OutlineInputBorder(),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () => setState(() => _searchQuery = ''),
+                )
+              : null,
+        ),
+        onChanged: (value) => setState(() => _searchQuery = value.trim().toLowerCase()),
+      ),
     );
   }
 
-  Widget _buildFolderTrash(DatabaseProvider dbProvider) {
+  Widget _buildBulkActions() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg),
+      child: Row(
+        children: [
+          Expanded(
+            child: CustomButton(
+              text: 'Restore All',
+              icon: Icons.restore,
+              onPressed: () { _restoreAll(); },
+              fullWidth: true,
+              isOutlined: true,
+            ),
+          ),
+          const SizedBox(width: AppTheme.spacingMd),
+          Expanded(
+            child: CustomButton(
+              text: 'Empty Trash',
+              icon: Icons.delete_forever,
+              onPressed: () { _emptyTrash(); },
+              fullWidth: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrashContent() {
+    switch (_selectedTab) {
+      case 0:
+        return _buildFolderTrash();
+      case 1:
+        return _buildDeckTrash();
+      case 2:
+        return _buildFlashcardTrash();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildFolderTrash() {
     return FutureBuilder(
-      future: dbProvider.folderRepository.getDeletedFolders(),
+      future: context.read<DatabaseProvider>().folderRepository.getDeletedFolders(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const ListSkeleton();
@@ -121,230 +182,266 @@ class _TrashScreenState extends State<TrashScreen> {
           );
         }
 
-        final folders = snapshot.data ?? [];
+        final allFolders = snapshot.data ?? [];
+        final folders = _searchQuery.isEmpty
+            ? allFolders
+            : allFolders
+                .where((f) => f.name.toLowerCase().contains(_searchQuery))
+                .toList();
 
         if (folders.isEmpty) {
           return EmptyState(
             icon: Icons.delete_outline,
-            title: 'No deleted folders',
-            subtitle: 'Folders you delete will appear here',
+            title: _searchQuery.isEmpty ? 'No deleted folders' : 'No matching folders',
+            subtitle: _searchQuery.isEmpty
+                ? 'Folders you delete will appear here'
+                : 'Try a different search term',
           );
         }
 
-        return ListView.builder(
-          itemCount: folders.length,
-          itemBuilder: (context, index) {
-            final folder = folders[index];
-            return CustomCard(
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Color(int.parse(folder.color.replaceFirst('#', '0xFF'))),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        return RefreshIndicator(
+          onRefresh: () async => setState(() {}),
+          child: ListView.builder(
+            itemCount: folders.length,
+            itemBuilder: (context, index) {
+              final folder = folders[index];
+              return CustomCard(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Color(int.parse(folder.color.replaceFirst('#', '0xFF'))),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      ),
+                      child: const Icon(
+                        Icons.folder,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.folder,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingMd),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          folder.name,
-                          style: AppTheme.labelLarge,
-                        ),
-                        if (folder.deletedAt != null) ...[
-                          const SizedBox(height: AppTheme.spacingXs),
+                    const SizedBox(width: AppTheme.spacingMd),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            'Deleted ${_formatDate(folder.deletedAt!)}',
-                            style: AppTheme.bodySmall.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                            ),
+                            folder.name,
+                            style: AppTheme.labelLarge,
                           ),
+                          if (folder.deletedAt != null) ...[
+                            const SizedBox(height: AppTheme.spacingXs),
+                            Text(
+                              'Deleted ${_formatDate(folder.deletedAt!)}',
+                              style: AppTheme.bodySmall.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.restore, size: 20),
-                    onPressed: () => _restoreFolder(context, folder.id),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_forever, size: 20),
-                    onPressed: () => _permanentlyDeleteFolder(context, folder.id),
-                  ),
-                ],
-              ),
-            );
-          },
+                    IconButton(
+                      icon: const Icon(Icons.restore, size: 20),
+                      tooltip: 'Restore folder',
+                      onPressed: () => _restoreFolder(context, folder.id),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_forever, size: 20),
+                      tooltip: 'Delete folder forever',
+                      onPressed: () => _permanentlyDeleteFolder(context, folder.id),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
   }
 
-  Widget _buildDeckTrash(DatabaseProvider dbProvider) {
-    return FutureBuilder(
-      future: dbProvider.deckRepository.getDeletedDecks(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+  Widget _buildDeckTrash() {
+    return Consumer<TrashProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
           return const ListSkeleton();
         }
 
-        if (snapshot.hasError) {
+        if (provider.error != null) {
           return ErrorState(
-            message: snapshot.error.toString(),
-            onRetry: () => setState(() {}),
+            message: provider.error!,
+            onRetry: () { provider.load(); },
           );
         }
 
-        final decks = snapshot.data ?? [];
+        final allDecks = provider.deletedDecks;
+        final decks = _searchQuery.isEmpty
+            ? allDecks
+            : allDecks
+                .where((d) => d.name.toLowerCase().contains(_searchQuery))
+                .toList();
 
         if (decks.isEmpty) {
           return EmptyState(
             icon: Icons.delete_outline,
-            title: 'No deleted decks',
-            subtitle: 'Decks you delete will appear here',
+            title: _searchQuery.isEmpty ? 'No deleted decks' : 'No matching decks',
+            subtitle: _searchQuery.isEmpty
+                ? 'Decks you delete will appear here'
+                : 'Try a different search term',
           );
         }
 
-        return ListView.builder(
-          itemCount: decks.length,
-          itemBuilder: (context, index) {
-            final deck = decks[index];
-            return CustomCard(
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Color(int.parse(deck.color.replaceFirst('#', '0xFF'))),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        return RefreshIndicator(
+          onRefresh: () => provider.load(),
+          child: ListView.builder(
+            itemCount: decks.length,
+            itemBuilder: (context, index) {
+              final deck = decks[index];
+              return CustomCard(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Color(int.parse(deck.color.replaceFirst('#', '0xFF'))),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      ),
+                      child: const Icon(
+                        Icons.style,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.style,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingMd),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          deck.name,
-                          style: AppTheme.labelLarge,
-                        ),
-                        if (deck.deletedAt != null) ...[
-                          const SizedBox(height: AppTheme.spacingXs),
+                    const SizedBox(width: AppTheme.spacingMd),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            'Deleted ${_formatDate(deck.deletedAt!)}',
-                            style: AppTheme.bodySmall.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                            ),
+                            deck.name,
+                            style: AppTheme.labelLarge,
                           ),
+                          if (deck.deletedAt != null) ...[
+                            const SizedBox(height: AppTheme.spacingXs),
+                            Text(
+                              'Deleted ${_formatDate(deck.deletedAt!)}',
+                              style: AppTheme.bodySmall.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.restore, size: 20),
-                    onPressed: () => _restoreDeck(context, deck.id),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_forever, size: 20),
-                    onPressed: () => _permanentlyDeleteDeck(context, deck.id),
-                  ),
-                ],
-              ),
-            );
-          },
+                    IconButton(
+                      icon: const Icon(Icons.restore, size: 20),
+                      tooltip: 'Restore deck',
+                      onPressed: () => _restoreDeck(context, deck.id),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_forever, size: 20),
+                      tooltip: 'Delete deck forever',
+                      onPressed: () => _permanentlyDeleteDeck(context, deck.id),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
   }
 
-  Widget _buildFlashcardTrash(DatabaseProvider dbProvider) {
-    return FutureBuilder(
-      future: dbProvider.flashcardRepository.getDeletedFlashcards(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+  Widget _buildFlashcardTrash() {
+    return Consumer<TrashProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
           return const ListSkeleton();
         }
 
-        if (snapshot.hasError) {
+        if (provider.error != null) {
           return ErrorState(
-            message: snapshot.error.toString(),
-            onRetry: () => setState(() {}),
+            message: provider.error!,
+            onRetry: () { provider.load(); },
           );
         }
 
-        final flashcards = snapshot.data ?? [];
+        final allFlashcards = provider.deletedFlashcards;
+        final flashcards = _searchQuery.isEmpty
+            ? allFlashcards
+            : allFlashcards
+                .where((f) =>
+                    f.question.toLowerCase().contains(_searchQuery) ||
+                    f.answer.toLowerCase().contains(_searchQuery))
+                .toList();
 
         if (flashcards.isEmpty) {
           return EmptyState(
             icon: Icons.delete_outline,
-            title: 'No deleted flashcards',
-            subtitle: 'Flashcards you delete will appear here',
+            title: _searchQuery.isEmpty ? 'No deleted flashcards' : 'No matching flashcards',
+            subtitle: _searchQuery.isEmpty
+                ? 'Flashcards you delete will appear here'
+                : 'Try a different search term',
           );
         }
 
-        return ListView.builder(
-          itemCount: flashcards.length,
-          itemBuilder: (context, index) {
-            final flashcard = flashcards[index];
-            return CustomCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    flashcard.question,
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                  const SizedBox(height: AppTheme.spacingXs),
-                  Text(
-                    flashcard.answer,
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        return RefreshIndicator(
+          onRefresh: () => provider.load(),
+          child: ListView.builder(
+            itemCount: flashcards.length,
+            itemBuilder: (context, index) {
+              final flashcard = flashcards[index];
+              return CustomCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      flashcard.question,
+                      style: Theme.of(context).textTheme.labelLarge,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (flashcard.deletedAt != null) ...[
                     const SizedBox(height: AppTheme.spacingXs),
                     Text(
-                      'Deleted ${_formatDate(flashcard.deletedAt!)}',
-                      style: AppTheme.bodySmall.copyWith(
+                      flashcard.answer,
+                      style: AppTheme.bodyMedium.copyWith(
                         color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                  const SizedBox(height: AppTheme.spacingSm),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.restore, size: 20),
-                        onPressed: () => _restoreFlashcard(context, flashcard.id, flashcard.deckId),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_forever, size: 20),
-                        onPressed: () => _permanentlyDeleteFlashcard(context, flashcard.id),
+                    if (flashcard.deletedAt != null) ...[
+                      const SizedBox(height: AppTheme.spacingXs),
+                      Text(
+                        'Deleted ${_formatDate(flashcard.deletedAt!)}',
+                        style: AppTheme.bodySmall.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
                       ),
                     ],
-                  ),
-                ],
-              ),
-            );
-          },
+                    const SizedBox(height: AppTheme.spacingSm),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.restore, size: 20),
+                          tooltip: 'Restore flashcard',
+                          onPressed: () => _restoreFlashcard(context, flashcard.id),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_forever, size: 20),
+                          tooltip: 'Delete flashcard forever',
+                          onPressed: () => _permanentlyDeleteFlashcard(context, flashcard.id),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -353,7 +450,7 @@ class _TrashScreenState extends State<TrashScreen> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
-    
+
     if (difference.inDays == 0) {
       return 'today';
     } else if (difference.inDays == 1) {
@@ -365,33 +462,75 @@ class _TrashScreenState extends State<TrashScreen> {
     }
   }
 
-  void _restoreFolder(BuildContext context, int id) async {
-    if (!mounted) return;
-    final dbProvider = context.read<DatabaseProvider>();
-    try {
-      await dbProvider.folderRepository.restoreFolder(id);
-      if (!mounted) return;
-      SuccessSnackbar.show(
-        this.context,
-        message: 'Folder restored successfully',
-      );
-      if (mounted) {
-        setState(() {});
+  Future<void> _restoreAll() async {
+    final notify = context.read<NotificationService>();
+    final provider = context.read<TrashProvider>();
+    final confirmed = await ConfirmationDialog.show(
+      context: context,
+      title: 'Restore All',
+      message: 'Restore all items in Trash?',
+      confirmText: 'Restore All',
+    );
+
+    if (confirmed && mounted) {
+      try {
+        await provider.restoreAll();
+        if (mounted) {
+          notify.showSuccess('All items restored');
+          setState(() {});
+        }
+      } catch (e) {
+        if (mounted) {
+          notify.showErrorTop('Error restoring all: $e');
+        }
       }
-    } catch (e) {
-      if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(this.context);
-      final errorColor = Theme.of(this.context).colorScheme.error;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Error restoring folder: $e'),
-          backgroundColor: errorColor,
-        ),
-      );
     }
   }
 
+  Future<void> _emptyTrash() async {
+    final notify = context.read<NotificationService>();
+    final provider = context.read<TrashProvider>();
+    final confirmed = await ConfirmationDialog.show(
+      context: context,
+      title: 'Empty Trash',
+      message: 'This action cannot be undone. Permanently delete all items in Trash?',
+      confirmText: 'Delete Forever',
+      isDestructive: true,
+    );
+
+    if (confirmed && mounted) {
+      try {
+        await provider.emptyTrash();
+        if (mounted) {
+          notify.showSuccess('Trash emptied');
+          setState(() {});
+        }
+      } catch (e) {
+        if (mounted) {
+          notify.showErrorTop('Error emptying trash: $e');
+        }
+      }
+    }
+  }
+
+  void _restoreFolder(BuildContext context, int id) {
+    final db = context.read<DatabaseProvider>();
+    final notify = context.read<NotificationService>();
+    db.folderRepository.restoreFolder(id).then((_) {
+      if (mounted) {
+        notify.showSuccess('Folder restored');
+        setState(() {});
+      }
+    }).catchError((e) {
+      if (mounted) {
+        notify.showErrorTop('Error restoring folder: $e');
+      }
+    });
+  }
+
   void _permanentlyDeleteFolder(BuildContext context, int id) async {
+    final notify = context.read<NotificationService>();
+    final db = context.read<DatabaseProvider>();
     final confirmed = await ConfirmationDialog.show(
       context: context,
       title: 'Permanently Delete',
@@ -401,52 +540,38 @@ class _TrashScreenState extends State<TrashScreen> {
     );
 
     if (confirmed && mounted) {
-      final dbProvider = this.context.read<DatabaseProvider>();
       try {
-        await dbProvider.folderRepository.permanentlyDeleteFolder(id);
-        if (!mounted) return;
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          const SnackBar(content: Text('Folder permanently deleted')),
-        );
+        await db.folderRepository.permanentlyDeleteFolder(id);
         if (mounted) {
+          notify.showSuccess('Folder permanently deleted');
           setState(() {});
         }
       } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          SnackBar(content: Text('Error deleting folder: $e')),
-        );
+        if (mounted) {
+          notify.showErrorTop('Error deleting folder: $e');
+        }
       }
     }
   }
 
-  void _restoreDeck(BuildContext context, int id) async {
-    if (!mounted) return;
-    final dbProvider = context.read<DatabaseProvider>();
-    try {
-      await dbProvider.deckRepository.restoreDeck(id);
-      if (!mounted) return;
-      SuccessSnackbar.show(
-        this.context,
-        message: 'Deck restored successfully',
-      );
+  void _restoreDeck(BuildContext context, int id) {
+    final notify = context.read<NotificationService>();
+    final provider = context.read<TrashProvider>();
+    provider.restoreDeck(id).then((_) {
       if (mounted) {
+        notify.showSuccess('Deck restored');
         setState(() {});
       }
-    } catch (e) {
-      if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(this.context);
-      final errorColor = Theme.of(this.context).colorScheme.error;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Error restoring deck: $e'),
-          backgroundColor: errorColor,
-        ),
-      );
-    }
+    }).catchError((e) {
+      if (mounted) {
+        notify.showErrorTop('Error restoring deck: $e');
+      }
+    });
   }
 
   void _permanentlyDeleteDeck(BuildContext context, int id) async {
+    final notify = context.read<NotificationService>();
+    final provider = context.read<TrashProvider>();
     final confirmed = await ConfirmationDialog.show(
       context: context,
       title: 'Permanently Delete',
@@ -456,53 +581,38 @@ class _TrashScreenState extends State<TrashScreen> {
     );
 
     if (confirmed && mounted) {
-      final dbProvider = this.context.read<DatabaseProvider>();
       try {
-        await dbProvider.deckRepository.permanentlyDeleteDeck(id);
-        if (!mounted) return;
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          const SnackBar(content: Text('Deck permanently deleted')),
-        );
+        await provider.permanentlyDeleteDeck(id);
         if (mounted) {
+          notify.showSuccess('Deck permanently deleted');
           setState(() {});
         }
       } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          SnackBar(content: Text('Error deleting deck: $e')),
-        );
+        if (mounted) {
+          notify.showErrorTop('Error deleting deck: $e');
+        }
       }
     }
   }
 
-  void _restoreFlashcard(BuildContext context, int id, int deckId) async {
-    if (!mounted) return;
-    final dbProvider = context.read<DatabaseProvider>();
-    try {
-      await dbProvider.flashcardRepository.restoreFlashcard(id);
-      await dbProvider.deckRepository.updateDeckCardCount(deckId);
-      if (!mounted) return;
-      SuccessSnackbar.show(
-        this.context,
-        message: 'Flashcard restored successfully',
-      );
+  void _restoreFlashcard(BuildContext context, int id) {
+    final notify = context.read<NotificationService>();
+    final provider = context.read<TrashProvider>();
+    provider.restoreFlashcard(id).then((_) {
       if (mounted) {
+        notify.showSuccess('Flashcard restored');
         setState(() {});
       }
-    } catch (e) {
-      if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(this.context);
-      final errorColor = Theme.of(this.context).colorScheme.error;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Error restoring flashcard: $e'),
-          backgroundColor: errorColor,
-        ),
-      );
-    }
+    }).catchError((e) {
+      if (mounted) {
+        notify.showErrorTop('Error restoring flashcard: $e');
+      }
+    });
   }
 
   void _permanentlyDeleteFlashcard(BuildContext context, int id) async {
+    final notify = context.read<NotificationService>();
+    final provider = context.read<TrashProvider>();
     final confirmed = await ConfirmationDialog.show(
       context: context,
       title: 'Permanently Delete',
@@ -512,21 +622,16 @@ class _TrashScreenState extends State<TrashScreen> {
     );
 
     if (confirmed && mounted) {
-      final dbProvider = this.context.read<DatabaseProvider>();
       try {
-        await dbProvider.flashcardRepository.permanentlyDeleteFlashcard(id);
-        if (!mounted) return;
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          const SnackBar(content: Text('Flashcard permanently deleted')),
-        );
+        await provider.permanentlyDeleteFlashcard(id);
         if (mounted) {
+          notify.showSuccess('Flashcard permanently deleted');
           setState(() {});
         }
       } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          SnackBar(content: Text('Error deleting flashcard: $e')),
-        );
+        if (mounted) {
+          notify.showErrorTop('Error deleting flashcard: $e');
+        }
       }
     }
   }

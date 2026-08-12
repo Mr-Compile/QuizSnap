@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/models/prompt_template.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/text_normalization_service.dart';
 import '../../core/providers/notification_service.dart';
@@ -33,9 +32,6 @@ class AnalysisPreviewScreen extends StatefulWidget {
 }
 
 class _AnalysisPreviewScreenState extends State<AnalysisPreviewScreen> {
-  PromptType _selectedType = PromptType.multipleChoice;
-  Difficulty _selectedDifficulty = Difficulty.medium;
-
   @override
   Widget build(BuildContext context) {
     final stats = DocumentExtractionService.getTextStatistics(widget.text);
@@ -60,10 +56,6 @@ class _AnalysisPreviewScreenState extends State<AnalysisPreviewScreen> {
                   ],
                   const SizedBox(height: AppTheme.spacingLg),
                   _buildScopeSummary(),
-                  const SizedBox(height: AppTheme.spacingLg),
-                  _buildTypeSelector(),
-                  const SizedBox(height: AppTheme.spacingLg),
-                  _buildDifficultySelector(),
                   const SizedBox(height: AppTheme.spacingLg),
                   Text(
                     'Selected content',
@@ -190,52 +182,6 @@ class _AnalysisPreviewScreenState extends State<AnalysisPreviewScreen> {
       default:
         return 'Full document (${widget.totalPages} pages)';
     }
-  }
-
-  Widget _buildTypeSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Question Type', style: AppTheme.titleLarge),
-        const SizedBox(height: AppTheme.spacingSm),
-        DropdownButtonFormField<PromptType>(
-          initialValue: _selectedType,
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-          items: PromptType.values.map((type) {
-            return DropdownMenuItem(
-              value: type,
-              child: Text(type.displayName),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) setState(() => _selectedType = value);
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDifficultySelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Difficulty', style: AppTheme.titleLarge),
-        const SizedBox(height: AppTheme.spacingSm),
-        DropdownButtonFormField<Difficulty>(
-          initialValue: _selectedDifficulty,
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-          items: Difficulty.values.map((difficulty) {
-            return DropdownMenuItem(
-              value: difficulty,
-              child: Text(difficulty.displayName),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) setState(() => _selectedDifficulty = value);
-          },
-        ),
-      ],
-    );
   }
 
   Widget _buildBottomActions() {

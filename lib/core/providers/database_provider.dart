@@ -26,6 +26,17 @@ class DatabaseProvider extends ChangeNotifier {
 
   DatabaseProvider();
 
+  /// Named constructor for in-memory widget and integration tests.
+  DatabaseProvider.test(AppDatabase database) {
+    _database = database;
+    _folderRepository = FolderRepository(_database!);
+    _deckRepository = DeckRepository(_database!);
+    _flashcardRepository = FlashcardRepository(_database!);
+    _tagRepository = TagRepository(_database!);
+    _studyRepository = StudyRepository(_database!);
+    _analyticsRepository = AnalyticsRepository(_database!);
+  }
+
   Future<AppDatabase> initializeDatabase() async {
     if (_database != null) return _database!;
     
@@ -46,6 +57,7 @@ class DatabaseProvider extends ChangeNotifier {
 
   /// Publicly triggers a rebuild for widgets listening to this provider.
   void refreshDecks() => notifyListeners();
+  void refreshAnalytics() => notifyListeners();
 
   @override
   void dispose() {

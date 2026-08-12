@@ -4,7 +4,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/notification_service.dart';
-import '../../core/services/text_normalization_service.dart';
+import '../../core/services/unified_text_cleaner.dart';
 import 'text_preview_screen.dart';
 
 class CameraOcrScreen extends StatefulWidget {
@@ -247,7 +247,7 @@ class _CameraOcrScreenState extends State<CameraOcrScreen> {
       final inputImage = InputImage.fromFilePath(image.path);
       final recognizedText = await _textRecognizer.processImage(inputImage);
       
-      final extractedText = TextNormalizationService.reconstruct(recognizedText.text);
+      final extractedText = OcrTextCleaner.clean(recognizedText.text);
 
       if (!mounted) return;
 
