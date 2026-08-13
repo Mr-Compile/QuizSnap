@@ -190,7 +190,7 @@ class _AnalysisPreviewScreenState extends State<AnalysisPreviewScreen> {
         padding: const EdgeInsets.all(AppTheme.spacingMd),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, -2))],
+          boxShadow: [BoxShadow(color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, -2))],
         ),
         child: Row(
           children: [

@@ -291,19 +291,20 @@ class _FlashcardStudySessionScreenState
   }
 
   Widget _buildRatingControls(BuildContext context, StudySessionController controller) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       key: const ValueKey('rating'),
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
           children: [
-            _buildRatingButton(context, 'Again', Colors.red, 0, controller),
+            _buildRatingButton(context, 'Again', colorScheme.errorContainer, colorScheme.onErrorContainer, 0, controller),
             const SizedBox(width: 8),
-            _buildRatingButton(context, 'Hard', Colors.orange, 2, controller),
+            _buildRatingButton(context, 'Hard', colorScheme.secondaryContainer, colorScheme.onSecondaryContainer, 2, controller),
             const SizedBox(width: 8),
-            _buildRatingButton(context, 'Good', Colors.blue, 3, controller),
+            _buildRatingButton(context, 'Good', colorScheme.primaryContainer, colorScheme.onPrimaryContainer, 3, controller),
             const SizedBox(width: 8),
-            _buildRatingButton(context, 'Easy', Colors.green, 4, controller),
+            _buildRatingButton(context, 'Easy', colorScheme.tertiaryContainer, colorScheme.onTertiaryContainer, 4, controller),
           ],
         ),
         const SizedBox(height: 12),
@@ -333,7 +334,8 @@ class _FlashcardStudySessionScreenState
   Widget _buildRatingButton(
     BuildContext context,
     String label,
-    Color color,
+    Color background,
+    Color foreground,
     int quality,
     StudySessionController controller,
   ) {
@@ -344,8 +346,10 @@ class _FlashcardStudySessionScreenState
         child: ElevatedButton(
           onPressed: () => _rateCard(context, controller, quality),
           style: ElevatedButton.styleFrom(
-            backgroundColor: color.withValues(alpha: 0.15),
-            foregroundColor: color,
+            backgroundColor: background,
+            foregroundColor: foreground,
+            disabledBackgroundColor: background.withValues(alpha: 0.5),
+            disabledForegroundColor: foreground.withValues(alpha: 0.5),
             minimumSize: const Size(56, 56),
           ),
           child: Text(label),

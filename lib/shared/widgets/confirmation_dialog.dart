@@ -24,11 +24,15 @@ class ConfirmationDialog extends StatelessWidget {
       title: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
       ),
       content: message != null
-          ? Text(
-              message!,
-              style: Theme.of(context).textTheme.bodyMedium,
+          ? SingleChildScrollView(
+              child: Text(
+                message!,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             )
           : null,
       actions: [

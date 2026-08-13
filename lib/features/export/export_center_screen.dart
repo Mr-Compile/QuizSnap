@@ -26,7 +26,7 @@ class ExportCenterScreen extends StatelessWidget {
                 title: 'Flashcards to PDF',
                 description: 'Export flashcards as printable PDF document',
                 icon: Icons.picture_as_pdf,
-                color: Colors.red,
+                color: Theme.of(context).colorScheme.error,
                 onTap: () => _navigateToExportOptions(
                   context,
                   ExportType.flashcards,
@@ -37,7 +37,7 @@ class ExportCenterScreen extends StatelessWidget {
                 title: 'Quiz to PDF',
                 description: 'Export quiz as printable PDF with questions',
                 icon: Icons.quiz,
-                color: Colors.blue,
+                color: Theme.of(context).colorScheme.secondary,
                 onTap: () => _navigateToExportOptions(
                   context,
                   ExportType.quiz,
@@ -48,7 +48,7 @@ class ExportCenterScreen extends StatelessWidget {
                 title: 'Answer Key',
                 description: 'Export answer key separately',
                 icon: Icons.check_circle,
-                color: Colors.green,
+                color: Theme.of(context).colorScheme.primary,
                 onTap: () => _navigateToExportOptions(
                   context,
                   ExportType.answerKey,
@@ -59,7 +59,7 @@ class ExportCenterScreen extends StatelessWidget {
                 title: 'Export to CSV',
                 description: 'Export data as CSV spreadsheet',
                 icon: Icons.table_chart,
-                color: Colors.orange,
+                color: Theme.of(context).colorScheme.tertiary,
                 onTap: () => _navigateToExportOptions(
                   context,
                   ExportType.flashcards,
@@ -70,7 +70,7 @@ class ExportCenterScreen extends StatelessWidget {
                 title: 'Export to JSON',
                 description: 'Export data as JSON backup',
                 icon: Icons.code,
-                color: Colors.purple,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 onTap: () => _navigateToExportOptions(
                   context,
                   ExportType.backup,
@@ -81,7 +81,7 @@ class ExportCenterScreen extends StatelessWidget {
                 title: 'Printable Study Pack',
                 description: 'Complete printable study materials',
                 icon: Icons.print,
-                color: Colors.teal,
+                color: Theme.of(context).colorScheme.primaryContainer,
                 onTap: () => _navigateToExportOptions(
                   context,
                   ExportType.studyPack,
@@ -100,14 +100,14 @@ class ExportCenterScreen extends StatelessWidget {
                 title: 'Manual Backup',
                 description: 'Create a full backup of your data',
                 icon: Icons.save,
-                color: Colors.indigo,
+                color: Theme.of(context).colorScheme.inversePrimary,
                 onTap: () => _navigateToBackupRestore(context),
               ),
               _ExportMenuItem(
                 title: 'Backup & Restore',
                 description: 'Manage backups and restore data',
                 icon: Icons.restore,
-                color: Colors.cyan,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 onTap: () => _navigateToBackupRestore(context),
               ),
             ],

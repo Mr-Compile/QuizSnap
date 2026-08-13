@@ -119,7 +119,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 title: 'Danger Zone',
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.delete_forever, color: Colors.red),
+                    leading: Icon(Icons.delete_forever, color: Theme.of(context).colorScheme.error),
                     title: const Text('Clear All Security Data'),
                     subtitle: const Text('Remove PIN, API keys, and all security settings'),
                     trailing: const Icon(Icons.chevron_right),
@@ -169,7 +169,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Disable'),
           ),
         ],
@@ -279,6 +279,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 onPressed: securityProvider.isLoading
                     ? null
                     : () async {
+                        final colorScheme = Theme.of(context).colorScheme;
                         if (!formKey.currentState!.validate()) return;
                         
                         final success = await securityProvider.changePin(
@@ -302,7 +303,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(securityProvider.errorMessage ?? 'Failed to change PIN'),
-                              backgroundColor: Colors.red,
+                              backgroundColor: colorScheme.error,
                             ),
                           );
                         }
@@ -430,7 +431,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Clear All'),
           ),
         ],

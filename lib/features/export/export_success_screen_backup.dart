@@ -44,12 +44,12 @@ class ExportSuccessScreenBackup extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.check_circle,
-              color: Colors.green,
+              color: Theme.of(context).colorScheme.primary,
               size: 48,
             ),
           ),

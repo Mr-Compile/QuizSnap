@@ -107,9 +107,9 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Invalid authorization password'),
-              backgroundColor: Colors.red,
+            SnackBar(
+              content: const Text('Invalid authorization password'),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
           Navigator.pop(context); // Close the screen if password is wrong
@@ -126,7 +126,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(success ? 'Action completed successfully' : 'Action failed'),
-          backgroundColor: success ? Colors.green : Colors.red,
+          backgroundColor: success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
         ),
       );
       // Refresh quota status
@@ -218,9 +218,9 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Authorization password set successfully'),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: const Text('Authorization password set successfully'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
     }
@@ -239,7 +239,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Disable'),
           ),
         ],
@@ -306,7 +306,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                               Text(
                                 _isAuthEnabled ? 'Authorization Enabled' : 'Authorization Disabled',
                                 style: AppTheme.bodyMedium.copyWith(
-                                  color: _isAuthEnabled ? Colors.green : Colors.orange,
+                                  color: _isAuthEnabled ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.tertiary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -342,7 +342,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                       Text(
                         'Last modified: ${_formatDateTime(_lastModificationTime!)}',
                         style: AppTheme.bodySmall.copyWith(
-                          color: Colors.grey,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -363,7 +363,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                 title: 'Increase Quota',
                 description: 'Add more requests to today\'s quota',
                 icon: Icons.add_circle,
-                color: Colors.green,
+                color: Theme.of(context).colorScheme.primary,
                 onTap: () => _showIncreaseQuotaDialog(),
               ),
               const SizedBox(height: AppTheme.spacingMd),
@@ -372,7 +372,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                 title: 'Decrease Quota',
                 description: 'Reduce today\'s quota limit',
                 icon: Icons.remove_circle,
-                color: Colors.orange,
+                color: Theme.of(context).colorScheme.tertiary,
                 onTap: () => _showDecreaseQuotaDialog(),
               ),
               const SizedBox(height: AppTheme.spacingMd),
@@ -381,7 +381,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                 title: 'Reset Today\'s Usage',
                 description: 'Reset usage count to zero',
                 icon: Icons.refresh,
-                color: Colors.blue,
+                color: Theme.of(context).colorScheme.secondary,
                 onTap: () => _showPasswordDialog('Reset Usage', () async {
                   final quotaProvider = context.read<AiQuotaProvider>();
                   return await quotaProvider.service.resetTodayUsage();
@@ -393,7 +393,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                 title: 'Set Custom Limit',
                 description: 'Set a specific daily limit',
                 icon: Icons.tune,
-                color: Colors.purple,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 onTap: () => _showCustomLimitDialog(),
               ),
               const SizedBox(height: AppTheme.spacingMd),
@@ -402,7 +402,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                 title: 'Restore Default',
                 description: 'Restore the default 15 request limit',
                 icon: Icons.restore,
-                color: Colors.red,
+                color: Theme.of(context).colorScheme.error,
                 onTap: () => _showPasswordDialog('Restore Default', () async {
                   final quotaProvider = context.read<AiQuotaProvider>();
                   return await quotaProvider.service.restoreDefaultLimit();
@@ -473,7 +473,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                 Text(
                   description,
                   style: AppTheme.bodySmall.copyWith(
-                    color: Colors.grey,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -481,7 +481,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
           ),
           Icon(
             Icons.chevron_right,
-            color: Colors.grey,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ],
       ),

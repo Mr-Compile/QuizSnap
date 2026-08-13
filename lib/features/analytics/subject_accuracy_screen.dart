@@ -72,10 +72,10 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
           ) / deckAccuracies.length;
 
     final accuracyColor = overallAccuracy >= 80
-        ? Colors.green
+        ? Theme.of(context).colorScheme.primary
         : overallAccuracy >= 60
-            ? Colors.orange
-            : Colors.red;
+            ? Theme.of(context).colorScheme.tertiary
+            : Theme.of(context).colorScheme.error;
 
     return CustomCard(
       child: Row(
@@ -238,10 +238,10 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
     return deckAccuracies.asMap().entries.map((entry) {
       final accuracy = entry.value.accuracy.toDouble(); // Ensure double type
       final color = accuracy >= 80
-          ? Colors.green
+          ? Theme.of(context).colorScheme.primary
           : accuracy >= 60
-              ? Colors.orange
-              : Colors.red;
+              ? Theme.of(context).colorScheme.tertiary
+              : Theme.of(context).colorScheme.error;
 
       return BarChartGroupData(
         x: entry.key,
@@ -278,10 +278,10 @@ class _SubjectAccuracyScreenState extends State<SubjectAccuracyScreen> {
   Widget _buildDeckItem(BuildContext context, SubjectAccuracyData deck) {
     final accuracy = deck.accuracy;
     final accuracyColor = accuracy >= 80
-        ? Colors.green
+        ? Theme.of(context).colorScheme.primary
         : accuracy >= 60
-            ? Colors.orange
-            : Colors.red;
+            ? Theme.of(context).colorScheme.tertiary
+            : Theme.of(context).colorScheme.error;
 
     return CustomCard(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),

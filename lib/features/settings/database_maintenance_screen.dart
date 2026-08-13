@@ -122,7 +122,7 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Repair failed: ${result.error}'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -177,11 +177,11 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: _integrityReport!.isHealthy
-                          ? Colors.green.withValues(alpha: 0.1)
-                          : Colors.orange.withValues(alpha: 0.1),
+                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                          : Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                       border: Border.all(
-                        color: _integrityReport!.isHealthy ? Colors.green : Colors.orange,
+                        color: _integrityReport!.isHealthy ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.tertiary,
                       ),
                     ),
                     child: Row(
@@ -189,14 +189,14 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
                       children: [
                         Icon(
                           _integrityReport!.isHealthy ? Icons.check_circle : Icons.warning,
-                          color: _integrityReport!.isHealthy ? Colors.green : Colors.orange,
+                          color: _integrityReport!.isHealthy ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.tertiary,
                           size: 16,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           _integrityReport!.isHealthy ? 'Healthy' : 'Issues Found',
                           style: AppTheme.labelSmall.copyWith(
-                            color: _integrityReport!.isHealthy ? Colors.green : Colors.orange,
+                            color: _integrityReport!.isHealthy ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.tertiary,
                           ),
                         ),
                       ],
@@ -218,7 +218,7 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
                   padding: const EdgeInsets.only(top: AppTheme.spacingMd),
                   child: Text(
                     'Error: ${_integrityReport!.error}',
-                    style: AppTheme.bodySmall.copyWith(color: Colors.red),
+                    style: AppTheme.bodySmall.copyWith(color: Theme.of(context).colorScheme.error),
                   ),
                 ),
             ],
@@ -246,7 +246,7 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
           Text(
             value,
             style: AppTheme.bodyMedium.copyWith(
-              color: hasIssue ? Colors.orange : null,
+              color: hasIssue ? Theme.of(context).colorScheme.tertiary : null,
               fontWeight: hasIssue ? FontWeight.bold : null,
             ),
           ),
@@ -281,7 +281,7 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
                   padding: const EdgeInsets.only(top: AppTheme.spacingMd),
                   child: Text(
                     'Error: ${_stats!.error}',
-                    style: AppTheme.bodySmall.copyWith(color: Colors.red),
+                    style: AppTheme.bodySmall.copyWith(color: Theme.of(context).colorScheme.error),
                   ),
                 ),
             ] else
@@ -330,11 +330,11 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
                   color: _maintenanceResult!.success
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : Colors.red.withValues(alpha: 0.1),
+                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                      : Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   border: Border.all(
-                    color: _maintenanceResult!.success ? Colors.green : Colors.red,
+                    color: _maintenanceResult!.success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
                   ),
                 ),
                 child: Column(
@@ -343,7 +343,7 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
                     Text(
                       _maintenanceResult!.success ? 'Repair Completed' : 'Repair Failed',
                       style: AppTheme.labelMedium.copyWith(
-                        color: _maintenanceResult!.success ? Colors.green : Colors.red,
+                        color: _maintenanceResult!.success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
                       ),
                     ),
                     const SizedBox(height: AppTheme.spacingSm),
@@ -428,7 +428,7 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
               Text(
                 description,
                 style: AppTheme.bodySmall.copyWith(
-                  color: Colors.grey,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

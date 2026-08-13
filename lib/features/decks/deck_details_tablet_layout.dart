@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'selection_preview_pane.dart';
 
-/// Two-pane layout for tablet multi-selection in deck details.
-///
-/// [left] is the flashcard list. [right] is the selection preview pane.
 class DeckDetailsTabletLayout extends StatelessWidget {
   final Widget left;
-  final SelectionPreviewPane right;
+  final Widget right;
 
   const DeckDetailsTabletLayout({
     super.key,
@@ -16,18 +12,38 @@ class DeckDetailsTabletLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 45,
-          child: left,
-        ),
-        Expanded(
-          flex: 55,
-          child: right,
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth >= 1200 ? 1200.0 : double.infinity;
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: Row(
+            children: [
+              // Left pane - Flashcard list (40% width)
+              Expanded(
+                flex: 40,
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      right: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: left,
+                ),
+              ),
+              // Right pane - Selection preview (60% width)
+              Expanded(
+                flex: 60,
+                child: right,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

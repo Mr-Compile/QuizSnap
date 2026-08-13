@@ -76,7 +76,7 @@ class UnsavedChangesIndicator extends StatelessWidget {
           child: Text(
             'Unsaved',
             style: AppTheme.labelSmall.copyWith(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onPrimary,
               fontSize: indicatorSize * 0.75,
             ),
           ),

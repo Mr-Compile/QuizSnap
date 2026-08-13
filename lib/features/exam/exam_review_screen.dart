@@ -117,7 +117,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? Colors.white.withValues(alpha: 0.3)
+                              ? Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3)
                               : Theme.of(context).colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -125,8 +125,8 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
                           '$count',
                           style: AppTheme.bodySmall.copyWith(
                             color: isSelected
-                                ? Colors.white
-                                : Theme.of(context).colorScheme.primary,
+                                ? Theme.of(context).colorScheme.onPrimary
+                                : Theme.of(context).colorScheme.onPrimaryContainer,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -139,7 +139,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
                   setState(() => _currentFilter = filter);
                 },
                 selectedColor: Theme.of(context).colorScheme.primary,
-                checkmarkColor: Colors.white,
+                checkmarkColor: Theme.of(context).colorScheme.onPrimary,
               ),
             );
           }).toList(),
@@ -261,17 +261,17 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
                 height: 32,
                 decoration: BoxDecoration(
                   color: isCorrect
-                      ? AppTheme.emerald600
+                      ? Theme.of(context).colorScheme.primary
                       : isUnanswered
-                          ? AppTheme.amber600
-                          : AppTheme.red600,
+                          ? Theme.of(context).colorScheme.tertiary
+                          : Theme.of(context).colorScheme.error,
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Center(
                   child: Text(
                     '${index + 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -291,10 +291,10 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
                         ? Icons.help
                         : Icons.cancel,
                 color: isCorrect
-                    ? AppTheme.emerald600
+                    ? Theme.of(context).colorScheme.primary
                     : isUnanswered
-                        ? AppTheme.amber600
-                        : AppTheme.red600,
+                        ? Theme.of(context).colorScheme.tertiary
+                        : Theme.of(context).colorScheme.error,
               ),
             ],
           ),
@@ -316,17 +316,21 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
         final isSelected = answer.selectedAnswerIndex == index;
         final isUnanswered = answer.selectedAnswerIndex == null;
 
+        final colorScheme = Theme.of(context).colorScheme;
         Color? backgroundColor;
         Color? borderColor;
+        Color? labelColor;
         IconData? trailingIcon;
 
         if (isCorrectAnswer) {
-          backgroundColor = AppTheme.emerald600.withValues(alpha: 0.1);
-          borderColor = AppTheme.emerald600;
+          backgroundColor = colorScheme.primaryContainer;
+          borderColor = colorScheme.primary;
+          labelColor = colorScheme.onPrimaryContainer;
           trailingIcon = Icons.check;
         } else if (isSelected && !isUnanswered) {
-          backgroundColor = AppTheme.red600.withValues(alpha: 0.1);
-          borderColor = AppTheme.red600;
+          backgroundColor = colorScheme.errorContainer;
+          borderColor = colorScheme.error;
+          labelColor = colorScheme.onErrorContainer;
           trailingIcon = Icons.close;
         }
 
@@ -348,15 +352,19 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
                 height: 28,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: borderColor?.withValues(alpha: 0.2) ??
-                      Theme.of(context).colorScheme.surfaceContainerHighest,
-                  border: Border.all(color: borderColor ?? Colors.grey),
+                  color: borderColor == colorScheme.primary
+                      ? colorScheme.primaryContainer
+                      : borderColor == colorScheme.error
+                          ? colorScheme.errorContainer
+                          : colorScheme.surfaceContainerHighest,
+                  border: Border.all(color: borderColor ?? colorScheme.outline),
                 ),
                 child: Center(
                   child: Text(
                     String.fromCharCode(65 + index),
                     style: AppTheme.bodySmall.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: labelColor ?? colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -367,6 +375,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
                   option,
                   style: AppTheme.bodyMedium.copyWith(
                     fontWeight: isCorrectAnswer ? FontWeight.bold : FontWeight.normal,
+                    color: labelColor ?? colorScheme.onSurface,
                   ),
                 ),
               ),

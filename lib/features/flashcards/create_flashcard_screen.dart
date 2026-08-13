@@ -62,11 +62,17 @@ class _CreateFlashcardScreenState extends State<CreateFlashcardScreen>
   Widget build(BuildContext context) {
     return buildWithBackButtonHandler(
       Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: const CustomAppBar(
           title: 'Create Flashcard',
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          padding: EdgeInsets.only(
+            left: AppTheme.spacingLg,
+            right: AppTheme.spacingLg,
+            top: AppTheme.spacingLg,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppTheme.spacingLg,
+          ),
           child: Form(
             key: _formKey,
             child: Column(

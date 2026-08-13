@@ -55,13 +55,18 @@ class _DeckListScreenState extends State<DeckListScreen> {
               final decks = snapshot.data ?? [];
 
               if (decks.isEmpty) {
-                return EmptyState(
-                  icon: Icons.style_outlined,
-                  title: 'No decks yet',
-                  subtitle: 'Create your first deck to start studying',
-                  action: ElevatedButton(
-                    onPressed: () => _navigateToCreateDeck(context),
-                    child: const Text('Create Deck'),
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: 80 + MediaQuery.of(context).padding.bottom,
+                  ),
+                  child: EmptyState(
+                    icon: Icons.style_outlined,
+                    title: 'No decks yet',
+                    subtitle: 'Create your first deck to start studying',
+                    action: ElevatedButton(
+                      onPressed: () => _navigateToCreateDeck(context),
+                      child: const Text('Create Deck'),
+                    ),
                   ),
                 );
               }
@@ -76,7 +81,12 @@ class _DeckListScreenState extends State<DeckListScreen> {
                   final others = sorted.where((d) => !bookmarkProvider.isBookmarked(d.id)).toList();
 
                   return ListView(
-                    padding: const EdgeInsets.all(AppTheme.spacingMd),
+                    padding: EdgeInsets.only(
+                      left: AppTheme.spacingMd,
+                      right: AppTheme.spacingMd,
+                      top: AppTheme.spacingMd,
+                      bottom: 80 + MediaQuery.of(context).padding.bottom,
+                    ),
                     children: [
                       if (bookmarked.isNotEmpty) ...[
                         Padding(
@@ -109,9 +119,13 @@ class _DeckListScreenState extends State<DeckListScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToCreateDeck(context),
-        child: const Icon(Icons.add),
+      floatingActionButton: Semantics(
+        button: true,
+        label: 'Create new deck',
+        child: FloatingActionButton(
+          onPressed: () => _navigateToCreateDeck(context),
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -130,9 +144,9 @@ class _DeckListScreenState extends State<DeckListScreen> {
               color: Color(int.parse(deck.color.replaceFirst('#', '0xFF'))),
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.style,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onPrimary,
             ),
           ),
           const SizedBox(width: AppTheme.spacingMd),
@@ -143,6 +157,8 @@ class _DeckListScreenState extends State<DeckListScreen> {
                 Text(
                   deck.name,
                   style: AppTheme.labelLarge,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: AppTheme.spacingXs),
                 Row(
@@ -164,22 +180,26 @@ class _DeckListScreenState extends State<DeckListScreen> {
               ],
             ),
           ),
-          IconButton(
-            icon: Icon(
-              isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-              color: isBookmarked
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+          Semantics(
+            button: true,
+            label: isBookmarked ? 'Remove bookmark from ${deck.name}' : 'Bookmark ${deck.name}',
+            child: IconButton(
+              icon: Icon(
+                isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                color: isBookmarked
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+              onPressed: () async {
+                await bookmarkProvider.toggleBookmark(deck.id);
+                if (context.mounted) {
+                  context.read<NotificationService>().showSuccess(
+                    isBookmarked ? 'Bookmark removed' : 'Deck bookmarked',
+                  );
+                }
+              },
+              tooltip: isBookmarked ? 'Remove bookmark' : 'Bookmark deck',
             ),
-            onPressed: () async {
-              await bookmarkProvider.toggleBookmark(deck.id);
-              if (context.mounted) {
-                context.read<NotificationService>().showSuccess(
-                  isBookmarked ? 'Bookmark removed' : 'Deck bookmarked',
-                );
-              }
-            },
-            tooltip: isBookmarked ? 'Remove bookmark' : 'Bookmark deck',
           ),
           Icon(
             Icons.chevron_right,

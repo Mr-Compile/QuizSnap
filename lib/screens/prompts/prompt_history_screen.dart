@@ -34,7 +34,7 @@ class _PromptHistoryScreenState extends State<PromptHistoryScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: isDark ? AppTheme.slate800 : Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         actions: [
           IconButton(
@@ -58,7 +58,7 @@ class _PromptHistoryScreenState extends State<PromptHistoryScreen> {
           children: [
             // Tab Bar
             Container(
-              color: isDark ? AppTheme.slate800 : Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               child: TabBar(
                 labelColor: AppTheme.bambooGreen600,
                 unselectedLabelColor: isDark ? AppTheme.slate400 : AppTheme.slate600,
@@ -217,7 +217,7 @@ class _TemplateCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.slate800 : Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? AppTheme.slate700 : AppTheme.slate200,
@@ -233,7 +233,7 @@ class _TemplateCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _getTypeColor(template.type).withValues(alpha: 0.1),
+                  color: _getTypeColor(context, template.type).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(
@@ -253,7 +253,7 @@ class _TemplateCard extends StatelessWidget {
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : AppTheme.slate800,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -373,7 +373,7 @@ class _TemplateCard extends StatelessWidget {
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: isDark ? Colors.white : AppTheme.slate700,
+                      foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                       side: BorderSide(
                         color: isDark ? AppTheme.slate600 : AppTheme.slate300,
                       ),
@@ -398,22 +398,23 @@ class _TemplateCard extends StatelessWidget {
     );
   }
 
-  Color _getTypeColor(PromptType type) {
+  Color _getTypeColor(BuildContext context, PromptType type) {
+    final colors = Theme.of(context).colorScheme;
     switch (type) {
       case PromptType.multipleChoice:
-        return AppTheme.bambooGreen600;
+        return colors.primary;
       case PromptType.identification:
-        return AppTheme.blue600;
+        return colors.secondary;
       case PromptType.enumeration:
-        return AppTheme.purple600;
+        return colors.onSurfaceVariant;
       case PromptType.examSimulation:
-        return AppTheme.amber600;
+        return colors.tertiary;
       case PromptType.explanation:
-        return AppTheme.red600;
+        return colors.error;
       case PromptType.studyDeck:
-        return AppTheme.cyan600;
+        return colors.primaryContainer;
       case PromptType.mixed:
-        return Colors.deepPurple;
+        return colors.outline;
     }
   }
 

@@ -33,6 +33,18 @@ class _DeleteSelectionIntent extends Intent {
   const _DeleteSelectionIntent();
 }
 
+class _MoveSelectionIntent extends Intent {
+  const _MoveSelectionIntent();
+}
+
+class _BookmarkSelectionIntent extends Intent {
+  const _BookmarkSelectionIntent();
+}
+
+class _ExitSelectionIntent extends Intent {
+  const _ExitSelectionIntent();
+}
+
 class DeckDetailsScreen extends StatefulWidget {
   final int deckId;
 
@@ -79,11 +91,32 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
                 return null;
               },
             ),
+            _MoveSelectionIntent: CallbackAction<_MoveSelectionIntent>(
+              onInvoke: (intent) {
+                _moveSelected(context, selection);
+                return null;
+              },
+            ),
+            _BookmarkSelectionIntent: CallbackAction<_BookmarkSelectionIntent>(
+              onInvoke: (intent) {
+                _bookmarkSelected(context, selection);
+                return null;
+              },
+            ),
+            _ExitSelectionIntent: CallbackAction<_ExitSelectionIntent>(
+              onInvoke: (intent) {
+                selection.exitSelection();
+                return null;
+              },
+            ),
           },
           child: Shortcuts(
             shortcuts: <SingleActivator, Intent>{
               const SingleActivator(LogicalKeyboardKey.keyA, control: true): const _SelectAllIntent(),
               const SingleActivator(LogicalKeyboardKey.delete): const _DeleteSelectionIntent(),
+              const SingleActivator(LogicalKeyboardKey.keyM, control: true): const _MoveSelectionIntent(),
+              const SingleActivator(LogicalKeyboardKey.keyB, control: true): const _BookmarkSelectionIntent(),
+              const SingleActivator(LogicalKeyboardKey.escape): const _ExitSelectionIntent(),
             },
             child: Focus(
               autofocus: true,
@@ -113,31 +146,51 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
     if (selection.isSelectionMode) {
       return CustomAppBar(
         title: '${selection.selectedCount} selected',
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: selection.exitSelection,
-          tooltip: 'Clear selection',
+        leading: Semantics(
+          button: true,
+          label: 'Clear selection and exit selection mode',
+          child: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: selection.exitSelection,
+            tooltip: 'Clear selection',
+          ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.select_all),
-            onPressed: () => _selectAll(context, selection),
-            tooltip: 'Select all',
+          Semantics(
+            button: true,
+            label: 'Select all flashcards in deck',
+            child: IconButton(
+              icon: const Icon(Icons.select_all),
+              onPressed: () => _selectAll(context, selection),
+              tooltip: 'Select all',
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.drive_file_move),
-            onPressed: () => _moveSelected(context, selection),
-            tooltip: 'Move',
+          Semantics(
+            button: true,
+            label: 'Move selected flashcards to another deck',
+            child: IconButton(
+              icon: const Icon(Icons.drive_file_move),
+              onPressed: () => _moveSelected(context, selection),
+              tooltip: 'Move',
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.bookmark),
-            onPressed: () => _bookmarkSelected(context, selection),
-            tooltip: 'Bookmark',
+          Semantics(
+            button: true,
+            label: 'Bookmark selected flashcards',
+            child: IconButton(
+              icon: const Icon(Icons.bookmark),
+              onPressed: () => _bookmarkSelected(context, selection),
+              tooltip: 'Bookmark',
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => _deleteSelected(context, selection),
-            tooltip: 'Delete',
+          Semantics(
+            button: true,
+            label: 'Delete selected flashcards',
+            child: IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () => _deleteSelected(context, selection),
+              tooltip: 'Delete',
+            ),
           ),
         ],
       );
@@ -149,34 +202,46 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
         Consumer<DeckBookmarkProvider>(
           builder: (context, bookmarks, _) {
             final isBookmarked = bookmarks.isBookmarked(widget.deckId);
-            return IconButton(
-              icon: Icon(
-                isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                color: isBookmarked
-                    ? Theme.of(context).colorScheme.primary
-                    : null,
+            return Semantics(
+              button: true,
+              label: isBookmarked ? 'Remove bookmark from deck' : 'Bookmark deck',
+              child: IconButton(
+                icon: Icon(
+                  isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  color: isBookmarked
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+                onPressed: () async {
+                  await bookmarks.toggleBookmark(widget.deckId);
+                  if (context.mounted) {
+                    context.read<NotificationService>().showSuccess(
+                      isBookmarked ? 'Bookmark removed' : 'Deck bookmarked',
+                    );
+                  }
+                },
+                tooltip: isBookmarked ? 'Remove bookmark' : 'Bookmark deck',
               ),
-              onPressed: () async {
-                await bookmarks.toggleBookmark(widget.deckId);
-                if (context.mounted) {
-                  context.read<NotificationService>().showSuccess(
-                    isBookmarked ? 'Bookmark removed' : 'Deck bookmarked',
-                  );
-                }
-              },
-              tooltip: isBookmarked ? 'Remove bookmark' : 'Bookmark deck',
             );
           },
         ),
-        IconButton(
-          icon: const Icon(Icons.edit),
-          onPressed: () => _navigateToEditDeck(context),
-          tooltip: 'Edit deck',
+        Semantics(
+          button: true,
+          label: 'Edit deck',
+          child: IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => _navigateToEditDeck(context),
+            tooltip: 'Edit deck',
+          ),
         ),
-        IconButton(
-          icon: const Icon(Icons.delete),
-          onPressed: () => _confirmDelete(context),
-          tooltip: 'Delete deck',
+        Semantics(
+          button: true,
+          label: 'Delete deck',
+          child: IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () => _confirmDelete(context),
+            tooltip: 'Delete deck',
+          ),
         ),
       ],
     );
@@ -222,9 +287,9 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
                           color: Color(int.parse(deck.color.replaceFirst('#', '0xFF'))),
                           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.style,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onPrimary,
                           size: 32,
                         ),
                       ),

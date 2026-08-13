@@ -94,18 +94,18 @@ class _RestoreOptionsDialogState extends State<RestoreOptionsDialog> {
             margin: const EdgeInsets.only(top: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.red),
+              border: Border.all(color: Theme.of(context).colorScheme.error),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.warning, color: Colors.red, size: 20),
-                SizedBox(width: 8),
+                Icon(Icons.warning, color: Theme.of(context).colorScheme.error, size: 20),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Warning: This will delete all your current data before restoring.',
-                    style: TextStyle(fontSize: 12, color: Colors.red),
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.error),
                   ),
                 ),
               ],

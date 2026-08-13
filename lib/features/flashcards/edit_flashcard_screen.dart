@@ -87,11 +87,17 @@ class _EditFlashcardScreenState extends State<EditFlashcardScreen> with BackButt
 
     return buildWithBackButtonHandler(
       Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: const CustomAppBar(
           title: 'Edit Flashcard',
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          padding: EdgeInsets.only(
+            left: AppTheme.spacingLg,
+            right: AppTheme.spacingLg,
+            top: AppTheme.spacingLg,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppTheme.spacingLg,
+          ),
           child: Form(
             key: _formKey,
             child: Column(

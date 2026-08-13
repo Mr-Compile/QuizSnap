@@ -70,12 +70,22 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
     }
   }
 
-  Color _getGradeColor(double percentage) {
-    if (percentage >= 90) return AppTheme.emerald600;
-    if (percentage >= 80) return AppTheme.blue600;
-    if (percentage >= 70) return AppTheme.amber600;
-    if (percentage >= 60) return AppTheme.orange600;
-    return AppTheme.red600;
+  Color _getGradeColor(BuildContext context, double percentage) {
+    final colors = Theme.of(context).colorScheme;
+    if (percentage >= 90) return colors.primary;
+    if (percentage >= 80) return colors.secondary;
+    if (percentage >= 70) return colors.tertiary;
+    if (percentage >= 60) return colors.onSurfaceVariant;
+    return colors.error;
+  }
+
+  Color _getGradeOnColor(BuildContext context, double percentage) {
+    final colors = Theme.of(context).colorScheme;
+    if (percentage >= 90) return colors.onPrimary;
+    if (percentage >= 80) return colors.onSecondary;
+    if (percentage >= 70) return colors.onTertiary;
+    if (percentage >= 60) return colors.surface;
+    return colors.onError;
   }
 
   @override
@@ -87,7 +97,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
     }
 
     final result = _result!;
-    final gradeColor = _getGradeColor(result.percentage);
+    final gradeColor = _getGradeColor(context, result.percentage);
 
     return Scaffold(
       appBar: CustomAppBar(
@@ -154,7 +164,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
             child: Text(
               'Grade: ${result.grade} - ${result.gradeLabel}',
               style: AppTheme.titleLarge.copyWith(
-                color: Colors.white,
+                color: _getGradeOnColor(context, result.percentage),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -192,21 +202,24 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
             Icons.check_circle,
             'Correct',
             '${result.correctCount}',
-            AppTheme.emerald600,
+            Theme.of(context).colorScheme.primary,
+            Theme.of(context).colorScheme.primaryContainer,
           ),
           const SizedBox(height: AppTheme.spacingMd),
           _buildStatRow(
             Icons.cancel,
             'Incorrect',
             '${result.incorrectCount}',
-            AppTheme.red600,
+            Theme.of(context).colorScheme.error,
+            Theme.of(context).colorScheme.errorContainer,
           ),
           const SizedBox(height: AppTheme.spacingMd),
           _buildStatRow(
             Icons.help_outline,
             'Unanswered',
             '${result.unansweredCount}',
-            AppTheme.amber600,
+            Theme.of(context).colorScheme.tertiary,
+            Theme.of(context).colorScheme.tertiaryContainer,
           ),
           const SizedBox(height: AppTheme.spacingLg),
           // Progress bar
@@ -214,8 +227,8 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             child: LinearProgressIndicator(
               value: result.correctCount / result.questions.length,
-              backgroundColor: AppTheme.slate200,
-              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.emerald600),
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
               minHeight: 8,
             ),
           ),
@@ -231,14 +244,14 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
     );
   }
 
-  Widget _buildStatRow(IconData icon, String label, String value, Color color) {
+  Widget _buildStatRow(IconData icon, String label, String value, Color color, Color containerColor) {
     return Row(
       children: [
         Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
+            color: containerColor,
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           ),
           child: Icon(icon, color: color),

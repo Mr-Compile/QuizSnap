@@ -185,8 +185,8 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                   child: ElevatedButton(
                     onPressed: () => _handleAnswer(false),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.withValues(alpha: 0.1),
-                      foregroundColor: Colors.red,
+                      backgroundColor: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                      foregroundColor: Theme.of(context).colorScheme.error,
                       padding: const EdgeInsets.all(AppTheme.spacingMd),
                     ),
                     child: const Text('I don\'t know'),
@@ -197,8 +197,8 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                   child: ElevatedButton(
                     onPressed: () => _handleAnswer(true),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.withValues(alpha: 0.1),
-                      foregroundColor: Colors.green,
+                      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      foregroundColor: Theme.of(context).colorScheme.primary,
                       padding: const EdgeInsets.all(AppTheme.spacingMd),
                     ),
                     child: const Text('I know this'),
@@ -275,7 +275,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                         context,
                         'Correct',
                         _correctCount.toString(),
-                        Colors.green,
+                        Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     Expanded(
@@ -283,7 +283,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                         context,
                         'Incorrect',
                         _incorrectCount.toString(),
-                        Colors.red,
+                        Theme.of(context).colorScheme.error,
                       ),
                     ),
                     Expanded(
@@ -291,7 +291,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                         context,
                         'Accuracy',
                         '$accuracy%',
-                        Colors.blue,
+                        Theme.of(context).colorScheme.secondary,
                       ),
                     ),
                   ],

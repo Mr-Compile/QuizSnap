@@ -159,28 +159,30 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('About QuizSnap'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Version 1.0.0'),
-            SizedBox(height: 16),
-            Text(
-              'QuizSnap is a powerful flashcard and study application designed to help you learn effectively.',
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Features:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text('• Create and organize flashcards'),
-            Text('• AI-powered question generation'),
-            Text('• Spaced repetition learning'),
-            Text('• Study analytics and insights'),
-            Text('• Export and backup options'),
-            Text('• Secure PIN lock and biometrics'),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Version 1.0.0'),
+              const SizedBox(height: 16),
+              const Text(
+                'QuizSnap is a powerful flashcard and study application designed to help you learn effectively.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Features:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text('• Create and organize flashcards'),
+              const Text('• AI-powered question generation'),
+              const Text('• Spaced repetition learning'),
+              const Text('• Study analytics and insights'),
+              const Text('• Export and backup options'),
+              const Text('• Secure PIN lock and biometrics'),
+            ],
+          ),
         ),
         actions: [
           TextButton(

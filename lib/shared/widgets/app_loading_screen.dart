@@ -219,34 +219,36 @@ class SimpleLoadingScreen extends StatelessWidget {
 /// A full-screen loading overlay that can be shown on top of existing content.
 class LoadingOverlay extends StatelessWidget {
   final String message;
-  final bool isDark;
 
   const LoadingOverlay({
     super.key,
     required this.message,
-    this.isDark = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = colorScheme.brightness == Brightness.dark;
+
     return Container(
-      color: Colors.black.withValues(alpha: 0.7),
+      color: Colors.black.withValues(alpha: isDark ? 0.65 : 0.45),
       child: Center(
         child: Card(
+          color: colorScheme.surface,
           margin: const EdgeInsets.all(AppTheme.spacingXl),
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacingXl),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.bambooGreen600),
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
                 ),
                 const SizedBox(height: AppTheme.spacingMd),
                 Text(
                   message,
-                  style: const TextStyle(
-                    color: AppTheme.slate700,
+                  style: TextStyle(
+                    color: colorScheme.onSurface,
                     fontSize: AppTheme.textBase,
                   ),
                 ),

@@ -102,7 +102,7 @@ class _MoveFlashcardScreenState extends State<MoveFlashcardScreen> {
                                 backgroundColor: Color(
                                   int.parse(deck.color.replaceFirst('#', '0xFF')),
                                 ),
-                                child: const Icon(Icons.style, color: Colors.white, size: 18),
+                                child: Icon(Icons.style, color: Theme.of(context).colorScheme.onPrimary, size: 18),
                               ),
                               title: Text(deck.name, style: AppTheme.labelLarge),
                               subtitle: Text(

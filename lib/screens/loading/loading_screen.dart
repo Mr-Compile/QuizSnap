@@ -120,10 +120,10 @@ class _LoadingScreenState extends State<LoadingScreen> {
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.flash_on,
                 size: 40,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
             ),
             const SizedBox(height: 24),
@@ -134,7 +134,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
               style: GoogleFonts.poppins(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : AppTheme.slate800,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 32),

@@ -104,9 +104,9 @@ class _MasteryBreakdownScreenState extends State<MasteryBreakdownScreen> {
 
   List<PieChartSectionData> _createPieSections(BuildContext context, List<dynamic> distribution) {
     final colors = [
-      Colors.green, // Mastered
-      Colors.orange, // Learning
-      Colors.blue, // New
+      Theme.of(context).colorScheme.primary, // Mastered
+      Theme.of(context).colorScheme.tertiary, // Learning
+      Theme.of(context).colorScheme.secondary, // New
     ];
 
     return distribution.asMap().entries.map((entry) {
@@ -125,7 +125,7 @@ class _MasteryBreakdownScreenState extends State<MasteryBreakdownScreen> {
         titleStyle: TextStyle(
           fontSize: fontSize,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.onPrimary,
         ),
       );
     }).toList();
@@ -147,10 +147,10 @@ class _MasteryBreakdownScreenState extends State<MasteryBreakdownScreen> {
 
   Widget _buildMasteryItem(BuildContext context, item) {
     final color = item.level == 'Mastered'
-        ? Colors.green
+        ? Theme.of(context).colorScheme.primary
         : item.level == 'Learning'
-            ? Colors.orange
-            : Colors.blue;
+            ? Theme.of(context).colorScheme.tertiary
+            : Theme.of(context).colorScheme.secondary;
 
     return CustomCard(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
@@ -218,21 +218,21 @@ class _MasteryBreakdownScreenState extends State<MasteryBreakdownScreen> {
             context,
             'Mastered',
             'Cards with review interval > 21 days',
-            Colors.green,
+            Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: AppTheme.spacingSm),
           _buildInfoItem(
             context,
             'Learning',
             'Cards with review interval 1-21 days',
-            Colors.orange,
+            Theme.of(context).colorScheme.tertiary,
           ),
           const SizedBox(height: AppTheme.spacingSm),
           _buildInfoItem(
             context,
             'New',
             'Cards that haven\'t been reviewed yet',
-            Colors.blue,
+            Theme.of(context).colorScheme.secondary,
           ),
         ],
       ),

@@ -69,7 +69,11 @@ class _MainScreenState extends State<MainScreen> {
           message: 'Press back again to exit QuizSnap',
           child: Scaffold(
             appBar: AppBar(
-              title: Text(_getAppBarTitle()),
+              title: Text(
+                _getAppBarTitle(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.settings),
@@ -79,7 +83,9 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ],
             ),
-            body: _buildCurrentScreen(),
+            body: SafeArea(
+              child: _buildCurrentScreen(),
+            ),
             bottomNavigationBar: MainBottomNavigation(
               currentIndex: _currentIndex,
               onTap: (index) => setState(() => _currentIndex = index),
@@ -91,7 +97,20 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildCurrentScreen() {
-    switch (_currentIndex) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth >= 1200 ? 1200.0 : double.infinity;
+        
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: _getScreenForIndex(_currentIndex),
+        );
+      },
+    );
+  }
+
+  Widget _getScreenForIndex(int index) {
+    switch (index) {
       case 0:
         return const DeckListScreen();
       case 1:

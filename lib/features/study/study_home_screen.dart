@@ -114,7 +114,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                   'Due Today',
                   stats.dueToday.toString(),
                   Icons.assignment,
-                  Colors.orange,
+                  Theme.of(context).colorScheme.tertiary,
                 ),
               ),
               Expanded(
@@ -123,7 +123,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                   'Bookmarked',
                   stats.bookmarked.toString(),
                   Icons.bookmark,
-                  Colors.blue,
+                  Theme.of(context).colorScheme.secondary,
                 ),
               ),
               Expanded(
@@ -132,7 +132,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                   'Accuracy',
                   '${stats.accuracy}%',
                   Icons.check_circle,
-                  Colors.green,
+                  Theme.of(context).colorScheme.primary,
                 ),
               ),
             ],
@@ -261,12 +261,12 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.1),
+                  color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.bookmark,
-                  color: Colors.blue,
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
               const SizedBox(width: AppTheme.spacingMd),
@@ -303,12 +303,12 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
-                  color: Colors.purple.withValues(alpha: 0.1),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.style,
-                  color: Colors.purple,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(width: AppTheme.spacingMd),

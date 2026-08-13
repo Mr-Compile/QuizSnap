@@ -12,6 +12,8 @@ class RateCardBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -24,7 +26,7 @@ class RateCardBottomSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+              color: colorScheme.outline.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -43,7 +45,8 @@ class RateCardBottomSheet extends StatelessWidget {
                   context,
                   'Again',
                   'I forgot completely',
-                  Colors.red,
+                  colorScheme.errorContainer,
+                  colorScheme.onErrorContainer,
                   0,
                 ),
                 const SizedBox(height: AppTheme.spacingSm),
@@ -51,7 +54,8 @@ class RateCardBottomSheet extends StatelessWidget {
                   context,
                   'Hard',
                   'I remembered with difficulty',
-                  Colors.orange,
+                  colorScheme.secondaryContainer,
+                  colorScheme.onSecondaryContainer,
                   2,
                 ),
                 const SizedBox(height: AppTheme.spacingSm),
@@ -59,7 +63,8 @@ class RateCardBottomSheet extends StatelessWidget {
                   context,
                   'Good',
                   'I remembered correctly',
-                  Colors.blue,
+                  colorScheme.primaryContainer,
+                  colorScheme.onPrimaryContainer,
                   3,
                 ),
                 const SizedBox(height: AppTheme.spacingSm),
@@ -67,7 +72,8 @@ class RateCardBottomSheet extends StatelessWidget {
                   context,
                   'Easy',
                   'I knew it instantly',
-                  Colors.green,
+                  colorScheme.tertiaryContainer,
+                  colorScheme.onTertiaryContainer,
                   4,
                 ),
               ],
@@ -82,7 +88,8 @@ class RateCardBottomSheet extends StatelessWidget {
     BuildContext context,
     String label,
     String description,
-    Color color,
+    Color container,
+    Color onContainer,
     int quality,
   ) {
     return ElevatedButton(
@@ -91,8 +98,8 @@ class RateCardBottomSheet extends StatelessWidget {
         onRated(quality);
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: color.withValues(alpha: 0.1),
-        foregroundColor: color,
+        backgroundColor: container,
+        foregroundColor: onContainer,
         padding: const EdgeInsets.all(AppTheme.spacingMd),
         minimumSize: const Size(double.infinity, 56),
         shape: RoundedRectangleBorder(
@@ -105,7 +112,7 @@ class RateCardBottomSheet extends StatelessWidget {
           Text(
             label,
             style: AppTheme.labelLarge.copyWith(
-              color: color,
+              color: onContainer,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -113,7 +120,7 @@ class RateCardBottomSheet extends StatelessWidget {
           Text(
             description,
             style: AppTheme.bodySmall.copyWith(
-              color: color.withValues(alpha: 0.8),
+              color: onContainer.withValues(alpha: 0.8),
             ),
           ),
         ],

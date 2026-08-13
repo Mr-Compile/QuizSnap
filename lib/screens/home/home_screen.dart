@@ -17,7 +17,7 @@ class HomeScreen extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: isDark ? AppTheme.slate800 : Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         actions: [
           IconButton(
@@ -48,10 +48,10 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.flash_on,
                 size: 60,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
             ),
             const SizedBox(height: 24),
@@ -60,7 +60,7 @@ class HomeScreen extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : AppTheme.slate800,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -85,7 +85,7 @@ class HomeScreen extends StatelessWidget {
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.bambooGreen600,
-                foregroundColor: Colors.white,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 16,

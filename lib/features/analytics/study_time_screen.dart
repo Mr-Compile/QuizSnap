@@ -75,7 +75,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                 'Today',
                 stats.todayMinutes,
                 stats.todaySessions,
-                Colors.blue,
+                Theme.of(context).colorScheme.secondary,
               ),
             ),
             const SizedBox(width: AppTheme.spacingSm),
@@ -85,7 +85,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                 'This Week',
                 stats.weekMinutes,
                 stats.weekSessions,
-                Colors.green,
+                Theme.of(context).colorScheme.primary,
               ),
             ),
           ],
@@ -99,7 +99,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                 'This Month',
                 stats.monthMinutes,
                 stats.monthSessions,
-                Colors.purple,
+                Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(width: AppTheme.spacingSm),
@@ -281,7 +281,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                     barRods: [
                       BarChartRodData(
                         toY: stats.todayMinutes.toDouble(),
-                        color: Colors.blue,
+                        color: Theme.of(context).colorScheme.secondary,
                         width: 20,
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                       ),
@@ -292,7 +292,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                     barRods: [
                       BarChartRodData(
                         toY: (stats.weekMinutes / 7).toDouble(),
-                        color: Colors.green,
+                        color: Theme.of(context).colorScheme.primary,
                         width: 20,
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                       ),
@@ -303,7 +303,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                     barRods: [
                       BarChartRodData(
                         toY: (stats.monthMinutes / 30).toDouble(),
-                        color: Colors.purple,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         width: 20,
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                       ),

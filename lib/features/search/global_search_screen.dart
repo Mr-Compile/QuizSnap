@@ -207,9 +207,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
                       color: Color(int.parse(folder.color.replaceFirst('#', '0xFF'))),
                       borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.folder,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       size: 20,
                     ),
                   ),
@@ -268,9 +268,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
                       color: Color(int.parse(deck.color.replaceFirst('#', '0xFF'))),
                       borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.style,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       size: 20,
                     ),
                   ),

@@ -76,7 +76,7 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Clear All'),
           ),
         ],
@@ -147,13 +147,13 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'clear_all',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_forever, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Clear All', style: TextStyle(color: Colors.red)),
+                      Icon(Icons.delete_forever, color: Theme.of(context).colorScheme.error),
+                      const SizedBox(width: 8),
+                      Text('Clear All', style: TextStyle(color: Theme.of(context).colorScheme.error)),
                     ],
                   ),
                 ),
@@ -300,15 +300,15 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
                 height: 32,
                 decoration: BoxDecoration(
                   color: isExpired
-                      ? Colors.grey
+                      ? Theme.of(context).colorScheme.onSurfaceVariant
                       : Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Center(
                   child: Text(
                     '${index + 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -332,7 +332,7 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
                           Icons.schedule,
                           size: 14,
                           color: isExpired
-                              ? Colors.grey
+                              ? Theme.of(context).colorScheme.onSurfaceVariant
                               : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                         const SizedBox(width: 4),
@@ -344,7 +344,7 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
                                   : '$daysSinceCache days ago',
                           style: AppTheme.bodySmall.copyWith(
                             color: isExpired
-                                ? Colors.grey
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
                                 : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
@@ -356,7 +356,7 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
               IconButton(
                 icon: const Icon(Icons.delete_outline),
                 onPressed: () => _deleteExplanation(cached.questionId),
-                color: Colors.red,
+                color: Theme.of(context).colorScheme.error,
               ),
             ],
           ),

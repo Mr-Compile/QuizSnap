@@ -99,18 +99,18 @@ class _ScheduleSettingsDialogState extends State<ScheduleSettingsDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
+                  color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange),
+                  border: Border.all(color: Theme.of(context).colorScheme.tertiary),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                    SizedBox(width: 8),
+                    Icon(Icons.info_outline, color: Theme.of(context).colorScheme.tertiary, size: 20),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Enable automatic backup to configure frequency and retention settings.',
-                        style: TextStyle(fontSize: 12, color: Colors.orange),
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.tertiary),
                       ),
                     ),
                   ],

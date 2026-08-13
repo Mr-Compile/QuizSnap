@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/services/question_generation_service.dart';
 import '../../core/models/prompt_template.dart';
 import '../../core/providers/database_provider.dart';
@@ -11,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
 import 'package:go_router/go_router.dart';
 import '../../core/utils/explanation_sanitizer.dart';
+import '../../core/services/question_validation_service.dart';
 import '../../shared/widgets/formatted_study_text.dart';
 import 'regeneration_options_bottom_sheet.dart';
 import 'text_preview_screen.dart';
@@ -89,7 +91,12 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
           // Questions list
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: 16 + MediaQuery.of(context).padding.bottom,
+              ),
               itemCount: widget.questions.length,
               itemBuilder: (context, index) {
                 final question = widget.questions[index];
@@ -134,8 +141,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
                 ),
                 child: Text(
                   widget.difficulty.displayName,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontSize: 12,
                   ),
                 ),
@@ -162,151 +169,228 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
   }
 
   Widget _buildQuestionCard(GeneratedQuestion question, int index, bool isSelected) {
+    final warnings = MultipleChoiceQuestionValidator.validate(
+      options: question.options,
+      correctAnswerIndex: question.correctAnswerIndex,
+      questionIndex: index,
+      answer: question.answer,
+    );
+    final isInvalid = warnings.isNotEmpty;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: () => _toggleQuestionSelection(question),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Checkbox(
-                    value: isSelected,
-                    onChanged: (_) => _toggleQuestionSelection(question),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Q${index + 1}',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
+      child: Semantics(
+        button: true,
+        label: 'Question ${index + 1} ${isSelected ? 'selected' : 'not selected'}',
+        selected: isSelected,
+        child: InkWell(
+          onTap: () => _toggleQuestionSelection(question),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Checkbox(
+                      value: isSelected,
+                      onChanged: (_) => _toggleQuestionSelection(question),
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Q${index + 1}',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => _editQuestion(question, index),
-                    tooltip: 'Edit question',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _deleteQuestion(question),
-                    tooltip: 'Delete question',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              FormattedStudyText(
-                text: question.question,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              if (question.options.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                ...question.options.asMap().entries.map((entry) {
-                  final optionIndex = entry.key;
-                  final optionText = entry.value;
-                  final isCorrect = optionIndex == question.correctAnswerIndex;
-                  
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 16, bottom: 4),
+                    Semantics(
+                      button: true,
+                      label: 'Edit question ${index + 1}',
+                      child: IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => _editQuestion(question, index),
+                        tooltip: 'Edit question',
+                      ),
+                    ),
+                    Semantics(
+                      button: true,
+                      label: 'Delete question ${index + 1}',
+                      child: IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => _deleteQuestion(question),
+                        tooltip: 'Delete question',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                FormattedStudyText(
+                  text: question.question,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                if (isInvalid) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                     child: Row(
                       children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: isCorrect
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Center(
-                            child: Text(
-                              String.fromCharCode(65 + optionIndex),
-                              style: TextStyle(
-                                color: isCorrect
-                                    ? Colors.white
-                                    : Theme.of(context).colorScheme.onSurface,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                        Icon(
+                          Icons.warning,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.error,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: FormattedStudyText(
-                            text: _cleanOptionText(optionText),
+                          child: Text(
+                            warnings.join('\n'),
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              decoration: isCorrect ? TextDecoration.underline : null,
+                              color: Theme.of(context).colorScheme.onErrorContainer,
                             ),
-                            showActions: false,
                           ),
                         ),
                       ],
                     ),
-                  );
-                }),
-              ],
-              if (question.answer != null) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.primary,
+                ],
+                if (question.options.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  ...question.options.take(4).toList().asMap().entries.map((entry) {
+                    final optionIndex = entry.key;
+                    final optionText = entry.value;
+                    final isCorrect = optionIndex == question.correctAnswerIndex;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 16, bottom: 4),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: isCorrect
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Center(
+                              child: Text(
+                                String.fromCharCode(65 + optionIndex),
+                                style: TextStyle(
+                                  color: isCorrect
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : Theme.of(context).colorScheme.onSurface,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: FormattedStudyText(
+                              text: _cleanOptionText(optionText),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                decoration: isCorrect ? TextDecoration.underline : null,
+                              ),
+                              showActions: false,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Answer: ${QuestionGenerationService.sanitizeText(question.answer ?? '')}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    );
+                  }),
+                  if (question.correctAnswerIndex >= 0 && question.correctAnswerIndex < question.options.length) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Correct Answer: ${String.fromCharCode(65 + question.correctAnswerIndex)}. ${_cleanOptionText(question.options[question.correctAnswerIndex])}',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+                if (question.answer != null && question.options.isEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Answer: ${QuestionGenerationService.sanitizeText(question.answer ?? '')}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-              if (question.explanation != null && question.explanation!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.tertiaryContainer,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.lightbulb,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.tertiary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FormattedStudyText(
-                          text: ExplanationSanitizer.sanitize(question.explanation),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onTertiaryContainer,
+                ],
+                if (question.explanation != null && question.explanation!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.tertiaryContainer,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.lightbulb,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.tertiary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FormattedStudyText(
+                            text: ExplanationSanitizer.sanitize(question.explanation),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onTertiaryContainer,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -320,7 +404,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -430,8 +514,9 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
 
       // Save each question as a flashcard
       for (final question in _selectedQuestions) {
-        final answerText = question.answer ?? 
-            (question.options.isNotEmpty ? question.options[question.correctAnswerIndex] : '');
+        final answerText = question.options.isNotEmpty
+            ? question.options[question.correctAnswerIndex]
+            : (question.answer ?? '');
         
         await dbProvider.flashcardRepository.createFlashcard(
           FlashcardsCompanion(
@@ -492,20 +577,21 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
   Color _getDifficultyColor(Difficulty difficulty) {
     switch (difficulty) {
       case Difficulty.easy:
-        return Colors.green;
+        return AppTheme.bambooGreen600;
       case Difficulty.medium:
-        return Colors.orange;
+        return AppTheme.amber600;
       case Difficulty.hard:
-        return Colors.red;
+        return AppTheme.red600;
       case Difficulty.expert:
-        return Colors.purple;
+        return AppTheme.purple600;
     }
   }
 
   String _cleanOptionText(String optionText) {
     final sanitized = QuestionGenerationService.sanitizeText(optionText);
-    // Strip leading A) / B. / C - etc. because the UI already shows the letter.
-    return sanitized.replaceFirst(RegExp(r'^\s*[A-Da-d][).\-]?\s*'), '').trim();
+    // Strip a leading A) / B. label because the UI already shows the letter.
+    // Requires a punctuation marker so "Central" keeps its C.
+    return sanitized.replaceFirst(RegExp(r'^\s*[A-Da-d][.)]\s+'), '').trim();
   }
 
   void _showRegenerationOptions() {

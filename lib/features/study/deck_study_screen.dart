@@ -59,9 +59,9 @@ class DeckStudyScreen extends StatelessWidget {
                             color: Color(int.parse(deck.color.replaceFirst('#', '0xFF'))),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.style,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
                         const SizedBox(width: AppTheme.spacingMd),

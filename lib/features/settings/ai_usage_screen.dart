@@ -177,14 +177,14 @@ class _AiUsageScreenState extends State<AiUsageScreen> {
                   label: 'Used',
                   value: status.used.toString(),
                   icon: Icons.check_circle,
-                  color: Colors.green,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 _buildDetailItem(
                   context,
                   label: 'Remaining',
                   value: status.remaining.toString(),
                   icon: Icons.hourglass_empty,
-                  color: status.isLow ? Colors.red : Theme.of(context).colorScheme.primary,
+                  color: status.isLow ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
                 ),
                 _buildDetailItem(
                   context,

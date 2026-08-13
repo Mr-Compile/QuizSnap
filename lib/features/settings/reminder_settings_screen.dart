@@ -136,6 +136,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
                   onChanged: reminderProvider.isLoading 
                       ? null 
                       : (value) async {
+                          final colorScheme = Theme.of(context).colorScheme;
                           await reminderProvider.setEnabled(value);
                           if (!mounted) return;
 
@@ -144,7 +145,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
                             ScaffoldMessenger.of(this.context).showSnackBar(
                               SnackBar(
                                 content: Text(reminderProvider.errorMessage!),
-                                backgroundColor: Colors.red,
+                                backgroundColor: colorScheme.error,
                               ),
                             );
                           }
@@ -214,7 +215,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
                             return ListTile(
                               leading: Icon(
                                 granted ? Icons.check_circle : Icons.error_outline,
-                                color: granted ? Colors.green : Colors.orange,
+                                color: granted ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.tertiary,
                               ),
                               title: const Text('Notification Permissions'),
                               subtitle: Text(granted 
@@ -363,7 +364,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
               Text(
                 description,
                 style: AppTheme.bodySmall.copyWith(
-                  color: Colors.grey,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

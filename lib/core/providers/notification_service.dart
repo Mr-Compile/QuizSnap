@@ -6,10 +6,11 @@ class BannerMessage {
   final String id;
   final String message;
   final IconData icon;
-  final Color backgroundColor;
-  final Color borderColor;
-  final Color iconColor;
-  final Color textColor;
+  final InlineMessageType type;
+  final Color? backgroundColor;
+  final Color? borderColor;
+  final Color? iconColor;
+  final Color? textColor;
   final bool showUndo;
   final VoidCallback? onUndo;
 
@@ -17,10 +18,11 @@ class BannerMessage {
     required this.id,
     required this.message,
     this.icon = Icons.check_circle,
-    this.backgroundColor = Colors.green,
-    this.borderColor = Colors.green,
-    this.iconColor = Colors.green,
-    this.textColor = Colors.black,
+    required this.type,
+    this.backgroundColor,
+    this.borderColor,
+    this.iconColor,
+    this.textColor,
     this.showUndo = false,
     this.onUndo,
   });
@@ -31,15 +33,17 @@ class ToastMessage {
   final String id;
   final String message;
   final IconData? icon;
+  final InlineMessageType? type;
   final Color? backgroundColor;
-  final Color textColor;
+  final Color? textColor;
 
   ToastMessage({
     required this.id,
     required this.message,
     this.icon,
+    this.type,
     this.backgroundColor,
-    this.textColor = Colors.white,
+    this.textColor,
   });
 }
 
@@ -74,10 +78,7 @@ class NotificationService with ChangeNotifier {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       message: message,
       icon: icon,
-      backgroundColor: const Color(0xFFF0FDF4),
-      borderColor: const Color(0xFFBBF7D0),
-      iconColor: const Color(0xFF16A34A),
-      textColor: const Color(0xFF14532D),
+      type: InlineMessageType.success,
       showUndo: showUndo,
       onUndo: onUndo,
     ));
@@ -88,10 +89,7 @@ class NotificationService with ChangeNotifier {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       message: message,
       icon: Icons.info,
-      backgroundColor: const Color(0xFFDBEAFE),
-      borderColor: const Color(0xFF93C5FD),
-      iconColor: const Color(0xFF2563EB),
-      textColor: const Color(0xFF1E3A8A),
+      type: InlineMessageType.info,
     ));
   }
 
@@ -100,10 +98,7 @@ class NotificationService with ChangeNotifier {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       message: message,
       icon: Icons.warning,
-      backgroundColor: const Color(0xFFFEF9C3),
-      borderColor: const Color(0xFFFDE047),
-      iconColor: const Color(0xFFA16207),
-      textColor: const Color(0xFF713F12),
+      type: InlineMessageType.warning,
     ));
   }
 
@@ -112,23 +107,22 @@ class NotificationService with ChangeNotifier {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       message: message,
       icon: Icons.error,
-      backgroundColor: const Color(0xFFFEF2F2),
-      borderColor: const Color(0xFFFECACA),
-      iconColor: const Color(0xFFDC2626),
-      textColor: const Color(0xFF7F1D1D),
+      type: InlineMessageType.error,
     ));
   }
 
   void showToast(
     String message, {
     IconData? icon,
+    InlineMessageType? type,
     Color? backgroundColor,
-    Color textColor = Colors.white,
+    Color? textColor,
   }) {
     final toast = ToastMessage(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       message: message,
       icon: icon,
+      type: type,
       backgroundColor: backgroundColor,
       textColor: textColor,
     );
@@ -141,7 +135,7 @@ class NotificationService with ChangeNotifier {
     showToast(
       message,
       icon: icon,
-      backgroundColor: const Color(0xFF16A34A),
+      type: InlineMessageType.success,
     );
   }
 
@@ -149,7 +143,7 @@ class NotificationService with ChangeNotifier {
     showToast(
       message,
       icon: Icons.info,
-      backgroundColor: const Color(0xFF2563EB),
+      type: InlineMessageType.info,
     );
   }
 
@@ -183,4 +177,4 @@ class NotificationService with ChangeNotifier {
   }
 }
 
-enum InlineMessageType { info, warning, error }
+enum InlineMessageType { info, warning, error, success }

@@ -133,16 +133,16 @@ class PermissionExplanationDialog extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.1),
+        color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+        border: Border.all(color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.privacy_tip,
-            color: Colors.blue,
+            color: Theme.of(context).colorScheme.secondary,
             size: 20,
           ),
           const SizedBox(width: 8),
@@ -150,7 +150,7 @@ class PermissionExplanationDialog extends StatelessWidget {
             child: Text(
               'Your data stays on your device. We only access storage when you explicitly choose to save or load backup files.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.blue.shade700,
+                    color: Theme.of(context).colorScheme.secondary,
                   ),
             ),
           ),
@@ -185,9 +185,9 @@ class PermanentlyDeniedDialog extends StatelessWidget {
     return AlertDialog(
       title: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.block,
-            color: Colors.red,
+            color: Theme.of(context).colorScheme.error,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -209,14 +209,14 @@ class PermanentlyDeniedDialog extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange),
+              border: Border.all(color: Theme.of(context).colorScheme.tertiary),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                SizedBox(width: 8),
+                Icon(Icons.info_outline, color: Theme.of(context).colorScheme.tertiary, size: 20),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Go to Settings > Apps > QuizSnap > Permissions to enable storage access.',
@@ -236,8 +236,8 @@ class PermanentlyDeniedDialog extends StatelessWidget {
         ElevatedButton(
           onPressed: onOpenSettings,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            foregroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
           ),
           child: const Text('Open Settings'),
         ),

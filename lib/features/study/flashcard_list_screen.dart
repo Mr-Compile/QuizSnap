@@ -110,7 +110,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
                                 Icon(
                                   Icons.bookmark,
                                   size: 16,
-                                  color: Colors.blue,
+                                  color: Theme.of(context).colorScheme.secondary,
                                 ),
                               ],
                             ],

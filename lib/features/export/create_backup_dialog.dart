@@ -65,11 +65,11 @@ class _CreateBackupDialogState extends State<CreateBackupDialog> {
                 maxLines: 3,
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'This backup will include all your decks, flashcards, folders, tags, and study data.',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

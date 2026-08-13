@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -139,9 +140,9 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                   : 'Not scheduled',
             ),
           ] else
-            const Text(
+            Text(
               'Automatic backup is disabled',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
         ],
       ),
@@ -310,7 +311,11 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(backup.name),
+        title: Text(
+          backup.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,7 +336,11 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                Text(backup.description!),
+                Text(
+                  backup.description!,
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ],
           ),
@@ -499,14 +508,14 @@ class _BackupListItem extends StatelessWidget {
   Color _getStatusColor() {
     switch (backup.status) {
       case BackupStatus.completed:
-        return Colors.green;
+        return AppTheme.bambooGreen600;
       case BackupStatus.failed:
-        return Colors.red;
+        return AppTheme.red600;
       case BackupStatus.creating:
       case BackupStatus.restoring:
-        return Colors.orange;
+        return AppTheme.amber600;
       default:
-        return Colors.grey;
+        return AppTheme.slate600;
     }
   }
 

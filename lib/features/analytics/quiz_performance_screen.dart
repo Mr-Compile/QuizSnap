@@ -80,7 +80,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
                   'Average Score',
                   '${summary.averageQuizScore.toStringAsFixed(1)}%',
                   Icons.trending_up,
-                  Colors.green,
+                  Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(width: AppTheme.spacingMd),
@@ -90,7 +90,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
                   'Total Quizzes',
                   '${results.length}',
                   Icons.quiz,
-                  Colors.blue,
+                  Theme.of(context).colorScheme.secondary,
                 ),
               ),
             ],
@@ -278,10 +278,10 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
   Widget _buildResultItem(BuildContext context, result) {
     final score = (result.score * 100).toInt();
     final scoreColor = score >= 80
-        ? Colors.green
+        ? Theme.of(context).colorScheme.primary
         : score >= 60
-            ? Colors.orange
-            : Colors.red;
+            ? Theme.of(context).colorScheme.tertiary
+            : Theme.of(context).colorScheme.error;
 
     return CustomCard(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),

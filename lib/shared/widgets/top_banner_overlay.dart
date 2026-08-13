@@ -48,6 +48,7 @@ class _BannerItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final service = context.read<NotificationService>();
+    final colors = _BannerColors.fromType(banner.type, Theme.of(context).colorScheme);
 
     return Dismissible(
       key: Key(banner.id),
@@ -60,19 +61,26 @@ class _BannerItem extends StatelessWidget {
           margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: banner.backgroundColor,
-            border: Border.all(color: banner.borderColor, width: 1.5),
+            color: banner.backgroundColor ?? colors.background,
+            border: Border.all(
+              color: banner.borderColor ?? colors.border,
+              width: 1.5,
+            ),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
             children: [
-              Icon(banner.icon, color: banner.iconColor, size: 20),
+              Icon(
+                banner.icon,
+                color: banner.iconColor ?? colors.icon,
+                size: 20,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   banner.message,
                   style: TextStyle(
-                    color: banner.textColor,
+                    color: banner.textColor ?? colors.text,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -86,14 +94,18 @@ class _BannerItem extends StatelessWidget {
                   child: Text(
                     'UNDO',
                     style: TextStyle(
-                      color: banner.iconColor,
+                      color: banner.iconColor ?? colors.icon,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ],
               IconButton(
-                icon: Icon(Icons.close, color: banner.iconColor, size: 18),
+                icon: Icon(
+                  Icons.close,
+                  color: banner.iconColor ?? colors.icon,
+                  size: 18,
+                ),
                 onPressed: () => service.dismissBanner(banner.id),
                 tooltip: 'Dismiss',
               ),
@@ -102,5 +114,52 @@ class _BannerItem extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _BannerColors {
+  final Color background;
+  final Color border;
+  final Color icon;
+  final Color text;
+
+  const _BannerColors({
+    required this.background,
+    required this.border,
+    required this.icon,
+    required this.text,
+  });
+
+  factory _BannerColors.fromType(InlineMessageType type, ColorScheme colorScheme) {
+    switch (type) {
+      case InlineMessageType.success:
+        return _BannerColors(
+          background: colorScheme.primaryContainer,
+          border: colorScheme.primary,
+          icon: colorScheme.primary,
+          text: colorScheme.onPrimaryContainer,
+        );
+      case InlineMessageType.info:
+        return _BannerColors(
+          background: colorScheme.surfaceContainerHighest,
+          border: colorScheme.outline,
+          icon: colorScheme.primary,
+          text: colorScheme.onSurface,
+        );
+      case InlineMessageType.warning:
+        return _BannerColors(
+          background: colorScheme.tertiaryContainer,
+          border: colorScheme.tertiary,
+          icon: colorScheme.tertiary,
+          text: colorScheme.onTertiaryContainer,
+        );
+      case InlineMessageType.error:
+        return _BannerColors(
+          background: colorScheme.errorContainer,
+          border: colorScheme.error,
+          icon: colorScheme.error,
+          text: colorScheme.onErrorContainer,
+        );
+    }
   }
 }

@@ -112,9 +112,9 @@ class _CreateFolderScreenState extends State<CreateFolderScreen> with BackButton
                           ),
                         ),
                         child: _selectedColor == color
-                            ? const Icon(
+                            ? Icon(
                                 Icons.check,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onPrimary,
                               )
                             : null,
                       ),

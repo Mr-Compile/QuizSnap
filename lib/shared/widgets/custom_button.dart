@@ -23,13 +23,22 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final Color spinnerColor;
+    if (isOutlined) {
+      spinnerColor = colorScheme.primary;
+    } else if (isSecondary) {
+      spinnerColor = colorScheme.onSecondary;
+    } else {
+      spinnerColor = colorScheme.onPrimary;
+    }
     final child = isLoading
-        ? const SizedBox(
+        ? SizedBox(
             height: 20,
             width: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              valueColor: AlwaysStoppedAnimation<Color>(spinnerColor),
             ),
           )
         : Row(

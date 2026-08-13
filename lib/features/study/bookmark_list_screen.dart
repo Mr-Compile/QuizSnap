@@ -60,12 +60,12 @@ class _BookmarkListScreenState extends State<BookmarkListScreen> {
                         Container(
                           padding: const EdgeInsets.all(AppTheme.spacingMd),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withValues(alpha: 0.1),
+                            color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.bookmark,
-                            color: Colors.blue,
+                            color: Theme.of(context).colorScheme.secondary,
                           ),
                         ),
                         const SizedBox(width: AppTheme.spacingMd),
@@ -95,7 +95,7 @@ class _BookmarkListScreenState extends State<BookmarkListScreen> {
                                 ? Icons.bookmark
                                 : Icons.bookmark_border,
                             color: flashcard.isFavorite
-                                ? Colors.blue
+                                ? Theme.of(context).colorScheme.secondary
                                 : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                           ),
                           onPressed: () => _toggleBookmark(context, flashcard.id),

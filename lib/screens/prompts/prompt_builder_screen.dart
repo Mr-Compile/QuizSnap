@@ -136,7 +136,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: isDark ? AppTheme.slate800 : Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         actions: [
           IconButton(
@@ -187,7 +187,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
                 onPressed: _saveTemplate,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.bambooGreen600,
-                  foregroundColor: Colors.white,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -230,7 +230,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
                 child: Text(
                   'Built-in Templates',
                   style: GoogleFonts.poppins(
-                    color: !_isCustomTemplate ? Colors.white : AppTheme.slate600,
+                    color: !_isCustomTemplate ? Theme.of(context).colorScheme.onPrimary : AppTheme.slate600,
                     fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
@@ -252,7 +252,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
                 child: Text(
                   'Custom Template',
                   style: GoogleFonts.poppins(
-                    color: _isCustomTemplate ? Colors.white : AppTheme.slate600,
+                    color: _isCustomTemplate ? Theme.of(context).colorScheme.onPrimary : AppTheme.slate600,
                     fontWeight: FontWeight.w600,
                   ),
                   textAlign: TextAlign.center,
@@ -274,7 +274,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
           style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : AppTheme.slate800,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 12),
@@ -358,7 +358,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
           style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : AppTheme.slate800,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 12),
@@ -390,7 +390,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
           style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : AppTheme.slate800,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 12),
@@ -398,7 +398,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark ? AppTheme.slate800 : Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isDark ? AppTheme.slate700 : AppTheme.slate200,
@@ -443,7 +443,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
           keyboardType: keyboardType,
           style: GoogleFonts.poppins(
             fontSize: 14,
-            color: isDark ? Colors.white : AppTheme.slate800,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
           decoration: InputDecoration(
             hintText: hint,
@@ -452,7 +452,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
               color: AppTheme.slate400,
             ),
             filled: true,
-            fillColor: isDark ? AppTheme.slate800 : Colors.white,
+            fillColor: Theme.of(context).colorScheme.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
@@ -514,7 +514,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
                 displayName,
                 style: GoogleFonts.poppins(
                   fontSize: 14,
-                  color: isDark ? Colors.white : AppTheme.slate800,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             );
@@ -522,7 +522,7 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
           onChanged: onChanged,
           decoration: InputDecoration(
             filled: true,
-            fillColor: isDark ? AppTheme.slate800 : Colors.white,
+            fillColor: Theme.of(context).colorScheme.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
@@ -543,10 +543,10 @@ class _PromptBuilderScreenState extends State<PromptBuilderScreen> {
               ),
             ),
           ),
-          dropdownColor: isDark ? AppTheme.slate800 : Colors.white,
+          dropdownColor: Theme.of(context).colorScheme.surface,
           style: GoogleFonts.poppins(
             fontSize: 14,
-            color: isDark ? Colors.white : AppTheme.slate800,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
@@ -577,7 +577,7 @@ class _TemplateTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? AppTheme.bambooGreen600.withValues(alpha: 0.1)
-              : (isDark ? AppTheme.slate800 : Colors.white),
+              : (Theme.of(context).colorScheme.surface),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
@@ -612,7 +612,7 @@ class _TemplateTile extends StatelessWidget {
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : AppTheme.slate800,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -638,7 +638,7 @@ class _TemplateTile extends StatelessWidget {
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : AppTheme.slate800,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),

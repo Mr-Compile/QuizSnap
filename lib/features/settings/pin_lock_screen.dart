@@ -96,7 +96,7 @@ class _PinLockScreenState extends State<PinLockScreen> {
                   Text(
                     'Enter your PIN to unlock',
                     style: AppTheme.bodyLarge.copyWith(
-                      color: Colors.grey,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: AppTheme.spacingXl),
@@ -119,7 +119,7 @@ class _PinLockScreenState extends State<PinLockScreen> {
                             hintStyle: TextStyle(
                               fontSize: 32,
                               letterSpacing: 8,
-                              color: Colors.grey.withValues(alpha: 0.3),
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -152,19 +152,19 @@ class _PinLockScreenState extends State<PinLockScreen> {
                             onPressed: securityProvider.isLoading ? null : _unlock,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.bambooGreen600,
-                              foregroundColor: Colors.white,
+                              foregroundColor: Theme.of(context).colorScheme.onPrimary,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                               ),
                             ),
                             child: securityProvider.isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     height: 20,
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.onPrimary),
                                     ),
                                   )
                                 : const Text(
@@ -183,7 +183,7 @@ class _PinLockScreenState extends State<PinLockScreen> {
                       child: Text(
                         'Incorrect PIN. $_failedAttempts failed attempt${_failedAttempts > 1 ? 's' : ''}.',
                         style: AppTheme.bodySmall.copyWith(
-                          color: Colors.red,
+                          color: Theme.of(context).colorScheme.error,
                         ),
                         textAlign: TextAlign.center,
                       ),

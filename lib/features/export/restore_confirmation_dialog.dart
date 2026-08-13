@@ -42,14 +42,14 @@ class RestoreConfirmationDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange),
+                border: Border.all(color: Theme.of(context).colorScheme.tertiary),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.warning, color: Colors.orange),
-                  SizedBox(width: 8),
+                  Icon(Icons.warning, color: Theme.of(context).colorScheme.tertiary),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'This action cannot be undone. Current data will be merged with the backup.',
@@ -70,8 +70,8 @@ class RestoreConfirmationDialog extends StatelessWidget {
         ElevatedButton(
           onPressed: () => Navigator.pop(context, true),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange,
-            foregroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.tertiary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
           ),
           child: const Text('Restore'),
         ),

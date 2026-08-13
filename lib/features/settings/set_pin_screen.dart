@@ -46,7 +46,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to set PIN: ${securityProvider.errorMessage}'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -86,7 +86,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
                       Text(
                         'Enter a 4-digit PIN to lock your app',
                         style: AppTheme.bodyMedium.copyWith(
-                          color: Colors.grey,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -235,7 +235,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
               Text(
                 description,
                 style: AppTheme.bodySmall.copyWith(
-                  color: Colors.grey,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

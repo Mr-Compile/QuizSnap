@@ -141,10 +141,10 @@ class _CountdownScreenState extends State<CountdownScreen> {
                   child: Center(
                     child: Text(
                       _countdown > 0 ? '$_countdown' : 'GO!',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 80,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                   ),

@@ -48,6 +48,11 @@ class _ToastItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = _ToastColors.fromType(
+      toast.type ?? InlineMessageType.info,
+      Theme.of(context).colorScheme,
+    );
+
     return AnimatedOpacity(
       opacity: 1.0,
       duration: const Duration(milliseconds: 250),
@@ -58,7 +63,7 @@ class _ToastItem extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: toast.backgroundColor ?? Theme.of(context).colorScheme.surface,
+            color: toast.backgroundColor ?? colors.background,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -72,14 +77,18 @@ class _ToastItem extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (toast.icon != null) ...[
-                Icon(toast.icon, color: toast.textColor, size: 16),
+                Icon(
+                  toast.icon,
+                  color: toast.textColor ?? colors.foreground,
+                  size: 16,
+                ),
                 const SizedBox(width: 8),
               ],
               Flexible(
                 child: Text(
                   toast.message,
                   style: TextStyle(
-                    color: toast.textColor,
+                    color: toast.textColor ?? colors.foreground,
                     fontWeight: FontWeight.w500,
                     fontSize: 14,
                   ),
@@ -90,5 +99,40 @@ class _ToastItem extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _ToastColors {
+  final Color background;
+  final Color foreground;
+
+  const _ToastColors({
+    required this.background,
+    required this.foreground,
+  });
+
+  factory _ToastColors.fromType(InlineMessageType type, ColorScheme colorScheme) {
+    switch (type) {
+      case InlineMessageType.success:
+        return _ToastColors(
+          background: colorScheme.primaryContainer,
+          foreground: colorScheme.onPrimaryContainer,
+        );
+      case InlineMessageType.info:
+        return _ToastColors(
+          background: colorScheme.surfaceContainerHighest,
+          foreground: colorScheme.onSurface,
+        );
+      case InlineMessageType.warning:
+        return _ToastColors(
+          background: colorScheme.tertiaryContainer,
+          foreground: colorScheme.onTertiaryContainer,
+        );
+      case InlineMessageType.error:
+        return _ToastColors(
+          background: colorScheme.errorContainer,
+          foreground: colorScheme.onErrorContainer,
+        );
+    }
   }
 }

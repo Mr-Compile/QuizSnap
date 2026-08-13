@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import '../../core/database/database.dart';
 import '../../core/providers/flashcard_selection_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/custom_card.dart';
+import '../../shared/widgets/empty_state.dart';
 
-/// Right-side preview pane for tablet multi-selection.
-///
-/// Shows the selected flashcards and quick batch actions.
 class SelectionPreviewPane extends StatelessWidget {
   final List<Flashcard> flashcards;
   final FlashcardSelectionProvider selection;
@@ -24,93 +23,267 @@ class SelectionPreviewPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedCards = flashcards.where((c) => selection.isSelected(c.id)).toList();
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        border: Border(
-          left: BorderSide(color: colorScheme.outlineVariant, width: 1),
-        ),
-      ),
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildHeader(context),
+          const SizedBox(height: AppTheme.spacingLg),
+          Expanded(
+            child: selection.selectedIds.isEmpty
+                ? _buildEmptySelectionState(context)
+                : _buildPreviewContent(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Selection Preview',
+          style: AppTheme.headlineSmall,
+        ),
+        const SizedBox(height: AppTheme.spacingSm),
+        Text(
+          '${selection.selectedCount} card(s) selected',
+          style: AppTheme.bodyMedium.copyWith(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptySelectionState(BuildContext context) {
+    return EmptyState(
+      icon: Icons.check_circle_outline,
+      title: 'No cards selected',
+      subtitle: 'Select flashcards from the list to preview and perform batch actions',
+    );
+  }
+
+  Widget _buildPreviewContent(BuildContext context) {
+    final selectedFlashcards = flashcards
+        .where((card) => selection.selectedIds.contains(card.id))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (selectedFlashcards.isNotEmpty) ...[
+          _buildSelectedCardsPreview(context, selectedFlashcards),
+          const SizedBox(height: AppTheme.spacingLg),
+        ],
+        _buildBatchActions(context),
+        const SizedBox(height: AppTheme.spacingLg),
+        _buildSelectionSummary(context),
+      ],
+    );
+  }
+
+  Widget _buildSelectedCardsPreview(BuildContext context, List<Flashcard> selectedCards) {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Selection',
+            'Selected Cards (${selectedCards.length})',
             style: AppTheme.labelLarge,
           ),
-          const SizedBox(height: AppTheme.spacingSm),
+          const SizedBox(height: AppTheme.spacingMd),
+          ...selectedCards.take(3).map((card) => _buildMiniCardPreview(context, card)),
+          if (selectedCards.length > 3) ...[
+            const SizedBox(height: AppTheme.spacingSm),
+            Text(
+              '...and ${selectedCards.length - 3} more',
+              style: AppTheme.bodySmall.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniCardPreview(BuildContext context, Flashcard card) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingSm),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
-            '${selection.selectedCount} selected',
-            style: AppTheme.bodyMedium,
+            card.question,
+            style: AppTheme.labelMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: AppTheme.spacingLg),
+          const SizedBox(height: AppTheme.spacingXs),
+          Text(
+            card.answer,
+            style: AppTheme.bodySmall.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBatchActions(BuildContext context) {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Batch Actions',
+            style: AppTheme.labelLarge,
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
           Wrap(
             spacing: AppTheme.spacingSm,
+            runSpacing: AppTheme.spacingSm,
             children: [
-              FilledButton.icon(
-                onPressed: selection.hasSelection ? onMove : null,
-                icon: const Icon(Icons.drive_file_move, size: 18),
-                label: const Text('Move'),
+              _buildActionButton(
+                context,
+                'Move to Deck',
+                Icons.drive_file_move,
+                onMove,
               ),
-              FilledButton.tonalIcon(
-                onPressed: selection.hasSelection ? onDelete : null,
-                icon: const Icon(Icons.delete_outline, size: 18),
-                label: const Text('Delete'),
+              _buildActionButton(
+                context,
+                'Bookmark',
+                Icons.bookmark,
+                onBookmark,
               ),
-              OutlinedButton.icon(
-                onPressed: selection.hasSelection ? onBookmark : null,
-                icon: const Icon(Icons.bookmark, size: 18),
-                label: const Text('Bookmark'),
+              _buildActionButton(
+                context,
+                'Delete',
+                Icons.delete_outline,
+                onDelete,
+                isDestructive: true,
               ),
             ],
           ),
-          const SizedBox(height: AppTheme.spacingLg),
-          if (selectedCards.isEmpty)
-            Center(
-              child: Text(
-                'Select flashcards to see a preview',
-                style: AppTheme.bodyMedium.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
-              ),
-            )
-          else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: selectedCards.length,
-              itemBuilder: (context, index) {
-                final card = selectedCards[index];
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTheme.spacingMd),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          card.question,
-                          style: AppTheme.labelMedium,
-                        ),
-                        const SizedBox(height: AppTheme.spacingXs),
-                        Text(
-                          card.answer,
-                          style: AppTheme.bodySmall.copyWith(
-                            color: colorScheme.onSurface.withValues(alpha: 0.7),
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(
+    BuildContext context,
+    String label,
+    IconData icon,
+    VoidCallback onTap, {
+    bool isDestructive = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacingMd,
+          vertical: AppTheme.spacingSm,
+        ),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isDestructive
+                ? Theme.of(context).colorScheme.error
+                : Theme.of(context).colorScheme.outline,
+          ),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isDestructive
+                  ? Theme.of(context).colorScheme.error
+                  : null,
             ),
+            const SizedBox(width: AppTheme.spacingXs),
+            Text(
+              label,
+              style: AppTheme.labelSmall.copyWith(
+                color: isDestructive
+                    ? Theme.of(context).colorScheme.error
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectionSummary(BuildContext context) {
+    final selectedFlashcards = flashcards
+        .where((card) => selection.selectedIds.contains(card.id))
+        .toList();
+    
+    final bookmarkedCount = selectedFlashcards.where((card) => card.isFavorite).length;
+
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Selection Summary',
+            style: AppTheme.labelLarge,
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
+          _buildSummaryRow(
+            context,
+            'Total Selected',
+            '${selection.selectedCount}',
+          ),
+          _buildSummaryRow(
+            context,
+            'Bookmarked',
+            '$bookmarkedCount',
+          ),
+          _buildSummaryRow(
+            context,
+            'Ready for Action',
+            'Yes',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppTheme.bodySmall.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          Text(
+            value,
+            style: AppTheme.bodyMedium.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );

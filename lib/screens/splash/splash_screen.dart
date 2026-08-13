@@ -76,11 +76,11 @@ class _SplashScreenState extends State<SplashScreen>
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
+                        color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.2),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -100,7 +100,7 @@ class _SplashScreenState extends State<SplashScreen>
                   style: GoogleFonts.poppins(
                     fontSize: 42,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -114,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.9),
                       height: 1.5,
                     ),
                     textAlign: TextAlign.center,
@@ -123,12 +123,12 @@ class _SplashScreenState extends State<SplashScreen>
                 const SizedBox(height: 48),
 
                 // Loading indicator
-                const SizedBox(
+                SizedBox(
                   width: 32,
                   height: 32,
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.onPrimary),
                   ),
                 ),
               ],

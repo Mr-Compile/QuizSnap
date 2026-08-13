@@ -72,10 +72,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.slate900 : Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -135,7 +133,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   onPressed: _nextPage,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.bambooGreen600,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -207,7 +205,7 @@ class _OnboardingPageWidget extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontSize: 28,
               fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : AppTheme.slate800,
+              color: Theme.of(context).colorScheme.onSurface,
               height: 1.3,
             ),
             textAlign: TextAlign.center,

@@ -83,7 +83,7 @@ class _PromptPreviewScreenState extends State<PromptPreviewScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: isDark ? AppTheme.slate800 : Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         actions: [
           IconButton(
@@ -105,7 +105,7 @@ class _PromptPreviewScreenState extends State<PromptPreviewScreen> {
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : AppTheme.slate800,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 12),
@@ -113,7 +113,7 @@ class _PromptPreviewScreenState extends State<PromptPreviewScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? AppTheme.slate800 : Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isDark ? AppTheme.slate700 : AppTheme.slate200,
@@ -137,12 +137,12 @@ class _PromptPreviewScreenState extends State<PromptPreviewScreen> {
               child: ElevatedButton.icon(
                 onPressed: _isTesting ? null : _testPrompt,
                 icon: _isTesting
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.onPrimary),
                         ),
                       )
                     : const Icon(Icons.play_arrow),
@@ -155,7 +155,7 @@ class _PromptPreviewScreenState extends State<PromptPreviewScreen> {
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.bambooGreen600,
-                  foregroundColor: Colors.white,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -204,7 +204,7 @@ class _PromptPreviewScreenState extends State<PromptPreviewScreen> {
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : AppTheme.slate800,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
@@ -212,7 +212,7 @@ class _PromptPreviewScreenState extends State<PromptPreviewScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? AppTheme.slate800 : Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isDark ? AppTheme.slate700 : AppTheme.slate200,
@@ -237,7 +237,7 @@ class _PromptPreviewScreenState extends State<PromptPreviewScreen> {
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : AppTheme.slate800,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
@@ -245,7 +245,7 @@ class _PromptPreviewScreenState extends State<PromptPreviewScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? AppTheme.slate800 : Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isDark ? AppTheme.slate700 : AppTheme.slate200,

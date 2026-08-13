@@ -67,9 +67,9 @@ class _FolderListScreenState extends State<FolderListScreen> {
                             color: Color(int.parse(folder.color.replaceFirst('#', '0xFF'))),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.folder,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
                         const SizedBox(width: AppTheme.spacingMd),

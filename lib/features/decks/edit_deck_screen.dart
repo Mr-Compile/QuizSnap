@@ -43,7 +43,7 @@ class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerM
            _selectedColor != _initialColor;
   }
 
-  final List<String> _colors = [
+  final List<String> _colors = const [
     '#4CAF50', // Green
     '#2196F3', // Blue
     '#FF9800', // Orange
@@ -103,6 +103,7 @@ class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerM
 
     return buildWithBackButtonHandler(
       Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: const CustomAppBar(
           title: 'Edit Deck',
         ),
@@ -112,7 +113,12 @@ class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerM
               future: dbProvider.folderRepository.getAllFolders(),
               builder: (context, snapshot) {
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppTheme.spacingLg),
+                  padding: EdgeInsets.only(
+                    left: AppTheme.spacingLg,
+                    right: AppTheme.spacingLg,
+                    top: AppTheme.spacingLg,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + AppTheme.spacingLg,
+                  ),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -177,27 +183,32 @@ class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerM
                           spacing: AppTheme.spacingSm,
                           runSpacing: AppTheme.spacingSm,
                           children: _colors.map((color) {
-                            return GestureDetector(
-                              onTap: () => setState(() => _selectedColor = color),
-                              child: Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Color(int.parse(color.replaceFirst('#', '0xFF'))),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: _selectedColor == color
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Colors.transparent,
-                                    width: 3,
+                            return Semantics(
+                              button: true,
+                              label: 'Select ${_selectedColor == color ? 'selected' : ''} color',
+                              selected: _selectedColor == color,
+                              child: GestureDetector(
+                                onTap: () => setState(() => _selectedColor = color),
+                                child: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Color(int.parse(color.replaceFirst('#', '0xFF'))),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: _selectedColor == color
+                                          ? Theme.of(context).colorScheme.primary
+                                          : Colors.transparent,
+                                      width: 3,
+                                    ),
                                   ),
+                                  child: _selectedColor == color
+                                      ? Icon(
+                                          Icons.check,
+                                          color: Theme.of(context).colorScheme.onPrimary,
+                                        )
+                                      : null,
                                 ),
-                                child: _selectedColor == color
-                                    ? const Icon(
-                                        Icons.check,
-                                        color: Colors.white,
-                                      )
-                                    : null,
                               ),
                             );
                           }).toList(),

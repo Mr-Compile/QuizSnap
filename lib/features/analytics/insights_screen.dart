@@ -67,10 +67,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   Widget _buildInsightHeader(BuildContext context, trends) {
     final trendColor = trends.trend == 'improving'
-        ? Colors.green
+        ? Theme.of(context).colorScheme.primary
         : trends.trend == 'declining'
-            ? Colors.red
-            : Colors.orange;
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.tertiary;
 
     final trendIcon = trends.trend == 'improving'
         ? Icons.trending_up
@@ -280,10 +280,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   Widget _buildPriorityBadge(BuildContext context, InsightPriority priority) {
     final color = priority == InsightPriority.high
-        ? Colors.red
+        ? Theme.of(context).colorScheme.error
         : priority == InsightPriority.medium
-            ? Colors.orange
-            : Colors.green;
+            ? Theme.of(context).colorScheme.tertiary
+            : Theme.of(context).colorScheme.primary;
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -307,13 +307,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
   Color _getInsightColor(InsightType type) {
     switch (type) {
       case InsightType.achievement:
-        return Colors.green;
+        return Theme.of(context).colorScheme.primary;
       case InsightType.warning:
-        return Colors.red;
+        return Theme.of(context).colorScheme.error;
       case InsightType.suggestion:
-        return Colors.blue;
+        return Theme.of(context).colorScheme.secondary;
       case InsightType.info:
-        return Colors.orange;
+        return Theme.of(context).colorScheme.tertiary;
     }
   }
 }

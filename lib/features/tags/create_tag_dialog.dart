@@ -90,9 +90,9 @@ class _CreateTagDialogState extends State<CreateTagDialog> {
                       ),
                     ),
                     child: _selectedColor == color
-                        ? const Icon(
+                        ? Icon(
                             Icons.check,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onPrimary,
                             size: 20,
                           )
                         : null,

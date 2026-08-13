@@ -71,7 +71,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
           Icon(
             Icons.check_circle,
             size: 48,
-            color: Colors.green,
+            color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: AppTheme.spacingMd),
           Text(
@@ -108,7 +108,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
 
   Widget _buildWeakTopicItem(BuildContext context, WeakTopicChartItem topic) {
     final accuracy = topic.accuracy;
-    final accuracyColor = accuracy >= 60.0 ? Colors.orange : Colors.red;
+    final accuracyColor = accuracy >= 60.0 ? Theme.of(context).colorScheme.tertiary : Theme.of(context).colorScheme.error;
 
     return CustomCard(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
@@ -272,10 +272,10 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
     return items.asMap().entries.map((entry) {
       final accuracy = entry.value.accuracy.toDouble();
       final color = accuracy >= 80.0
-          ? Colors.green
+          ? Theme.of(context).colorScheme.primary
           : accuracy >= 60.0
-              ? Colors.orange
-              : Colors.red;
+              ? Theme.of(context).colorScheme.tertiary
+              : Theme.of(context).colorScheme.error;
 
       return BarChartGroupData(
         x: entry.key,
@@ -305,7 +305,7 @@ class _WeakTopicsScreenState extends State<WeakTopicsScreen> {
             children: [
               Icon(
                 Icons.lightbulb,
-                color: Colors.amber,
+                color: Theme.of(context).colorScheme.tertiary,
               ),
               const SizedBox(width: AppTheme.spacingSm),
               Text(

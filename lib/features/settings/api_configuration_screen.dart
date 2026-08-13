@@ -68,7 +68,7 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Connection failed: ${groqProvider.errorMessage}'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -96,7 +96,7 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to save API key: ${groqProvider.errorMessage}'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -115,7 +115,7 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Clear'),
           ),
         ],
@@ -169,7 +169,7 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
                                 Text(
                                   'Enter your Groq API key to enable AI features',
                                   style: AppTheme.bodyMedium.copyWith(
-                                    color: Colors.grey,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -182,19 +182,19 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
                                 vertical: AppTheme.spacingXs,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.1),
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                                border: Border.all(color: Colors.green),
+                                border: Border.all(color: Theme.of(context).colorScheme.primary),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                                  Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 16),
                                   const SizedBox(width: 4),
                                   Text(
                                     'Configured',
                                     style: AppTheme.labelSmall.copyWith(
-                                      color: Colors.green,
+                                      color: Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
                                 ],
@@ -353,7 +353,7 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
                         Text(
                           '${GroqModels.getDisplayName(GroqModels.getDefaultModel())} is recommended for best performance',
                           style: AppTheme.bodySmall.copyWith(
-                            color: Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -373,7 +373,7 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
                         ),
                         const SizedBox(height: AppTheme.spacingMd),
                         ListTile(
-                          leading: const Icon(Icons.delete_outline, color: Colors.red),
+                          leading: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
                           title: const Text('Clear API Key'),
                           subtitle: const Text('Remove your API key from secure storage'),
                           trailing: const Icon(Icons.chevron_right),
@@ -445,7 +445,7 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
               Text(
                 description,
                 style: AppTheme.bodySmall.copyWith(
-                  color: Colors.grey,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

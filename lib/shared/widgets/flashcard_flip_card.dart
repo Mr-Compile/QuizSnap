@@ -167,6 +167,8 @@ class _FlashcardFlipCardState extends State<FlashcardFlipCard>
                     style: Theme.of(context).textTheme.headlineSmall,
                     textAlign: TextAlign.center,
                     softWrap: true,
+                    maxLines: 10,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),

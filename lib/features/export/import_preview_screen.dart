@@ -86,10 +86,10 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline,
               size: 64,
-              color: Colors.red,
+              color: Theme.of(context).colorScheme.error,
             ),
             const SizedBox(height: 16),
             Text(
@@ -100,7 +100,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
             Text(
               _errorMessage ?? 'Unknown error',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
               textAlign: TextAlign.center,
             ),
@@ -266,7 +266,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
         children: [
           Icon(
             isValid ? Icons.verified : Icons.warning,
-            color: isValid ? Colors.green : Colors.orange,
+            color: isValid ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.tertiary,
             size: 24,
           ),
           const SizedBox(width: 12),
@@ -373,14 +373,14 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange),
+                border: Border.all(color: Theme.of(context).colorScheme.tertiary),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.warning, color: Colors.orange),
-                  SizedBox(width: 8),
+                  Icon(Icons.warning, color: Theme.of(context).colorScheme.tertiary),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'This action cannot be undone.',
@@ -400,8 +400,8 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.tertiary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
             ),
             child: const Text('Restore'),
           ),
@@ -429,7 +429,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Restore completed successfully'),
-              backgroundColor: Colors.green,
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
           );
         } else {
@@ -437,7 +437,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Restore failed'),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -448,7 +448,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Restore failed: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }

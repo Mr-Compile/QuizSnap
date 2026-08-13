@@ -44,18 +44,33 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
 
               final analytics = snapshot.data!;
               
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(AppTheme.spacing4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildOverviewCards(context, analytics),
-                    const SizedBox(height: AppTheme.spacing6),
-                    _buildQuickStats(context, analytics),
-                    const SizedBox(height: AppTheme.spacing6),
-                    _buildDetailedAnalytics(context),
-                  ],
-                ),
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final isTablet = constraints.maxWidth >= 600;
+                  final maxWidth = isTablet ? 800.0 : double.infinity;
+                  
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      left: AppTheme.spacing4,
+                      right: AppTheme.spacing4,
+                      top: AppTheme.spacing4,
+                      bottom: AppTheme.spacing4 + MediaQuery.of(context).padding.bottom,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxWidth),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildOverviewCards(context, analytics),
+                          const SizedBox(height: AppTheme.spacing6),
+                          _buildQuickStats(context, analytics),
+                          const SizedBox(height: AppTheme.spacing6),
+                          _buildDetailedAnalytics(context),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               );
             },
           );
@@ -81,7 +96,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 'Total Decks',
                 analytics.totalDecks.toString(),
                 Icons.folder,
-                Colors.blue,
+                AppTheme.blue600,
               ),
             ),
             const SizedBox(width: AppTheme.spacing2),
@@ -91,7 +106,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 'Total Cards',
                 analytics.totalFlashcards.toString(),
                 Icons.style,
-                Colors.green,
+                AppTheme.bambooGreen600,
               ),
             ),
           ],
@@ -105,7 +120,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 'Due Today',
                 analytics.dueToday.toString(),
                 Icons.assignment,
-                Colors.orange,
+                AppTheme.amber600,
               ),
             ),
             const SizedBox(width: AppTheme.spacing2),
@@ -115,7 +130,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 'Streak',
                 '${analytics.currentStreak} days',
                 Icons.local_fire_department,
-                Colors.red,
+                AppTheme.red600,
               ),
             ),
           ],
@@ -131,42 +146,48 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     IconData icon,
     Color color,
   ) {
-    return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppTheme.spacing2),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppTheme.roundedSm),
+    return Semantics(
+      label: '$label: $value',
+      child: CustomCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacing2),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.roundedSm),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 20,
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 20,
+                const Spacer(),
+                Flexible(
+                  child: Text(
+                    value,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-              const Spacer(),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.spacing2),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: AppTheme.spacing2),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -189,7 +210,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                   'Cards Studied',
                   analytics.cardsStudiedToday.toString(),
                   Icons.check_circle,
-                  Colors.green,
+                  AppTheme.bambooGreen600,
                 ),
               ),
               const SizedBox(width: AppTheme.spacing4),
@@ -199,7 +220,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                   'Avg Quiz Score',
                   '${analytics.averageQuizScore.toStringAsFixed(1)}%',
                   Icons.quiz,
-                  Colors.purple,
+                  AppTheme.purple600,
                 ),
               ),
             ],
@@ -256,7 +277,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           'Daily Activity',
           'View your study activity over time',
           Icons.bar_chart,
-          Colors.blue,
+          AppTheme.blue600,
           () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const DailyActivityChartScreen(),
@@ -269,7 +290,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           'Quiz Performance',
           'Track your quiz scores and progress',
           Icons.trending_up,
-          Colors.green,
+          AppTheme.bambooGreen600,
           () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const QuizPerformanceScreen(),
@@ -282,7 +303,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           'Mastery Breakdown',
           'See your card mastery distribution',
           Icons.pie_chart,
-          Colors.orange,
+          AppTheme.amber600,
           () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const MasteryBreakdownScreen(),
@@ -295,7 +316,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           'Weak Topics',
           'Identify areas that need improvement',
           Icons.warning,
-          Colors.red,
+          AppTheme.red600,
           () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const WeakTopicsScreen(),
@@ -308,7 +329,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           'Study Time',
           'View your study time statistics',
           Icons.access_time,
-          Colors.purple,
+          AppTheme.purple600,
           () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const StudyTimeScreen(),
@@ -321,7 +342,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           'Subject Accuracy',
           'Compare accuracy across decks',
           Icons.track_changes,
-          Colors.teal,
+          AppTheme.teal600,
           () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const SubjectAccuracyScreen(),
@@ -334,7 +355,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           'Insights',
           'Get personalized study recommendations',
           Icons.lightbulb,
-          Colors.amber,
+          AppTheme.amber500,
           () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => const InsightsScreen(),
@@ -377,6 +398,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.labelLarge,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: AppTheme.spacing1),
                 Text(
@@ -384,6 +406,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

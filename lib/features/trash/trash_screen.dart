@@ -73,28 +73,33 @@ class _TrashScreenState extends State<TrashScreen> {
   Widget _buildTab(String label, int index) {
     final isSelected = _selectedTab == index;
     return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _selectedTab = index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.transparent,
-                width: 2,
+      child: Semantics(
+        button: true,
+        selected: isSelected,
+        label: 'View $label in trash',
+        child: InkWell(
+          onTap: () => setState(() => _selectedTab = index),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.transparent,
+                  width: 2,
+                ),
               ),
             ),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: AppTheme.labelMedium.copyWith(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: AppTheme.labelMedium.copyWith(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
             ),
           ),
         ),
@@ -215,9 +220,9 @@ class _TrashScreenState extends State<TrashScreen> {
                         color: Color(int.parse(folder.color.replaceFirst('#', '0xFF'))),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.folder,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onPrimary,
                         size: 20,
                       ),
                     ),
@@ -242,15 +247,23 @@ class _TrashScreenState extends State<TrashScreen> {
                         ],
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.restore, size: 20),
-                      tooltip: 'Restore folder',
-                      onPressed: () => _restoreFolder(context, folder.id),
+                    Semantics(
+                      button: true,
+                      label: 'Restore ${folder.name}',
+                      child: IconButton(
+                        icon: const Icon(Icons.restore, size: 20),
+                        tooltip: 'Restore folder',
+                        onPressed: () => _restoreFolder(context, folder.id),
+                      ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_forever, size: 20),
-                      tooltip: 'Delete folder forever',
-                      onPressed: () => _permanentlyDeleteFolder(context, folder.id),
+                    Semantics(
+                      button: true,
+                      label: 'Permanently delete ${folder.name}',
+                      child: IconButton(
+                        icon: const Icon(Icons.delete_forever, size: 20),
+                        tooltip: 'Delete folder forever',
+                        onPressed: () => _permanentlyDeleteFolder(context, folder.id),
+                      ),
                     ),
                   ],
                 ),
@@ -309,9 +322,9 @@ class _TrashScreenState extends State<TrashScreen> {
                         color: Color(int.parse(deck.color.replaceFirst('#', '0xFF'))),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.style,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onPrimary,
                         size: 20,
                       ),
                     ),
@@ -336,15 +349,23 @@ class _TrashScreenState extends State<TrashScreen> {
                         ],
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.restore, size: 20),
-                      tooltip: 'Restore deck',
-                      onPressed: () => _restoreDeck(context, deck.id),
+                    Semantics(
+                      button: true,
+                      label: 'Restore ${deck.name}',
+                      child: IconButton(
+                        icon: const Icon(Icons.restore, size: 20),
+                        tooltip: 'Restore deck',
+                        onPressed: () => _restoreDeck(context, deck.id),
+                      ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_forever, size: 20),
-                      tooltip: 'Delete deck forever',
-                      onPressed: () => _permanentlyDeleteDeck(context, deck.id),
+                    Semantics(
+                      button: true,
+                      label: 'Permanently delete ${deck.name}',
+                      child: IconButton(
+                        icon: const Icon(Icons.delete_forever, size: 20),
+                        tooltip: 'Delete deck forever',
+                        onPressed: () => _permanentlyDeleteDeck(context, deck.id),
+                      ),
                     ),
                   ],
                 ),
@@ -425,15 +446,23 @@ class _TrashScreenState extends State<TrashScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.restore, size: 20),
-                          tooltip: 'Restore flashcard',
-                          onPressed: () => _restoreFlashcard(context, flashcard.id),
+                        Semantics(
+                          button: true,
+                          label: 'Restore flashcard: ${flashcard.question}',
+                          child: IconButton(
+                            icon: const Icon(Icons.restore, size: 20),
+                            tooltip: 'Restore flashcard',
+                            onPressed: () => _restoreFlashcard(context, flashcard.id),
+                          ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_forever, size: 20),
-                          tooltip: 'Delete flashcard forever',
-                          onPressed: () => _permanentlyDeleteFlashcard(context, flashcard.id),
+                        Semantics(
+                          button: true,
+                          label: 'Permanently delete flashcard: ${flashcard.question}',
+                          child: IconButton(
+                            icon: const Icon(Icons.delete_forever, size: 20),
+                            tooltip: 'Delete flashcard forever',
+                            onPressed: () => _permanentlyDeleteFlashcard(context, flashcard.id),
+                          ),
                         ),
                       ],
                     ),

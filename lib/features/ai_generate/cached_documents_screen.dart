@@ -200,11 +200,11 @@ class _CachedDocumentsScreenState extends State<CachedDocumentsScreen> {
   Color _getDocumentTypeColor(DocumentType type) {
     switch (type) {
       case DocumentType.pdf:
-        return Colors.red;
+        return Theme.of(context).colorScheme.error;
       case DocumentType.txt:
-        return Colors.green;
+        return Theme.of(context).colorScheme.primary;
       case DocumentType.docx:
-        return Colors.blue;
+        return Theme.of(context).colorScheme.secondary;
     }
   }
 

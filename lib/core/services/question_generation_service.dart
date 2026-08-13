@@ -106,7 +106,7 @@ class QuestionGenerationService {
     return unique;
   }
 
-  String _normalizeForDedup(String text) {
+  static String _normalizeForDedup(String text) {
     return text
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9\s]'), '')
@@ -287,7 +287,7 @@ class QuestionGenerationService {
       if (block.trim().isEmpty) continue;
 
       try {
-        final question = _parseSingleMultipleChoice(block);
+        final question = parseSingleMultipleChoice(block);
         if (question != null) {
           questions.add(question);
         }
@@ -313,83 +313,131 @@ class QuestionGenerationService {
     return questions;
   }
 
-  GeneratedQuestion? _parseSingleMultipleChoice(String block) {
+  /// Parses a single multiple choice block into a [GeneratedQuestion].
+  ///
+  /// Only accepts option labels in the form `A.`, `A)`, `a.`, `a)`.
+  /// Lines beginning with `Correct Answer`, `Answer`, `Explanation`, `Reason`,
+  /// or `Rationale` are never treated as options.
+  static GeneratedQuestion? parseSingleMultipleChoice(String block) {
+    final normalized = block
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n');
+
     // Extract question text after "Question:"
     final questionMatch = RegExp(
-      r'^Question:\s*(.+?)(?=\n[A-D][).]\s|\nCorrect Answer:|$)',
+      r'^Question:\s*(.+?)(?=\n[A-Za-z][.)]|\nCorrect Answer:|\nAnswer:|\nExplanation:|\nReason:|\nRationale:|\n\n|\nQuestion:|$)',
       dotAll: true,
       multiLine: true,
-    ).firstMatch(block);
+      caseSensitive: false,
+    ).firstMatch(normalized);
     if (questionMatch == null) return null;
 
-    final questionText = questionMatch.group(1)?.trim() ?? '';
+    final questionText = sanitizeText(questionMatch.group(1)?.trim() ?? '');
     if (questionText.isEmpty) return null;
 
-    // Extract options A), B), C), D)
-    final options = <String>[];
-    final optionRegex = RegExp(r'^([A-D])[).]?\s*(.+?)(?=\n[A-D][).]?|\nCorrect Answer:|$)', multiLine: true);
-    for (final match in optionRegex.allMatches(block)) {
-      options.add(match.group(2)?.trim() ?? '');
-    }
-
-    if (options.length < 2) return null;
-
-    // Extract correct answer (accepts "A", "A)", "A.")
-    final answerMatch = RegExp(
-      r'Correct Answer[:\s]*([A-D])',
-      caseSensitive: false,
-      multiLine: true,
-    ).firstMatch(block);
-    if (answerMatch == null) return null;
-
-    final correctLetter = answerMatch.group(1)?.toUpperCase();
-    final correctIndex = 'ABCD'.indexOf(correctLetter ?? '');
-
-    if (correctIndex < 0 || correctIndex >= options.length) return null;
-
-    final explanationMatch = RegExp(
-      r'Explanation[:\s]*(.+?)(?=\n\n|\nQuestion:|$)',
+    // Extract only A-D options with strict "." or ")" delimiters.
+    final optionMatches = RegExp(
+      r'^([A-Za-z])[.)]\s*(.+?)(?=\n[A-Za-z][.)]|\nCorrect Answer:|\nAnswer:|\nExplanation:|\nReason:|\nRationale:|\n\n|\nQuestion:|$)',
       dotAll: true,
       multiLine: true,
-    ).firstMatch(block);
-    final explanation = explanationMatch?.group(1)?.trim();
+      caseSensitive: false,
+    ).allMatches(normalized);
+
+    final optionsByLetter = <String, String>{};
+    final seenKeys = <String>{};
+    for (final match in optionMatches) {
+      final letter = (match.group(1) ?? '').toUpperCase();
+      if (!'ABCD'.contains(letter)) continue;
+
+      final rawText = match.group(2)?.trim() ?? '';
+      final text = _stripOptionPrefix(sanitizeText(rawText));
+      if (text.isEmpty) continue;
+
+      final key = _normalizeForDedup(text);
+      if (seenKeys.contains(key)) continue;
+      seenKeys.add(key);
+
+      if (!optionsByLetter.containsKey(letter)) {
+        optionsByLetter[letter] = text;
+      }
+    }
+
+    if (optionsByLetter.length != 4) return null;
+
+    final options = ['A', 'B', 'C', 'D'].map((l) => optionsByLetter[l]!).toList();
+
+    // Extract correct answer (accepts "A", "A)", "A.")
+    final correctLetter = _extractMultipleChoiceAnswer(normalized);
+    if (correctLetter == null) return null;
+
+    final correctIndex = 'ABCD'.indexOf(correctLetter);
+    if (correctIndex < 0 || correctIndex >= options.length) return null;
+
+    final explanation = _extractMultipleChoiceExplanation(normalized);
 
     return GeneratedQuestion(
       question: questionText,
       options: options,
       correctAnswerIndex: correctIndex,
       explanation: explanation,
+      answer: correctLetter,
     );
+  }
+
+  /// Parses the correct answer letter from a multiple choice block.
+  static String? _extractMultipleChoiceAnswer(String block) {
+    final correctMatch = RegExp(
+      r'^Correct Answer[:\s]*([A-Da-d])',
+      multiLine: true,
+      caseSensitive: false,
+    ).firstMatch(block);
+    if (correctMatch != null) {
+      return correctMatch.group(1)?.toUpperCase();
+    }
+
+    final answerMatch = RegExp(
+      r'^Answer[:\s]*([A-Da-d])',
+      multiLine: true,
+      caseSensitive: false,
+    ).firstMatch(block);
+    return answerMatch?.group(1)?.toUpperCase();
+  }
+
+  /// Parses the explanation from a multiple choice block.
+  static String? _extractMultipleChoiceExplanation(String block) {
+    final match = RegExp(
+      r'^Explanation[:\s]*(.+?)(?=\n\n|\nQuestion:|$)',
+      dotAll: true,
+      multiLine: true,
+      caseSensitive: false,
+    ).firstMatch(block);
+    return match?.group(1)?.trim();
+  }
+
+  /// Strips any remaining leading option label from the option text.
+  ///
+  /// Requires a single A-D letter followed by "." or ")" so it does not
+  /// accidentally remove the first letter of an option like "Central".
+  static String _stripOptionPrefix(String text) {
+    return text
+        .replaceFirst(RegExp(r'^\s*[A-Da-d][.)]\s+'), '')
+        .trim();
   }
 
   /// Legacy parser for responses that use Q1 / 1. markers.
   GeneratedQuestion? _parseLegacyMultipleChoice(String block) {
-    final questionMatch = RegExp(r'(?:Q\d+|^\d+)[:.]?\s*(.+?)(?=\n|$)').firstMatch(block);
-    if (questionMatch == null) return null;
+    final normalized = block
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n')
+        .trim();
+    if (normalized.isEmpty) return null;
 
-    final questionText = questionMatch.group(1)?.trim() ?? '';
-    if (questionText.isEmpty) return null;
-
-    final options = <String>[];
-    final optionRegex = RegExp(r'([A-D])[:.]?\s*(.+?)(?=\n[A-D]|$)', multiLine: true);
-    for (final match in optionRegex.allMatches(block)) {
-      options.add(match.group(2)?.trim() ?? '');
-    }
-
-    if (options.length < 2) return null;
-
-    final answerMatch = RegExp(r'Answer[:\s]*([A-D])', caseSensitive: false).firstMatch(block);
-    if (answerMatch == null) return null;
-
-    final correctLetter = answerMatch.group(1)?.toUpperCase();
-    final correctIndex = 'ABCD'.indexOf(correctLetter ?? '');
-    if (correctIndex < 0 || correctIndex >= options.length) return null;
-
-    return GeneratedQuestion(
-      question: questionText,
-      options: options,
-      correctAnswerIndex: correctIndex,
+    // Convert leading Q1. or 1. markers into the standard "Question:" form.
+    final prepared = normalized.replaceFirstMapped(
+      RegExp(r'^(?:Q\d+|\d+)[:.]?\s*'),
+      (match) => 'Question: ',
     );
+    return parseSingleMultipleChoice(prepared);
   }
 
   /// Parse identification questions.
@@ -653,6 +701,15 @@ class QuestionGenerationService {
 
       if (question.correctAnswerIndex < 0 || question.correctAnswerIndex >= question.options.length) {
         issues.add('Question ${i + 1}: Invalid correct answer index');
+      }
+
+      if (question.options.length > 1) {
+        issues.addAll(MultipleChoiceQuestionValidator.validate(
+          options: question.options,
+          correctAnswerIndex: question.correctAnswerIndex,
+          questionIndex: i,
+          answer: question.answer,
+        ));
       }
 
       if (question.answer != null && question.answer!.isNotEmpty) {

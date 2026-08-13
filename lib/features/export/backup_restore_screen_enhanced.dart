@@ -211,9 +211,9 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
 
   Widget _buildScheduleDetails(BackupSchedule schedule) {
     if (!schedule.enabled) {
-      return const Text(
+      return Text(
         'Automatic backup is disabled',
-        style: TextStyle(color: Colors.grey),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       );
     }
 
@@ -659,12 +659,12 @@ class _BackupListItem extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _getStatusColor().withValues(alpha: 0.1),
+                color: _getStatusColor(context).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 _getStatusIcon(),
-                color: _getStatusColor(),
+                color: _getStatusColor(context),
                 size: 20,
               ),
             ),
@@ -705,17 +705,17 @@ class _BackupListItem extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor() {
+  Color _getStatusColor(BuildContext context) {
     switch (backup.status) {
       case BackupStatus.completed:
-        return Colors.green;
+        return Theme.of(context).colorScheme.primary;
       case BackupStatus.failed:
-        return Colors.red;
+        return Theme.of(context).colorScheme.error;
       case BackupStatus.creating:
       case BackupStatus.restoring:
-        return Colors.orange;
+        return Theme.of(context).colorScheme.tertiary;
       default:
-        return Colors.grey;
+        return Theme.of(context).colorScheme.onSurfaceVariant;
     }
   }
 

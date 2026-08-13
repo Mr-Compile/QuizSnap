@@ -319,6 +319,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         final index = entry.key;
         final option = entry.value;
         final isSelected = answer?.selectedAnswerIndex == index;
+        final colorScheme = Theme.of(context).colorScheme;
 
         return Padding(
           padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
@@ -331,14 +332,12 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
               decoration: BoxDecoration(
                 border: Border.all(
                   color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+                      ? colorScheme.primary
+                      : colorScheme.outline.withValues(alpha: 0.3),
                   width: isSelected ? 2 : 1,
                 ),
                 borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-                    : null,
+                color: isSelected ? colorScheme.primaryContainer : colorScheme.surface,
               ),
               child: Row(
                 children: [
@@ -348,12 +347,12 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.surfaceContainerHighest,
+                          ? colorScheme.primary
+                          : colorScheme.surfaceContainerHighest,
                       border: Border.all(
                         color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.outline,
+                            ? colorScheme.primary
+                            : colorScheme.outline,
                       ),
                     ),
                     child: Center(
@@ -361,8 +360,8 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
                         String.fromCharCode(65 + index), // A, B, C, D
                         style: AppTheme.labelMedium.copyWith(
                           color: isSelected
-                              ? Colors.white
-                              : Theme.of(context).colorScheme.onSurface,
+                              ? colorScheme.onPrimary
+                              : colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -372,13 +371,15 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
                   Expanded(
                     child: Text(
                       option,
-                      style: AppTheme.bodyLarge,
+                      style: isSelected
+                          ? AppTheme.bodyLarge.copyWith(color: colorScheme.onPrimaryContainer)
+                          : AppTheme.bodyLarge,
                     ),
                   ),
                   if (isSelected)
                     Icon(
                       Icons.check_circle,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: colorScheme.primary,
                     ),
                 ],
               ),
