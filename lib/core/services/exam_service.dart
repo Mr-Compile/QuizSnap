@@ -103,6 +103,7 @@ class ExamService {
         options: options,
         correctAnswerIndex: correctAnswerIndex,
         flashcardId: flashcard.id,
+        type: QuestionType.multipleChoice,
       );
     }).toList();
   }
@@ -179,6 +180,7 @@ CORRECT: [A, B, C, or D]''';
         options: options,
         correctAnswerIndex: correctIndex,
         flashcardId: flashcard.id,
+        type: QuestionType.multipleChoice,
       );
     } catch (e) {
       return null;
@@ -200,6 +202,7 @@ CORRECT: [A, B, C, or D]''';
       options: options,
       correctAnswerIndex: 0,
       flashcardId: flashcard.id,
+      type: QuestionType.multipleChoice,
     );
   }
 
@@ -271,6 +274,64 @@ CORRECT: [A, B, C, or D]''';
     _examAnswers[examId] = answers;
   }
 
+  void submitTextAnswer({
+    required String examId,
+    required String questionId,
+    required String textAnswer,
+    required bool isCorrect,
+    required DateTime questionStartTime,
+  }) {
+    final timeSpent = DateTime.now().difference(questionStartTime);
+
+    final answer = UserAnswer(
+      questionId: questionId,
+      textAnswer: textAnswer,
+      isCorrect: isCorrect,
+      answeredAt: DateTime.now(),
+      timeSpent: timeSpent,
+    );
+
+    final answers = _examAnswers[examId] ?? [];
+    final existingIndex = answers.indexWhere((a) => a.questionId == questionId);
+
+    if (existingIndex >= 0) {
+      answers[existingIndex] = answer;
+    } else {
+      answers.add(answer);
+    }
+
+    _examAnswers[examId] = answers;
+  }
+
+  void submitListAnswer({
+    required String examId,
+    required String questionId,
+    required List<String> listAnswer,
+    required bool isCorrect,
+    required DateTime questionStartTime,
+  }) {
+    final timeSpent = DateTime.now().difference(questionStartTime);
+
+    final answer = UserAnswer(
+      questionId: questionId,
+      listAnswer: listAnswer,
+      isCorrect: isCorrect,
+      answeredAt: DateTime.now(),
+      timeSpent: timeSpent,
+    );
+
+    final answers = _examAnswers[examId] ?? [];
+    final existingIndex = answers.indexWhere((a) => a.questionId == questionId);
+
+    if (existingIndex >= 0) {
+      answers[existingIndex] = answer;
+    } else {
+      answers.add(answer);
+    }
+
+    _examAnswers[examId] = answers;
+  }
+
   Future<ExamResult> completeExam(String examId) async {
     final exam = _activeExams[examId];
     final questions = _examQuestions[examId];
@@ -281,7 +342,7 @@ CORRECT: [A, B, C, or D]''';
     }
 
     final correctCount = answers.where((a) => a.isCorrect).length;
-    final incorrectCount = answers.where((a) => !a.isCorrect && a.selectedAnswerIndex != null).length;
+    final incorrectCount = answers.where((a) => !a.isCorrect && _hasAnswer(a)).length;
     final unansweredCount = questions.where((q) {
       final answer = answers.firstWhere(
         (a) => a.questionId == q.id,
@@ -292,7 +353,7 @@ CORRECT: [A, B, C, or D]''';
           timeSpent: Duration.zero,
         ),
       );
-      return answer.selectedAnswerIndex == null;
+      return !_hasAnswer(answer);
     }).length;
     final percentage = questions.isNotEmpty
         ? (correctCount / questions.length) * 100
@@ -317,6 +378,12 @@ CORRECT: [A, B, C, or D]''';
       percentage: percentage,
       totalTime: completedExam.elapsed,
     );
+  }
+
+  bool _hasAnswer(UserAnswer answer) {
+    return answer.selectedAnswerIndex != null ||
+           (answer.textAnswer != null && answer.textAnswer!.isNotEmpty) ||
+           (answer.listAnswer != null && answer.listAnswer!.isNotEmpty);
   }
 
   void abandonExam(String examId) {

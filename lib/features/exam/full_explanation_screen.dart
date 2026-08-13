@@ -90,7 +90,7 @@ class FullExplanationScreen extends StatelessWidget {
           _buildAnswerOption(
             context,
             index: question.correctAnswerIndex,
-            text: question.correctAnswer,
+            text: question.correctAnswer ?? '',
             isCorrect: true,
           ),
           const SizedBox(height: AppTheme.spacingMd),

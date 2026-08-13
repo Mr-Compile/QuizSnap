@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/exam_provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -352,7 +351,14 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
             final examProvider = context.read<ExamProvider>();
             examProvider.clearExam();
             if (mounted) {
-              context.go('/decks/${result.exam.deckId}');
+              // Use popUntil to navigate back to the deck details screen
+              Navigator.of(context).popUntil((route) {
+                // Pop until we reach a route that is not an exam-related screen
+                final routeName = route.settings.name;
+                return routeName == '/decks/${result.exam.deckId}' || 
+                       routeName == '/decks' ||
+                       route.isFirst;
+              });
             }
           },
           isOutlined: true,

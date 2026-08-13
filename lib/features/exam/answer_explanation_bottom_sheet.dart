@@ -184,7 +184,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
           ),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
-            widget.question.correctAnswer,
+            widget.question.correctAnswer ?? '',
             style: AppTheme.bodyLarge.copyWith(
               fontWeight: FontWeight.bold,
               color: colorScheme.onPrimaryContainer,

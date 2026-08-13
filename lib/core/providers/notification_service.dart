@@ -52,6 +52,10 @@ class ToastMessage {
 /// Shows top banners, floating toasts, and exposes an optional inline message
 /// that can be consumed by screens that support inline status UI.
 class NotificationService with ChangeNotifier {
+  static final NotificationService _instance = NotificationService._internal();
+  factory NotificationService() => _instance;
+  NotificationService._internal();
+
   final List<BannerMessage> _banners = [];
   final List<ToastMessage> _toasts = [];
   String? _inlineMessage;

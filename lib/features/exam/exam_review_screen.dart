@@ -308,6 +308,25 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
   }
 
   Widget _buildAnswerOptions(ExamQuestion question, UserAnswer answer) {
+    // Render different UI based on question type
+    switch (question.type) {
+      case QuestionType.multipleChoice:
+        return _buildMultipleChoiceReview(question, answer);
+      case QuestionType.identification:
+        return _buildIdentificationReview(question, answer);
+      case QuestionType.enumeration:
+        return _buildEnumerationReview(question, answer);
+      case QuestionType.mixedFormat:
+        // For mixed format, check if it has options or text answer
+        if (question.options.length >= 4) {
+          return _buildMultipleChoiceReview(question, answer);
+        } else {
+          return _buildIdentificationReview(question, answer);
+        }
+    }
+  }
+
+  Widget _buildMultipleChoiceReview(ExamQuestion question, UserAnswer answer) {
     return Column(
       children: question.options.asMap().entries.map((entry) {
         final index = entry.key;
@@ -389,6 +408,185 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildIdentificationReview(ExamQuestion question, UserAnswer answer) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final userAnswer = answer.textAnswer ?? 'Not answered';
+    final correctAnswer = question.correctAnswer ?? '';
+    final isCorrect = answer.isCorrect;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildReviewRow(
+          'Your Answer',
+          userAnswer,
+          isCorrect ? colorScheme.primary : colorScheme.error,
+          isCorrect ? Icons.check : Icons.close,
+        ),
+        const SizedBox(height: AppTheme.spacingSm),
+        _buildReviewRow(
+          'Correct Answer',
+          correctAnswer,
+          colorScheme.primary,
+          Icons.check_circle,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEnumerationReview(ExamQuestion question, UserAnswer answer) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final userAnswers = answer.listAnswer ?? <String>[];
+    final correctAnswers = question.correctAnswers ?? <String>[];
+
+    // Find missing items
+    final missingItems = correctAnswers
+        .where((correct) => !userAnswers.any((user) => 
+            user.toLowerCase().trim() == correct.toLowerCase().trim()))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Your Answers:',
+          style: AppTheme.labelMedium.copyWith(
+            color: colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingXs),
+        ...userAnswers.map((item) => Padding(
+          padding: const EdgeInsets.only(bottom: AppTheme.spacingXs),
+          child: Row(
+            children: [
+              Icon(
+                Icons.circle,
+                size: 8,
+                color: colorScheme.onSurface,
+              ),
+              const SizedBox(width: AppTheme.spacingSm),
+              Expanded(
+                child: Text(
+                  item,
+                  style: AppTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        )),
+        if (userAnswers.isEmpty)
+          Text(
+            'Not answered',
+            style: AppTheme.bodyMedium.copyWith(
+              color: colorScheme.error,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        const SizedBox(height: AppTheme.spacingMd),
+        Text(
+          'Correct Answers:',
+          style: AppTheme.labelMedium.copyWith(
+            color: colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingXs),
+        ...correctAnswers.map((item) => Padding(
+          padding: const EdgeInsets.only(bottom: AppTheme.spacingXs),
+          child: Row(
+            children: [
+              Icon(
+                Icons.circle,
+                size: 8,
+                color: colorScheme.primary,
+              ),
+              const SizedBox(width: AppTheme.spacingSm),
+              Expanded(
+                child: Text(
+                  item,
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        )),
+        if (missingItems.isNotEmpty) ...[
+          const SizedBox(height: AppTheme.spacingMd),
+          Container(
+            padding: const EdgeInsets.all(AppTheme.spacingSm),
+            decoration: BoxDecoration(
+              color: colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.warning, size: 16, color: colorScheme.error),
+                    const SizedBox(width: AppTheme.spacingXs),
+                    Text(
+                      'Missing Items:',
+                      style: AppTheme.labelSmall.copyWith(
+                        color: colorScheme.error,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppTheme.spacingXs),
+                ...missingItems.map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppTheme.spacingXs),
+                  child: Text(
+                    '• $item',
+                    style: AppTheme.bodySmall.copyWith(
+                      color: colorScheme.onErrorContainer,
+                    ),
+                  ),
+                )),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildReviewRow(String label, String value, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingSm),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: AppTheme.spacingSm),
+          Text(
+            '$label:',
+            style: AppTheme.labelSmall.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: AppTheme.spacingSm),
+          Expanded(
+            child: Text(
+              value,
+              style: AppTheme.bodyMedium.copyWith(
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

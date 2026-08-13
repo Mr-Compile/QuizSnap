@@ -28,9 +28,6 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
   PromptType _selectedType = PromptType.multipleChoice;
   Difficulty _selectedDifficulty = Difficulty.medium;
   int _questionCount = 10;
-  bool _includeAnswers = true;
-  bool _includeExplanations = true;
-  bool _shuffleChoices = true;
   bool _isGenerating = false;
   String _generationStep = '';
   double _generationProgress = 0.0;
@@ -64,12 +61,6 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
           _buildSectionTitle('Number of Questions'),
           const SizedBox(height: 12),
           _buildQuestionCountSelector(),
-          const SizedBox(height: 24),
-          
-          // Additional options
-          _buildSectionTitle('Additional Options'),
-          const SizedBox(height: 12),
-          _buildAdditionalOptions(),
           const SizedBox(height: 24),
           
           // Generate button
@@ -242,43 +233,6 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAdditionalOptions() {
-    return Column(
-      children: [
-        SwitchListTile(
-          title: const Text('Include Answers'),
-          subtitle: const Text('Add correct answers to generated questions'),
-          value: _includeAnswers,
-          onChanged: (value) {
-            setState(() {
-              _includeAnswers = value;
-            });
-          },
-        ),
-        SwitchListTile(
-          title: const Text('Include Explanations'),
-          subtitle: const Text('Add detailed explanations for answers'),
-          value: _includeExplanations,
-          onChanged: (value) {
-            setState(() {
-              _includeExplanations = value;
-            });
-          },
-        ),
-        SwitchListTile(
-          title: const Text('Shuffle Choices'),
-          subtitle: const Text('Randomize answer choice order'),
-          value: _shuffleChoices,
-          onChanged: (value) {
-            setState(() {
-              _shuffleChoices = value;
-            });
-          },
         ),
       ],
     );

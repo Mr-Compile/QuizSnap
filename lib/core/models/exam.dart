@@ -151,19 +151,32 @@ extension ExamStatusExtension on ExamStatus {
   }
 }
 
+enum QuestionType {
+  multipleChoice,
+  identification,
+  enumeration,
+  mixedFormat,
+}
+
 class ExamQuestion {
   final String id;
   final String question;
+  final QuestionType type;
   final List<String> options;
   final int correctAnswerIndex;
+  final String? correctAnswer; // For identification/enumeration
+  final List<String>? correctAnswers; // For enumeration (multiple items)
   final String? explanation;
   final int? flashcardId;
 
   ExamQuestion({
     required this.id,
     required this.question,
-    required this.options,
-    required this.correctAnswerIndex,
+    required this.type,
+    this.options = const [],
+    this.correctAnswerIndex = 0,
+    this.correctAnswer,
+    this.correctAnswers,
     this.explanation,
     this.flashcardId,
   });
@@ -171,29 +184,49 @@ class ExamQuestion {
   ExamQuestion copyWith({
     String? id,
     String? question,
+    QuestionType? type,
     List<String>? options,
     int? correctAnswerIndex,
+    String? correctAnswer,
+    List<String>? correctAnswers,
     String? explanation,
     int? flashcardId,
   }) {
     return ExamQuestion(
       id: id ?? this.id,
       question: question ?? this.question,
+      type: type ?? this.type,
       options: options ?? this.options,
       correctAnswerIndex: correctAnswerIndex ?? this.correctAnswerIndex,
+      correctAnswer: correctAnswer ?? this.correctAnswer,
+      correctAnswers: correctAnswers ?? this.correctAnswers,
       explanation: explanation ?? this.explanation,
       flashcardId: flashcardId ?? this.flashcardId,
     );
   }
 
-  String get correctAnswer => options[correctAnswerIndex];
+  String get correctAnswerText {
+    switch (type) {
+      case QuestionType.multipleChoice:
+        return options.isNotEmpty ? options[correctAnswerIndex] : '';
+      case QuestionType.identification:
+        return correctAnswer ?? '';
+      case QuestionType.enumeration:
+        return correctAnswers?.join(', ') ?? '';
+      case QuestionType.mixedFormat:
+        return options.isNotEmpty ? options[correctAnswerIndex] : (correctAnswer ?? '');
+    }
+  }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'question': question,
+      'type': type.toString(),
       'options': options,
       'correctAnswerIndex': correctAnswerIndex,
+      'correctAnswer': correctAnswer,
+      'correctAnswers': correctAnswers,
       'explanation': explanation,
       'flashcardId': flashcardId,
     };
@@ -203,8 +236,18 @@ class ExamQuestion {
     return ExamQuestion(
       id: json['id'] as String,
       question: json['question'] as String,
-      options: List<String>.from(json['options'] as List),
-      correctAnswerIndex: json['correctAnswerIndex'] as int,
+      type: json['type'] != null
+          ? QuestionType.values.firstWhere(
+              (e) => e.toString() == json['type'],
+              orElse: () => QuestionType.multipleChoice,
+            )
+          : QuestionType.multipleChoice,
+      options: List<String>.from(json['options'] as List? ?? []),
+      correctAnswerIndex: json['correctAnswerIndex'] as int? ?? 0,
+      correctAnswer: json['correctAnswer'] as String?,
+      correctAnswers: json['correctAnswers'] != null
+          ? List<String>.from(json['correctAnswers'] as List)
+          : null,
       explanation: json['explanation'] as String?,
       flashcardId: json['flashcardId'] as int?,
     );
@@ -214,6 +257,8 @@ class ExamQuestion {
 class UserAnswer {
   final String questionId;
   final int? selectedAnswerIndex;
+  final String? textAnswer; // For identification/enumeration
+  final List<String>? listAnswer; // For enumeration (multiple items)
   final bool isCorrect;
   final DateTime answeredAt;
   final Duration timeSpent;
@@ -221,6 +266,8 @@ class UserAnswer {
   UserAnswer({
     required this.questionId,
     this.selectedAnswerIndex,
+    this.textAnswer,
+    this.listAnswer,
     required this.isCorrect,
     required this.answeredAt,
     required this.timeSpent,
@@ -229,6 +276,8 @@ class UserAnswer {
   UserAnswer copyWith({
     String? questionId,
     int? selectedAnswerIndex,
+    String? textAnswer,
+    List<String>? listAnswer,
     bool? isCorrect,
     DateTime? answeredAt,
     Duration? timeSpent,
@@ -236,6 +285,8 @@ class UserAnswer {
     return UserAnswer(
       questionId: questionId ?? this.questionId,
       selectedAnswerIndex: selectedAnswerIndex ?? this.selectedAnswerIndex,
+      textAnswer: textAnswer ?? this.textAnswer,
+      listAnswer: listAnswer ?? this.listAnswer,
       isCorrect: isCorrect ?? this.isCorrect,
       answeredAt: answeredAt ?? this.answeredAt,
       timeSpent: timeSpent ?? this.timeSpent,
@@ -246,6 +297,8 @@ class UserAnswer {
     return {
       'questionId': questionId,
       'selectedAnswerIndex': selectedAnswerIndex,
+      'textAnswer': textAnswer,
+      'listAnswer': listAnswer,
       'isCorrect': isCorrect,
       'answeredAt': answeredAt.toIso8601String(),
       'timeSpent': timeSpent.inSeconds,
@@ -256,6 +309,10 @@ class UserAnswer {
     return UserAnswer(
       questionId: json['questionId'] as String,
       selectedAnswerIndex: json['selectedAnswerIndex'] as int?,
+      textAnswer: json['textAnswer'] as String?,
+      listAnswer: json['listAnswer'] != null
+          ? List<String>.from(json['listAnswer'] as List)
+          : null,
       isCorrect: json['isCorrect'] as bool,
       answeredAt: DateTime.parse(json['answeredAt'] as String),
       timeSpent: Duration(seconds: json['timeSpent'] as int),

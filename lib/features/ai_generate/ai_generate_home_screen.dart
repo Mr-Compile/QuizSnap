@@ -194,21 +194,21 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                 context,
                 title: 'PDF',
                 icon: Icons.picture_as_pdf,
-                color: Theme.of(context).colorScheme.error,
+                color: const Color(0xFFEF4444), // Red
                 onTap: () => _showFilePicker(context, 'pdf'),
               ),
               _buildImportCard(
                 context,
                 title: 'TXT',
                 icon: Icons.text_snippet,
-                color: Theme.of(context).colorScheme.primary,
+                color: const Color(0xFF64748B), // Slate
                 onTap: () => _showFilePicker(context, 'txt'),
               ),
               _buildImportCard(
                 context,
                 title: 'DOCX',
                 icon: Icons.description,
-                color: Theme.of(context).colorScheme.secondary,
+                color: const Color(0xFF3B82F6), // Blue
                 onTap: () => _showFilePicker(context, 'docx'),
               ),
               _buildImportCard(
@@ -222,7 +222,7 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                 context,
                 title: 'Camera OCR',
                 icon: Icons.camera_alt,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: const Color(0xFF22C55E), // Green
                 onTap: () => _navigateToCameraOCR(context),
               ),
             ],

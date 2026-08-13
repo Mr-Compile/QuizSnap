@@ -50,11 +50,42 @@ class GeneratedQuestion {
   }
 
   ExamQuestion toExamQuestion(String id) {
+    // Determine the question type based on the generated structure
+    QuestionType questionType;
+    if (type == 'identification' || (options.length <= 1 && answer != null)) {
+      questionType = QuestionType.identification;
+    } else if (type == 'enumeration' || (options.length > 1 && answer != null)) {
+      questionType = QuestionType.enumeration;
+    } else if (type == 'mixed' || type == 'mixed_format') {
+      questionType = QuestionType.mixedFormat;
+    } else {
+      questionType = QuestionType.multipleChoice;
+    }
+
+    // Set type-specific fields
+    String? correctAnswerText;
+    List<String>? correctAnswersList;
+
+    if (questionType == QuestionType.identification) {
+      correctAnswerText = answer;
+    } else if (questionType == QuestionType.enumeration) {
+      if (options.length > 1) {
+        correctAnswersList = options;
+      } else if (answer != null) {
+        correctAnswersList = [answer!];
+      } else {
+        correctAnswersList = [];
+      }
+    }
+
     return ExamQuestion(
       id: id,
       question: question,
+      type: questionType,
       options: options,
       correctAnswerIndex: correctAnswerIndex,
+      correctAnswer: correctAnswerText,
+      correctAnswers: correctAnswersList,
       explanation: explanation,
       flashcardId: null,
     );
@@ -695,29 +726,163 @@ class QuestionGenerationService {
         issues.add('Question ${i + 1}: Empty question text');
       }
 
-      if (question.options.isEmpty) {
-        issues.add('Question ${i + 1}: No options provided');
+      // Type-aware validation
+      final questionType = _determineQuestionType(question);
+      
+      switch (questionType) {
+        case QuestionType.multipleChoice:
+          issues.addAll(_validateMultipleChoiceQuestion(question, i));
+          break;
+        case QuestionType.identification:
+          issues.addAll(_validateIdentificationQuestion(question, i));
+          break;
+        case QuestionType.enumeration:
+          issues.addAll(_validateEnumerationQuestion(question, i));
+          break;
+        case QuestionType.mixedFormat:
+          // For mixed format, validate based on structure
+          if (question.options.length >= 4) {
+            issues.addAll(_validateMultipleChoiceQuestion(question, i));
+          } else {
+            issues.addAll(_validateIdentificationQuestion(question, i));
+          }
+          break;
       }
+    }
 
-      if (question.correctAnswerIndex < 0 || question.correctAnswerIndex >= question.options.length) {
-        issues.add('Question ${i + 1}: Invalid correct answer index');
+    return issues;
+  }
+
+  QuestionType _determineQuestionType(GeneratedQuestion question) {
+    if (question.type == 'identification' || (question.options.length <= 1 && question.answer != null)) {
+      return QuestionType.identification;
+    } else if (question.type == 'enumeration' || (question.options.length > 1 && question.answer != null)) {
+      return QuestionType.enumeration;
+    } else if (question.type == 'mixed' || question.type == 'mixed_format') {
+      return QuestionType.mixedFormat;
+    } else {
+      return QuestionType.multipleChoice;
+    }
+  }
+
+  List<String> _validateMultipleChoiceQuestion(GeneratedQuestion question, int questionIndex) {
+    final issues = <String>[];
+
+    if (question.options.length != 4) {
+      issues.add('Question ${questionIndex + 1}: Multiple choice must have exactly 4 options (found ${question.options.length})');
+    }
+
+    if (question.correctAnswerIndex < 0 || question.correctAnswerIndex >= question.options.length) {
+      issues.add('Question ${questionIndex + 1}: Invalid correct answer index');
+    }
+
+    issues.addAll(MultipleChoiceQuestionValidator.validate(
+      options: question.options,
+      correctAnswerIndex: question.correctAnswerIndex,
+      questionIndex: questionIndex,
+      answer: question.answer,
+    ));
+
+    // Validate distractor quality
+    issues.addAll(_validateDistractorQuality(question, questionIndex));
+
+    return issues;
+  }
+
+  List<String> _validateIdentificationQuestion(GeneratedQuestion question, int questionIndex) {
+    final issues = <String>[];
+
+    if (question.answer == null || question.answer!.trim().isEmpty) {
+      issues.add('Question ${questionIndex + 1}: Identification questions must have a correct answer');
+    }
+
+    // Identification questions should not have options (or have empty options)
+    if (question.options.length > 1) {
+      issues.add('Question ${questionIndex + 1}: Identification questions should not have multiple options');
+    }
+
+    issues.addAll(IdentificationAnswerValidator.validate(question.answer ?? '', questionIndex));
+
+    return issues;
+  }
+
+  List<String> _validateEnumerationQuestion(GeneratedQuestion question, int questionIndex) {
+    final issues = <String>[];
+
+    if (question.answer == null || question.answer!.trim().isEmpty) {
+      issues.add('Question ${questionIndex + 1}: Enumeration questions must have correct answers');
+    }
+
+    // Enumeration questions can have options as the answer list
+    if (question.options.isEmpty && (question.answer == null || question.answer!.isEmpty)) {
+      issues.add('Question ${questionIndex + 1}: Enumeration questions must have answer items');
+    }
+
+    issues.addAll(EnumerationFormatter.validate(question.answer ?? '', questionIndex));
+
+    return issues;
+  }
+
+  /// Validate distractor quality for multiple choice questions
+  List<String> _validateDistractorQuality(GeneratedQuestion question, int questionIndex) {
+    final issues = <String>[];
+    
+    if (question.options.length < 4) {
+      issues.add('Question ${questionIndex + 1}: Multiple choice must have exactly 4 options');
+      return issues;
+    }
+
+    final correctAnswer = question.options[question.correctAnswerIndex];
+    final distractors = <String>[];
+    for (int i = 0; i < question.options.length; i++) {
+      if (i != question.correctAnswerIndex) {
+        distractors.add(question.options[i]);
       }
+    }
 
-      if (question.options.length > 1) {
-        issues.addAll(MultipleChoiceQuestionValidator.validate(
-          options: question.options,
-          correctAnswerIndex: question.correctAnswerIndex,
-          questionIndex: i,
-          answer: question.answer,
-        ));
-      }
+    // Check for placeholder text
+    final placeholderPatterns = [
+      RegExp(r'incorrect option', caseSensitive: false),
+      RegExp(r'wrong answer', caseSensitive: false),
+      RegExp(r'placeholder', caseSensitive: false),
+      RegExp(r'distractor \d+', caseSensitive: false),
+    ];
 
-      if (question.answer != null && question.answer!.isNotEmpty) {
-        if (question.options.length <= 1) {
-          issues.addAll(IdentificationAnswerValidator.validate(question.answer!, i));
-        } else {
-          issues.addAll(EnumerationFormatter.validate(question.answer!, i));
+    for (final distractor in distractors) {
+      for (final pattern in placeholderPatterns) {
+        if (pattern.hasMatch(distractor)) {
+          issues.add('Question ${questionIndex + 1}: Contains placeholder distractor: "$distractor"');
         }
+      }
+    }
+
+    // Check for "none of the above" or "all of the above"
+    final invalidPhrases = [
+      RegExp(r'none of the above', caseSensitive: false),
+      RegExp(r'all of the above', caseSensitive: false),
+      RegExp(r'both a and b', caseSensitive: false),
+      RegExp(r'both a and c', caseSensitive: false),
+      RegExp(r'both b and c', caseSensitive: false),
+    ];
+
+    for (final distractor in distractors) {
+      for (final pattern in invalidPhrases) {
+        if (pattern.hasMatch(distractor)) {
+          issues.add('Question ${questionIndex + 1}: Contains invalid phrase in distractor: "$distractor"');
+        }
+      }
+    }
+
+    // Check for duplicate distractors
+    final normalizedDistractors = distractors.map((d) => d.toLowerCase().trim()).toSet();
+    if (normalizedDistractors.length < distractors.length) {
+      issues.add('Question ${questionIndex + 1}: Contains duplicate distractors');
+    }
+
+    // Check if distractors are too similar to correct answer
+    for (final distractor in distractors) {
+      if (distractor.toLowerCase().trim() == correctAnswer.toLowerCase().trim()) {
+        issues.add('Question ${questionIndex + 1}: Distractor is identical to correct answer');
       }
     }
 

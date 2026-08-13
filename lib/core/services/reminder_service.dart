@@ -152,29 +152,59 @@ class ReminderService {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    await _notifications.zonedSchedule(
-      0,
-      'Study Reminder',
-      'Time to review your flashcards!',
-      scheduledDate,
-      _notificationDetails(),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-    );
+    // Try exact alarm first, fall back to inexact if permission not granted
+    try {
+      await _notifications.zonedSchedule(
+        0,
+        'Study Reminder',
+        'Time to review your flashcards!',
+        scheduledDate,
+        _notificationDetails(),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (e) {
+      // Fall back to inexact scheduling if exact alarm permission is denied
+      await _notifications.zonedSchedule(
+        0,
+        'Study Reminder',
+        'Time to review your flashcards!',
+        scheduledDate,
+        _notificationDetails(),
+        androidScheduleMode: AndroidScheduleMode.inexact,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    }
   }
 
   Future<void> _scheduleWeeklyReminder(int day, int hour, int minute) async {
-    await _notifications.zonedSchedule(
-      day,
-      'Study Reminder',
-      'Time to review your flashcards!',
-      _nextInstanceOfDay(day, hour, minute),
-      _notificationDetails(),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-    );
+    // Try exact alarm first, fall back to inexact if permission not granted
+    try {
+      await _notifications.zonedSchedule(
+        day,
+        'Study Reminder',
+        'Time to review your flashcards!',
+        _nextInstanceOfDay(day, hour, minute),
+        _notificationDetails(),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      );
+    } catch (e) {
+      // Fall back to inexact scheduling if exact alarm permission is denied
+      await _notifications.zonedSchedule(
+        day,
+        'Study Reminder',
+        'Time to review your flashcards!',
+        _nextInstanceOfDay(day, hour, minute),
+        _notificationDetails(),
+        androidScheduleMode: AndroidScheduleMode.inexact,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      );
+    }
   }
 
   tz.TZDateTime _nextInstanceOfDay(int day, int hour, int minute) {

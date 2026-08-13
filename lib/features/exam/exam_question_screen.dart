@@ -74,6 +74,16 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     examProvider.submitAnswer(index);
   }
 
+  void _submitTextAnswer(String answer) {
+    final examProvider = context.read<ExamProvider>();
+    examProvider.submitTextAnswer(answer);
+  }
+
+  void _submitListAnswer(List<String> answers) {
+    final examProvider = context.read<ExamProvider>();
+    examProvider.submitListAnswer(answers);
+  }
+
   void _showSubmitConfirmation() {
     showDialog(
       context: context,
@@ -314,6 +324,25 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
       ),
     );
 
+    // Render different UI based on question type
+    switch (question.type) {
+      case QuestionType.multipleChoice:
+        return _buildMultipleChoiceOptions(question, answer);
+      case QuestionType.identification:
+        return _buildIdentificationInput(question, answer);
+      case QuestionType.enumeration:
+        return _buildEnumerationInput(question, answer);
+      case QuestionType.mixedFormat:
+        // For mixed format, check if it has options or text answer
+        if (question.options.length >= 4) {
+          return _buildMultipleChoiceOptions(question, answer);
+        } else {
+          return _buildIdentificationInput(question, answer);
+        }
+    }
+  }
+
+  Widget _buildMultipleChoiceOptions(ExamQuestion question, UserAnswer? answer) {
     return Column(
       children: question.options.asMap().entries.map((entry) {
         final index = entry.key;
@@ -387,6 +416,104 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildIdentificationInput(ExamQuestion question, UserAnswer? answer) {
+    final controller = TextEditingController(text: answer?.textAnswer ?? '');
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingMd),
+      decoration: BoxDecoration(
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        color: colorScheme.surface,
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          hintText: 'Enter your answer',
+          border: InputBorder.none,
+          hintStyle: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.5)),
+        ),
+        style: AppTheme.bodyLarge,
+        onChanged: (value) {
+          // Store the answer temporarily
+          // Will be submitted when user moves to next question
+        },
+        onSubmitted: (value) {
+          _submitTextAnswer(value);
+        },
+      ),
+    );
+  }
+
+  Widget _buildEnumerationInput(ExamQuestion question, UserAnswer? answer) {
+    final items = answer?.listAnswer ?? <String>[];
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingMd),
+      decoration: BoxDecoration(
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        color: colorScheme.surface,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Enter items (one per line):',
+            style: AppTheme.labelMedium.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingSm),
+          ...List.generate(items.length + 1, (index) {
+            if (index < items.length) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppTheme.spacingXs),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${index + 1}. ${items[index]}',
+                        style: AppTheme.bodyMedium,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: () {
+                        // Remove item
+                      },
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              return TextField(
+                decoration: InputDecoration(
+                  hintText: 'Add item ${index + 1}',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingSm,
+                    vertical: AppTheme.spacingXs,
+                  ),
+                ),
+                style: AppTheme.bodyMedium,
+                onSubmitted: (value) {
+                  if (value.trim().isNotEmpty) {
+                    _submitListAnswer([...items, value.trim()]);
+                  }
+                },
+              );
+            }
+          }),
+        ],
+      ),
     );
   }
 

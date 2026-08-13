@@ -155,6 +155,66 @@ class ExamProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void submitTextAnswer(String textAnswer) {
+    if (_currentExam == null || currentQuestion == null) {
+      throw Exception('No active exam or question');
+    }
+
+    _currentQuestionStartTime ??= DateTime.now();
+
+    // Validate text answer against correct answer
+    final isCorrect = _validateTextAnswer(textAnswer, currentQuestion!);
+
+    _examService.submitTextAnswer(
+      examId: _currentExam!.id,
+      questionId: currentQuestion!.id,
+      textAnswer: textAnswer,
+      isCorrect: isCorrect,
+      questionStartTime: _currentQuestionStartTime!,
+    );
+
+    _currentAnswers = _examService.getExamAnswers(_currentExam!.id);
+    notifyListeners();
+  }
+
+  void submitListAnswer(List<String> listAnswer) {
+    if (_currentExam == null || currentQuestion == null) {
+      throw Exception('No active exam or question');
+    }
+
+    _currentQuestionStartTime ??= DateTime.now();
+
+    // Validate list answer against correct answers
+    final isCorrect = _validateListAnswer(listAnswer, currentQuestion!);
+
+    _examService.submitListAnswer(
+      examId: _currentExam!.id,
+      questionId: currentQuestion!.id,
+      listAnswer: listAnswer,
+      isCorrect: isCorrect,
+      questionStartTime: _currentQuestionStartTime!,
+    );
+
+    _currentAnswers = _examService.getExamAnswers(_currentExam!.id);
+    notifyListeners();
+  }
+
+  bool _validateTextAnswer(String userAnswer, ExamQuestion question) {
+    final correctAnswer = question.correctAnswer?.toLowerCase().trim() ?? '';
+    final userAnswerNormalized = userAnswer.toLowerCase().trim();
+    return userAnswerNormalized == correctAnswer;
+  }
+
+  bool _validateListAnswer(List<String> userAnswers, ExamQuestion question) {
+    final correctAnswers = question.correctAnswers ?? [];
+    if (correctAnswers.length != userAnswers.length) return false;
+
+    final normalizedCorrect = correctAnswers.map((e) => e.toLowerCase().trim()).toSet();
+    final normalizedUser = userAnswers.map((e) => e.toLowerCase().trim()).toSet();
+
+    return normalizedCorrect.difference(normalizedUser).isEmpty;
+  }
+
   void goToNextQuestion() {
     if (_currentQuestions == null) return;
     
@@ -271,7 +331,7 @@ class ExamProvider with ChangeNotifier {
 
       final explanation = await _groqService.generateExplanation(
         question: question.question,
-        correctAnswer: question.correctAnswer,
+        correctAnswer: question.correctAnswer ?? '',
         wrongAnswers: wrongAnswers,
         model: _groqService.currentModel,
       );
