@@ -13,7 +13,6 @@ import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
 import 'package:go_router/go_router.dart';
 import '../../core/services/question_validation_service.dart';
-import '../../core/utils/explanation_sanitizer.dart';
 import '../../shared/widgets/formatted_study_text.dart';
 import 'regeneration_options_bottom_sheet.dart';
 import 'text_preview_screen.dart';

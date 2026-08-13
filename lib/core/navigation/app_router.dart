@@ -45,7 +45,6 @@ import '../../features/export/export_options_screen.dart';
 import '../../features/export/export_success_screen.dart';
 import '../../features/export/pdf_preview_screen.dart' as export_screen;
 import '../../features/export/backup_history_screen.dart';
-import '../../features/export/backup_restore_screen.dart';
 import '../../features/export/backup_restore_screen_enhanced.dart';
 import '../../features/export/import_preview_screen.dart';
 import '../../features/export/change_backup_folder_screen.dart';
@@ -373,10 +372,6 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: 'restore',
-                builder: (context, state) => const BackupRestoreScreen(),
-              ),
-              GoRoute(
-                path: 'restore-enhanced',
                 builder: (context, state) => const BackupRestoreScreenEnhanced(),
               ),
               GoRoute(

@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quiz_snap/core/services/backup_service_enhanced.dart';
 import 'package:quiz_snap/core/database/database.dart';
 import 'package:quiz_snap/core/models/backup_enhanced.dart';
+import 'package:drift/native.dart';
 
 void main() {
   group('Backup Service Integration Tests', () {
@@ -10,7 +12,7 @@ void main() {
 
     setUp(() async {
       // Use in-memory database for testing
-      database = AppDatabase.inMemory();
+      database = AppDatabase(NativeDatabase.memory());
       backupService = BackupServiceEnhanced(database);
     });
 
@@ -36,7 +38,7 @@ void main() {
       } catch (e) {
         // This might fail on some platforms due to file system restrictions
         // but the logic should be correct
-        print('Backup creation test skipped due to platform limitations: $e');
+        debugPrint('Backup creation test skipped due to platform limitations: $e');
       }
     });
 

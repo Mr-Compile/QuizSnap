@@ -213,10 +213,10 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
   }
 
   Future<void> _onMenuSelected(String value) async {
-    if (!context.mounted) return;
+    if (!mounted) return;
     final dbProvider = context.read<DatabaseProvider>();
     final data = await _dataFuture;
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     if (value == 'rename') {
       final result = await showDialog(
@@ -227,7 +227,7 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
           currentDescription: data.folder.description,
         ),
       );
-      if (result == true && context.mounted) {
+      if (result == true && mounted) {
         await _refresh();
       }
     } else if (value == 'delete') {
@@ -236,12 +236,12 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
         'Delete folder "${data.folder.name}"? Decks in this folder will become ungrouped.',
         isDestructive: true,
       );
-      if (confirmed != true || !context.mounted) return;
+      if (confirmed != true || !mounted) return;
       try {
         await dbProvider.folderRepository.deleteFolder(widget.folderId);
-        if (context.mounted) GoRouter.of(context).pop();
+        if (mounted) GoRouter.of(context).pop();
       } catch (e) {
-        if (context.mounted) DialogService.showError(context, 'Error deleting folder: $e');
+        if (mounted) DialogService.showError(context, 'Error deleting folder: $e');
       }
     }
   }
