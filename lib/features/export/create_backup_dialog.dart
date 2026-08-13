@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../core/providers/export_provider.dart';
 import '../../core/services/dialog_service.dart';
+import '../../core/theme/app_theme.dart';
 
 class CreateBackupDialog extends StatefulWidget {
   const CreateBackupDialog({super.key});
@@ -32,48 +33,74 @@ class _CreateBackupDialogState extends State<CreateBackupDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isTablet = MediaQuery.of(context).size.width >= 600;
+
     return AlertDialog(
-      title: const Text('Create Backup'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Backup Name',
-                  hintText: 'Enter a name for this backup',
-                  border: OutlineInputBorder(),
+      backgroundColor: colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.rounded2xl),
+      ),
+      elevation: 0,
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: isTablet ? AppTheme.spacing8 : AppTheme.spacing6,
+        vertical: AppTheme.spacing6,
+      ),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isTablet ? AppTheme.spacing8 : AppTheme.spacing4,
+        vertical: AppTheme.spacing8,
+      ),
+      title: Text(
+        'Create Backup',
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontSize: isTablet ? AppTheme.text2xl : AppTheme.textLg,
+          fontWeight: AppTheme.fontSemiBold,
+        ),
+      ),
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: isTablet ? 520 : double.infinity,
+        ),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Backup Name',
+                    hintText: 'Enter a name for this backup',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a backup name';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a backup name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (Optional)',
-                  hintText: 'Add a description for this backup',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: AppTheme.spacing4),
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (Optional)',
+                    hintText: 'Add a description for this backup',
+                  ),
+                  maxLines: 3,
                 ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'This backup will include all your decks, flashcards, folders, tags, and study data.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                const SizedBox(height: AppTheme.spacing4),
+                Text(
+                  'This backup will include all your decks, flashcards, folders, tags, and study data.',
+                  style: TextStyle(
+                    fontSize: AppTheme.textXs,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -108,10 +135,20 @@ class _CreateBackupDialogState extends State<CreateBackupDialog> {
 
       if (mounted) {
         Navigator.pop(context, backup);
+        // Show success dialog with educational-friendly message
+        await DialogService.showSuccess(
+          context,
+          'Backup "$backup" was created successfully.',
+          title: 'Backup Created',
+        );
       }
     } catch (e) {
       if (mounted) {
-        await DialogService.showError(context, 'Failed to create backup: $e');
+        await DialogService.showFriendlyError(
+          context,
+          'Failed to create backup: $e',
+          title: 'Backup Failed',
+        );
       }
     } finally {
       if (mounted) {

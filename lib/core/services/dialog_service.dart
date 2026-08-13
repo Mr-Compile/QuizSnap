@@ -1,17 +1,29 @@
 import 'package:flutter/material.dart';
+import '../../shared/widgets/dialogs/success_dialog.dart';
+import '../../shared/widgets/dialogs/error_dialog.dart';
+import '../../shared/widgets/dialogs/warning_dialog.dart';
+import '../../shared/widgets/dialogs/info_dialog.dart';
+import '../../shared/widgets/dialogs/confirmation_dialog.dart';
+import '../../shared/widgets/dialogs/loading_dialog.dart';
 
-/// Safe, root-navigator dialog feedback service.
+/// Safe, centered, Material 3 dialog feedback service.
 ///
 /// Use instead of [ScaffoldMessenger] or inline [showDialog] calls that can
 /// throw "No Overlay widget found" when called with an invalid or unmounted
 /// [BuildContext].
 ///
+/// Features:
 /// * Every entry point checks `context.mounted` before and after the async gap.
-/// * All dialogs use `useRootNavigator: true` to target the main app navigator.
+/// * All dialogs are centered with smooth fade + scale animations.
+/// * Theme-aware colors and spacing for dark/light mode.
+/// * Educational-friendly copy and reassuring messages.
+/// * Responsive layout for phones and tablets.
+/// * Accessibility support with semantic labels and focus management.
 /// * No global [BuildContext] is stored; callers pass a valid descendant context.
 class DialogService {
   DialogService._();
 
+  /// Show a success dialog with green icon and positive tone.
   static Future<void> showSuccess(
     BuildContext context,
     String message, {
@@ -19,11 +31,8 @@ class DialogService {
     VoidCallback? onAcknowledge,
   }) async {
     if (!context.mounted) return;
-    final colorScheme = Theme.of(context).colorScheme;
-    await _show(
+    await SuccessDialog.show(
       context: context,
-      icon: Icons.check_circle_rounded,
-      iconColor: colorScheme.primary,
       title: title,
       message: message,
       actionLabel: 'OK',
@@ -31,44 +40,52 @@ class DialogService {
     );
   }
 
+  /// Show an error dialog with red icon and error tone.
   static Future<void> showError(
     BuildContext context,
     String message, {
     String title = 'Error',
     VoidCallback? onAcknowledge,
+    String primaryAction = 'Try Again',
+    String secondaryAction = 'Close',
+    VoidCallback? onPrimaryAction,
+    VoidCallback? onSecondaryAction,
   }) async {
     if (!context.mounted) return;
-    final colorScheme = Theme.of(context).colorScheme;
-    await _show(
+    await ErrorDialog.show(
       context: context,
-      icon: Icons.error_outline,
-      iconColor: colorScheme.error,
       title: title,
       message: message,
-      actionLabel: 'OK',
-      onAction: onAcknowledge,
+      primaryAction: primaryAction,
+      secondaryAction: secondaryAction,
+      onPrimaryAction: onPrimaryAction ?? onAcknowledge,
+      onSecondaryAction: onSecondaryAction,
     );
   }
 
-  static Future<void> showWarning(
+  /// Show a warning dialog with amber icon and confirm/cancel actions.
+  static Future<bool?> showWarning(
     BuildContext context,
     String message, {
     String title = 'Warning',
-    VoidCallback? onAcknowledge,
+    String confirmAction = 'Confirm',
+    String cancelAction = 'Cancel',
+    VoidCallback? onConfirm,
+    VoidCallback? onCancel,
   }) async {
-    if (!context.mounted) return;
-    final colorScheme = Theme.of(context).colorScheme;
-    await _show(
+    if (!context.mounted) return false;
+    return await WarningDialog.show(
       context: context,
-      icon: Icons.warning_amber_rounded,
-      iconColor: colorScheme.tertiary,
       title: title,
       message: message,
-      actionLabel: 'OK',
-      onAction: onAcknowledge,
+      confirmAction: confirmAction,
+      cancelAction: cancelAction,
+      onConfirm: onConfirm,
+      onCancel: onCancel,
     );
   }
 
+  /// Show an info dialog with blue icon and single dismiss action.
   static Future<void> showInfo(
     BuildContext context,
     String message, {
@@ -76,72 +93,108 @@ class DialogService {
     VoidCallback? onAcknowledge,
   }) async {
     if (!context.mounted) return;
-    final colorScheme = Theme.of(context).colorScheme;
-    await _show(
+    await InfoDialog.show(
       context: context,
-      icon: Icons.info_outline,
-      iconColor: colorScheme.primary,
       title: title,
       message: message,
-      actionLabel: 'OK',
+      actionLabel: 'Got It',
       onAction: onAcknowledge,
+    );
+  }
+
+  /// Show a confirmation dialog with neutral icon.
+  static Future<bool?> showConfirmation(
+    BuildContext context,
+    String message, {
+    String title = 'Confirm',
+    String confirmAction = 'Confirm',
+    String cancelAction = 'Cancel',
+    bool isDestructive = false,
+    VoidCallback? onConfirm,
+    VoidCallback? onCancel,
+  }) async {
+    if (!context.mounted) return false;
+    return await ConfirmationDialog.show(
+      context: context,
+      title: title,
+      message: message,
+      confirmAction: confirmAction,
+      cancelAction: cancelAction,
+      isDestructive: isDestructive,
+      onConfirm: onConfirm,
+      onCancel: onCancel,
     );
   }
 
   /// Friendly replacement for raw AI quota / token errors.
   static Future<void> showQuotaExceeded(BuildContext context) async {
     if (!context.mounted) return;
-    final colorScheme = Theme.of(context).colorScheme;
-    await _show(
+    await ErrorDialog.show(
       context: context,
-      icon: Icons.hourglass_empty,
-      iconColor: colorScheme.tertiary,
       title: 'AI Limit Reached',
-      message:
-          'You have used today\'s AI generation limit. You can try again tomorrow or ask the administrator for additional quota.',
-      actionLabel: 'OK',
+      message: 'You have reached today\'s AI generation limit. You can try again tomorrow or ask the administrator for additional quota.',
+      primaryAction: 'OK',
+      secondaryAction: '',
     );
   }
 
-  static Future<void> _show({
-    required BuildContext context,
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String message,
-    required String actionLabel,
-    VoidCallback? onAction,
-  }) async {
-    if (!context.mounted) return;
-    await showDialog<void>(
+  /// Show a loading dialog for long-running operations.
+  static LoadingDialogController showLoading(
+    BuildContext context, {
+    String? message,
+    bool barrierDismissible = false,
+  }) {
+    if (!context.mounted) {
+      return LoadingDialogController.noop();
+    }
+    return LoadingDialog.show(
       context: context,
-      useRootNavigator: true,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        return AlertDialog(
-          icon: Icon(icon, color: iconColor, size: 32),
-          title: Text(
-            title,
-            style: Theme.of(dialogContext).textTheme.titleLarge,
-          ),
-          content: SingleChildScrollView(
-            child: Text(
-              message,
-              style: Theme.of(dialogContext).textTheme.bodyMedium,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                onAction?.call();
-              },
-              child: Text(actionLabel),
-            ),
-          ],
-        );
-      },
+      message: message,
+      barrierDismissible: barrierDismissible,
     );
-    if (onAction != null && !context.mounted) return;
+  }
+
+  /// Educational-friendly error messages for common scenarios.
+  static String getFriendlyErrorMessage(String technicalMessage) {
+    // Map technical errors to user-friendly messages
+    final lowerMessage = technicalMessage.toLowerCase();
+
+    if (lowerMessage.contains('exact alarm not permitted')) {
+      return 'Study reminders are not available on this device right now.';
+    }
+    if (lowerMessage.contains('token limit') || lowerMessage.contains('quota')) {
+      return 'You have reached today\'s AI generation limit.';
+    }
+    if (lowerMessage.contains('no overlay') || lowerMessage.contains('overlay widget')) {
+      return 'Something went wrong while showing this message. Please try again.';
+    }
+    if (lowerMessage.contains('network') || lowerMessage.contains('connection')) {
+      return 'Please check your internet connection and try again.';
+    }
+    if (lowerMessage.contains('permission')) {
+      return 'The app needs permission to complete this action.';
+    }
+    if (lowerMessage.contains('storage') || lowerMessage.contains('disk')) {
+      return 'Please check your available storage and try again.';
+    }
+
+    // Default: return a generic friendly message
+    return 'Something went wrong. Please try again.';
+  }
+
+  /// Show error with friendly educational copy.
+  static Future<void> showFriendlyError(
+    BuildContext context,
+    String technicalMessage, {
+    String? title,
+    VoidCallback? onAcknowledge,
+  }) async {
+    final friendlyMessage = getFriendlyErrorMessage(technicalMessage);
+    await showError(
+      context,
+      friendlyMessage,
+      title: title ?? 'Something Went Wrong',
+      onAcknowledge: onAcknowledge,
+    );
   }
 }

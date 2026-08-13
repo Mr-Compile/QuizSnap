@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../core/services/dialog_service.dart';
 
+/// Backward-compatible wrapper for the new ConfirmationDialog.
+/// 
+/// This class maintains the old API for existing code while using the new
+/// centered, Material 3-compliant dialog system internally.
+/// 
+/// New code should use DialogService.showConfirmation() directly.
 class ConfirmationDialog extends StatelessWidget {
   final String title;
   final String? message;
@@ -20,40 +27,8 @@ class ConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      content: message != null
-          ? SingleChildScrollView(
-              child: Text(
-                message!,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            )
-          : null,
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(cancelText),
-        ),
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-            onConfirm();
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: isDestructive
-                ? Theme.of(context).colorScheme.error
-                : Theme.of(context).colorScheme.primary,
-          ),
-          child: Text(confirmText),
-        ),
-      ],
-    );
+    // This is now a wrapper - the actual dialog is shown via the show method
+    return const SizedBox.shrink();
   }
 
   static Future<bool> show({
@@ -64,17 +39,13 @@ class ConfirmationDialog extends StatelessWidget {
     String cancelText = 'Cancel',
     bool isDestructive = false,
   }) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => ConfirmationDialog(
-        title: title,
-        message: message,
-        confirmText: confirmText,
-        cancelText: cancelText,
-        isDestructive: isDestructive,
-        onConfirm: () => Navigator.of(context).pop(true),
-      ),
-    );
-    return result ?? false;
+    return await DialogService.showConfirmation(
+      context,
+      message ?? '',
+      title: title,
+      confirmAction: confirmText,
+      cancelAction: cancelText,
+      isDestructive: isDestructive,
+    ) ?? false;
   }
 }

@@ -69,6 +69,11 @@ class BackupRepository {
     await _backupService.openBackupLocation(filePath);
   }
 
+  // Open backup folder in file manager
+  Future<void> openBackupFolder(String folderPath) async {
+    await _backupService.openBackupFolder(folderPath);
+  }
+
   // Get backup schedule
   Future<BackupSchedule> getBackupSchedule() async {
     return await _backupService.getBackupSchedule();

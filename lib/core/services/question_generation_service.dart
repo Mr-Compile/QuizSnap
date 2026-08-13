@@ -120,7 +120,15 @@ class QuestionGenerationService {
 
     // Parse the response into structured questions
     final questions = _parseGeneratedQuestions(response, type);
-    return _deduplicateQuestions(questions);
+    final filteredQuestions = _filterPlaceholderDistractors(questions);
+    
+    // If too many questions were filtered out, log a warning but continue with what we have
+    if (filteredQuestions.length < questions.length / 2) {
+      // More than half were filtered out - this indicates poor AI generation
+      // In production, you might want to retry generation here
+    }
+    
+    return _deduplicateQuestions(filteredQuestions);
   }
 
   /// Remove near-duplicate questions using normalized text similarity.
@@ -190,6 +198,41 @@ class QuestionGenerationService {
         type: q.type,
         difficulty: q.difficulty,
       );
+    }).toList();
+  }
+
+  /// Filter out questions with placeholder distractors
+  List<GeneratedQuestion> _filterPlaceholderDistractors(List<GeneratedQuestion> questions) {
+    final placeholderPatterns = [
+      RegExp(r'incorrect option', caseSensitive: false),
+      RegExp(r'wrong answer', caseSensitive: false),
+      RegExp(r'placeholder', caseSensitive: false),
+      RegExp(r'distractor \d+', caseSensitive: false),
+      RegExp(r'^\s*\d+\.\s*$', caseSensitive: false), // Just numbers like "1."
+      RegExp(r'^\s*[A-C]\)\s*$', caseSensitive: false), // Just labels like "A)"
+    ];
+
+    return questions.where((question) {
+      // Check each option (except the correct answer)
+      for (int i = 0; i < question.options.length; i++) {
+        if (i == question.correctAnswerIndex) continue; // Skip correct answer
+        
+        final option = question.options[i].trim();
+        
+        // Check if option matches any placeholder pattern
+        for (final pattern in placeholderPatterns) {
+          if (pattern.hasMatch(option)) {
+            return false; // Reject this question
+          }
+        }
+        
+        // Check if option is too short or empty
+        if (option.length < 3) {
+          return false; // Reject this question
+        }
+      }
+      
+      return true; // Keep this question
     }).toList();
   }
 

@@ -504,12 +504,12 @@ class _TrashScreenState extends State<TrashScreen> {
       try {
         await provider.restoreAll();
         if (mounted) {
-          DialogService.showSuccess(context, 'All items restored');
+          DialogService.showSuccess(context, 'All items were restored successfully.', title: 'Restored');
           setState(() {});
         }
       } catch (e) {
         if (mounted) {
-          DialogService.showError(context, 'Error restoring all: $e');
+          DialogService.showFriendlyError(context, 'Error restoring all: $e');
         }
       }
     }
@@ -529,12 +529,12 @@ class _TrashScreenState extends State<TrashScreen> {
       try {
         await provider.emptyTrash();
         if (mounted) {
-          DialogService.showSuccess(context, 'Trash emptied');
+          DialogService.showSuccess(context, 'All items in Trash were permanently deleted.', title: 'Trash Emptied');
           setState(() {});
         }
       } catch (e) {
         if (mounted) {
-          DialogService.showError(context, 'Error emptying trash: $e');
+          DialogService.showFriendlyError(context, 'Error emptying trash: $e');
         }
       }
     }
@@ -549,7 +549,7 @@ class _TrashScreenState extends State<TrashScreen> {
       }
     }).catchError((e) {
       if (context.mounted) {
-        DialogService.showError(context, 'Error restoring folder: $e');
+        DialogService.showFriendlyError(context, 'Error restoring folder: $e');
       }
     });
   }
@@ -573,7 +573,7 @@ class _TrashScreenState extends State<TrashScreen> {
         }
       } catch (e) {
         if (context.mounted) {
-          DialogService.showError(context, 'Error deleting folder: $e');
+          DialogService.showFriendlyError(context, 'Error deleting folder: $e');
         }
       }
     }
@@ -588,7 +588,7 @@ class _TrashScreenState extends State<TrashScreen> {
       }
     }).catchError((e) {
       if (context.mounted) {
-        DialogService.showError(context, 'Error restoring deck: $e');
+        DialogService.showFriendlyError(context, 'Error restoring deck: $e');
       }
     });
   }
@@ -612,7 +612,7 @@ class _TrashScreenState extends State<TrashScreen> {
         }
       } catch (e) {
         if (context.mounted) {
-          DialogService.showError(context, 'Error deleting deck: $e');
+          DialogService.showFriendlyError(context, 'Error deleting deck: $e');
         }
       }
     }
@@ -627,7 +627,7 @@ class _TrashScreenState extends State<TrashScreen> {
       }
     }).catchError((e) {
       if (context.mounted) {
-        DialogService.showError(context, 'Error restoring flashcard: $e');
+        DialogService.showFriendlyError(context, 'Error restoring flashcard: $e');
       }
     });
   }
@@ -651,7 +651,7 @@ class _TrashScreenState extends State<TrashScreen> {
         }
       } catch (e) {
         if (context.mounted) {
-          DialogService.showError(context, 'Error deleting flashcard: $e');
+          DialogService.showFriendlyError(context, 'Error deleting flashcard: $e');
         }
       }
     }

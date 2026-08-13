@@ -60,12 +60,12 @@ class _BookmarkListScreenState extends State<BookmarkListScreen> {
                         Container(
                           padding: const EdgeInsets.all(AppTheme.spacingMd),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.bookmark,
-                            color: Theme.of(context).colorScheme.secondary,
+                            color: Color(0xFFF59E0B),
                           ),
                         ),
                         const SizedBox(width: AppTheme.spacingMd),

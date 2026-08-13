@@ -71,15 +71,16 @@ CRITICAL OUTPUT RULES:
 6. Use plain text only. Numbers and letters for lists are allowed.
 
 DISTRACTOR QUALITY RULES (for multiple choice questions):
-1. NEVER use placeholder text like "Incorrect option 1", "Incorrect option 2", "Incorrect option 3".
+1. NEVER use placeholder text like "Incorrect option 1", "Incorrect option 2", "Incorrect option 3", "Wrong answer", "Distractor", or "Placeholder".
 2. NEVER use phrases like "none of the above" or "all of the above".
-3. Generate 3 realistic distractors that are:
+3. ALWAYS generate specific, realistic distractors that are:
    - In the same category/domain as the correct answer
-   - Plausible but clearly incorrect
+   - Plausible but clearly incorrect to knowledgeable students
    - Similar in length and complexity to the correct answer
    - Not obviously wrong (e.g., not "Blue" when the question is about historical dates)
 4. All distractors must be unique and distinct from each other.
 5. Distractors should test common misconceptions or related concepts.
+6. EXAMPLE: If the question is "Who proclaimed the Philippine independence on June 12, 1898?" and the correct answer is "Emilio Aguinaldo", good distractors would be "Andres Bonifacio", "Jose Rizal", "Emilio Jacinto" - NOT "Incorrect option 1", "Wrong answer", etc.
 7. Prefer returning a single JSON object when the user asks for it; otherwise follow the requested format exactly.''';
   }
 

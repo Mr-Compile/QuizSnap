@@ -266,6 +266,17 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
     }
   }
 
+  // Open backup folder in file manager
+  Future<bool> openBackupFolder(String folderPath) async {
+    try {
+      await _repository.openBackupFolder(folderPath);
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+      return false;
+    }
+  }
+
   // Update backup schedule
   Future<bool> updateBackupSchedule(BackupSchedule schedule) async {
     try {

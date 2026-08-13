@@ -361,14 +361,24 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     final hasPermission = await ref.read(backupOperationProvider.notifier).requestStoragePermission();
     if (!hasPermission) {
       if (mounted) {
-        await PermissionExplanationDialog.showStoragePermissionDialog(
+        final permissionGranted = await PermissionExplanationDialog.showStoragePermissionDialog(
           context,
           onOpenSettings: () => PermanentlyDeniedDialog.show(context),
         );
+        
+        // If permission was granted, proceed with backup
+        if (permissionGranted == true) {
+          // Permission granted, proceed with backup creation
+          await _proceedWithBackupCreation();
+        }
       }
       return;
     }
 
+    await _proceedWithBackupCreation();
+  }
+
+  Future<void> _proceedWithBackupCreation() async {
     final result = await ref.read(backupOperationProvider.notifier).exportBackup(
           name: 'Backup_${DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now())}',
           description: 'Manual backup',
@@ -394,6 +404,8 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
           builder: (context) => ExportSuccessScreenBackup(backupFile: result),
         ),
       );
+    } else if (mounted) {
+      await DialogService.showError(context, 'Failed to create backup');
     }
   }
 
@@ -402,31 +414,53 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     final hasPermission = await ref.read(backupOperationProvider.notifier).requestStoragePermission();
     if (!hasPermission) {
       if (mounted) {
-        await PermissionExplanationDialog.showStoragePermissionDialog(
+        final permissionGranted = await PermissionExplanationDialog.showStoragePermissionDialog(
           context,
           onOpenSettings: () => PermanentlyDeniedDialog.show(context),
         );
+        
+        // If permission was granted, proceed with file selection
+        if (permissionGranted == true) {
+          await _proceedWithFileSelection();
+        }
       }
       return;
     }
 
+    await _proceedWithFileSelection();
+  }
+
+  Future<void> _proceedWithFileSelection() async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['quizsnap', 'json'],
         dialogTitle: 'Select Backup File',
+        lockParentWindow: true,
+        withData: false,
       );
 
       if (result != null && result.files.single.path != null && mounted) {
         final filePath = result.files.single.path!;
 
+        // Validate file exists
+        final file = File(filePath);
+        if (!await file.exists()) {
+          if (mounted) {
+            await DialogService.showError(context, 'Selected file does not exist');
+          }
+          return;
+        }
+
         // Navigate to import preview
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ImportPreviewScreen(filePath: filePath),
-          ),
-        );
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ImportPreviewScreen(filePath: filePath),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -456,7 +490,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
         : await backupService.getDefaultBackupDirectory();
 
     try {
-      await ref.read(backupOperationProvider.notifier).openBackupLocation(directory.path);
+      await ref.read(backupOperationProvider.notifier).openBackupFolder(directory.path);
     } catch (e) {
       if (mounted) {
         await DialogService.showError(context, 'Failed to open folder: $e');

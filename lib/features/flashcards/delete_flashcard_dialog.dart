@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/trash_provider.dart';
 import '../../core/services/dialog_service.dart';
-import '../../shared/widgets/confirmation_dialog.dart';
 
 class DeleteFlashcardDialog {
   static Future<void> show({
@@ -11,16 +10,16 @@ class DeleteFlashcardDialog {
     required int flashcardId,
     required int deckId,
   }) async {
-    final confirmed = await ConfirmationDialog.show(
-      context: context,
-      title: 'Delete Flashcard',
-      message:
-          'Are you sure you want to delete this flashcard? This action can be undone from the trash.',
-      confirmText: 'Delete',
+    final confirmed = await DialogService.showConfirmation(
+      context,
+      'This flashcard will be moved to Trash and can be restored later.',
+      title: 'Move to Trash',
+      confirmAction: 'Move to Trash',
+      cancelAction: 'Cancel',
       isDestructive: true,
     );
 
-    if (confirmed && context.mounted) {
+    if (confirmed == true && context.mounted) {
       final dbProvider = context.read<DatabaseProvider>();
       try {
         await dbProvider.flashcardRepository.deleteFlashcard(flashcardId);
@@ -35,14 +34,16 @@ class DeleteFlashcardDialog {
         if (context.mounted) {
           await DialogService.showSuccess(
             context,
-            'Flashcard moved to trash',
+            'The flashcard was moved to Trash and can be restored later.',
+            title: 'Moved to Trash',
           );
         }
       } catch (e) {
         if (context.mounted) {
-          await DialogService.showError(
+          await DialogService.showFriendlyError(
             context,
             'Error deleting flashcard: $e',
+            title: 'Delete Failed',
           );
         }
       }

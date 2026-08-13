@@ -69,7 +69,7 @@ class _TodayReviewScreenState extends State<TodayReviewScreen> {
                 Icon(
                   Icons.today,
                   size: 48,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: const Color(0xFF3B82F6), // Blue
                 ),
                 const SizedBox(height: AppTheme.spacingMd),
                 Text(

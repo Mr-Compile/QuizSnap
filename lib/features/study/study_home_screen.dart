@@ -97,6 +97,10 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
   }
 
   Widget _buildStatsCard(BuildContext context, stats) {
+    final dueTodayColor = const Color(0xFF3B82F6); // Blue
+    final bookmarkedColor = const Color(0xFFF59E0B); // Amber
+    final accuracyColor = const Color(0xFF22C55E); // Green
+    
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,7 +118,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                   'Due Today',
                   stats.dueToday.toString(),
                   Icons.assignment,
-                  Theme.of(context).colorScheme.tertiary,
+                  dueTodayColor,
                 ),
               ),
               Expanded(
@@ -123,7 +127,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                   'Bookmarked',
                   stats.bookmarked.toString(),
                   Icons.bookmark,
-                  Theme.of(context).colorScheme.secondary,
+                  bookmarkedColor,
                 ),
               ),
               Expanded(
@@ -132,7 +136,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                   'Accuracy',
                   '${stats.accuracy}%',
                   Icons.check_circle,
-                  Theme.of(context).colorScheme.primary,
+                  accuracyColor,
                 ),
               ),
             ],
@@ -183,6 +187,8 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
   }
 
   Widget _buildQuickActions(BuildContext context, stats) {
+    final todayReviewColor = const Color(0xFF3B82F6); // Blue
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -201,14 +207,14 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
                   color: stats.dueToday > 0
-                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                      ? todayReviewColor.withValues(alpha: 0.1)
                       : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Icon(
                   Icons.today,
                   color: stats.dueToday > 0
-                      ? Theme.of(context).colorScheme.primary
+                      ? todayReviewColor
                       : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
               ),
@@ -236,7 +242,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               if (stats.dueToday > 0)
                 Icon(
                   Icons.chevron_right,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                  color: todayReviewColor.withValues(alpha: 0.6),
                 ),
             ],
           ),
@@ -246,6 +252,9 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
   }
 
   Widget _buildStudyModes(BuildContext context) {
+    final bookmarksColor = const Color(0xFFF59E0B); // Amber/Orange
+    final deckStudyColor = const Color(0xFF8B5CF6); // Purple
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -261,12 +270,12 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                  color: bookmarksColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Icon(
                   Icons.bookmark,
-                  color: Theme.of(context).colorScheme.secondary,
+                  color: bookmarksColor,
                 ),
               ),
               const SizedBox(width: AppTheme.spacingMd),
@@ -290,7 +299,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               ),
               Icon(
                 Icons.chevron_right,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                color: bookmarksColor.withValues(alpha: 0.6),
               ),
             ],
           ),
@@ -303,12 +312,12 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.1),
+                  color: deckStudyColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Icon(
                   Icons.style,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: deckStudyColor,
                 ),
               ),
               const SizedBox(width: AppTheme.spacingMd),
@@ -332,7 +341,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               ),
               Icon(
                 Icons.chevron_right,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                color: deckStudyColor.withValues(alpha: 0.6),
               ),
             ],
           ),
@@ -342,6 +351,8 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
   }
 
   Widget _buildContinueSession(BuildContext context) {
+    final continueSessionColor = const Color(0xFF22C55E); // Green
+    
     return Selector<StudySessionController, bool>(
       selector: (context, controller) =>
           controller.persistence?.hasUnfinishedSession ?? false,
@@ -358,12 +369,12 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  color: continueSessionColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Icon(
                   Icons.play_arrow,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: continueSessionColor,
                 ),
               ),
               const SizedBox(width: AppTheme.spacingMd),
@@ -392,7 +403,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               ),
               Icon(
                 Icons.chevron_right,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                color: continueSessionColor.withValues(alpha: 0.6),
               ),
             ],
           ),

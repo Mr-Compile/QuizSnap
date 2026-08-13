@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -14,6 +15,7 @@ import '../../core/services/dialog_service.dart';
 import 'create_backup_dialog.dart';
 import 'backup_history_screen.dart';
 import 'restore_confirmation_dialog.dart';
+import 'permission_explanation_dialog.dart';
 
 class BackupRestoreScreen extends StatefulWidget {
   const BackupRestoreScreen({super.key});
@@ -233,6 +235,24 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
   }
 
   Future<void> _handleCreateBackup() async {
+    // Check permission first
+    final hasPermission = await Permission.storage.request();
+    if (!hasPermission.isGranted) {
+      if (mounted) {
+        if (hasPermission.isPermanentlyDenied) {
+          await PermanentlyDeniedDialog.show(context);
+        } else {
+          await PermissionExplanationDialog.showStoragePermissionDialog(
+            context,
+            onOpenSettings: () => PermanentlyDeniedDialog.show(context),
+          );
+        }
+      }
+      return;
+    }
+
+    if (!mounted) return;
+    
     final result = await showDialog<BackupMetadata>(
       useRootNavigator: true,
       context: context,
@@ -406,7 +426,8 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     try {
       final result = await OpenFilex.open(filePath);
       if (result.type != ResultType.done && mounted) {
-        await DialogService.showError(context, 'Could not open backup: ${result.message}');
+        // Try sharing as fallback
+        await Share.shareXFiles([XFile(filePath)], text: 'QuizSnap backup: ${backup.name}');
       }
     } catch (e) {
       if (mounted) {

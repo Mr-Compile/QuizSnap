@@ -94,6 +94,7 @@ class BackupServiceEnhanced {
           fileName: '$backupName.quizsnap',
           type: FileType.custom,
           allowedExtensions: ['quizsnap'],
+          lockParentWindow: true,
         );
 
         if (result == null) {
@@ -203,9 +204,46 @@ class BackupServiceEnhanced {
 
   // Open backup file location
   Future<void> openBackupLocation(String filePath) async {
-    final result = await OpenFilex.open(filePath);
-    if (result.type != ResultType.done) {
-      throw Exception('Failed to open file location');
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('File does not exist');
+      }
+
+      // Try to open the file with OpenFilex
+      final result = await OpenFilex.open(filePath);
+      
+      if (result.type != ResultType.done) {
+        // If OpenFilex fails, try sharing as an alternative way to open
+        await share_plus.Share.shareXFiles([share_plus.XFile(filePath)], text: 'QuizSnap Backup File');
+      }
+    } catch (e) {
+      throw Exception('Failed to open file location: $e');
+    }
+  }
+
+  // Open backup folder in file manager
+  Future<void> openBackupFolder(String folderPath) async {
+    try {
+      final directory = Directory(folderPath);
+      if (!await directory.exists()) {
+        throw Exception('Folder does not exist');
+      }
+
+      // Try to open the folder using OpenFilex with a directory
+      final result = await OpenFilex.open(folderPath);
+      
+      if (result.type != ResultType.done) {
+        // If that fails, try opening a file in the directory as a workaround
+        final files = directory.listSync().whereType<File>().toList();
+        if (files.isNotEmpty) {
+          await OpenFilex.open(files.first.path);
+        } else {
+          throw Exception('Could not open folder and no files found to use as workaround');
+        }
+      }
+    } catch (e) {
+      throw Exception('Failed to open folder: $e');
     }
   }
 

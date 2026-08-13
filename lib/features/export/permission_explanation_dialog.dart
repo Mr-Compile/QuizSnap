@@ -26,10 +26,24 @@ class PermissionExplanationDialog extends StatelessWidget {
         permissionType: 'Storage Access',
         explanation: 'QuizSnap needs access to your device storage to save and load backup files. This allows you to:',
         onGrantAccess: () async {
-          Navigator.pop(context, true);
           final status = await Permission.storage.request();
-          if (status.isPermanentlyDenied && onOpenSettings != null) {
-            onOpenSettings();
+          
+          if (status.isGranted) {
+            if (context.mounted) {
+              Navigator.pop(context, true);
+            }
+          } else if (status.isPermanentlyDenied) {
+            if (context.mounted) {
+              Navigator.pop(context, false);
+              if (onOpenSettings != null) {
+                onOpenSettings();
+              }
+            }
+          } else {
+            // Permission denied but not permanently
+            if (context.mounted) {
+              Navigator.pop(context, false);
+            }
           }
         },
         onNotNow: () => Navigator.pop(context, false),
@@ -172,10 +186,42 @@ class PermanentlyDeniedDialog extends StatelessWidget {
     await showDialog(
       context: context,
       builder: (context) => PermanentlyDeniedDialog(
-        onOpenSettings: () {
+        onOpenSettings: () async {
           Navigator.pop(context);
-          openAppSettings();
+          final opened = await openAppSettings();
+          if (!opened && context.mounted) {
+            // If openAppSettings fails, show manual instructions
+            await _showManualInstructions(context);
+          }
         },
+      ),
+    );
+  }
+
+  static Future<void> _showManualInstructions(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Manual Setup Required'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Could not open settings automatically. Please follow these steps:'),
+            SizedBox(height: 16),
+            Text('1. Open your device Settings'),
+            Text('2. Go to Apps > QuizSnap'),
+            Text('3. Tap on Permissions'),
+            Text('4. Enable Storage permission'),
+            Text('5. Return to the app and try again'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
       ),
     );
   }

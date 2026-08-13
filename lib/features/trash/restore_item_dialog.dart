@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/services/dialog_service.dart';
 
+/// Modern restore dialog using the new centered dialog system.
 class RestoreItemDialog extends StatelessWidget {
   final String itemType;
   final String itemName;
@@ -15,29 +16,8 @@ class RestoreItemDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(
-        'Restore $itemType',
-        style: AppTheme.titleLarge,
-      ),
-      content: Text(
-        'Are you sure you want to restore "$itemName"?',
-        style: AppTheme.bodyMedium,
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-            onRestore();
-          },
-          child: const Text('Restore'),
-        ),
-      ],
-    );
+    // This is now a wrapper - the actual dialog is shown via the show method
+    return const SizedBox.shrink();
   }
 
   static Future<bool> show({
@@ -46,14 +26,18 @@ class RestoreItemDialog extends StatelessWidget {
     required String itemName,
     required VoidCallback onRestore,
   }) async {
-    await showDialog(
-      context: context,
-      builder: (context) => RestoreItemDialog(
-        itemType: itemType,
-        itemName: itemName,
-        onRestore: onRestore,
-      ),
+    final confirmed = await DialogService.showConfirmation(
+      context,
+      'Are you sure you want to restore "$itemName"?',
+      title: 'Restore $itemType',
+      confirmAction: 'Restore',
+      cancelAction: 'Cancel',
     );
-    return true;
+
+    if (confirmed == true) {
+      onRestore();
+      return true;
+    }
+    return false;
   }
 }

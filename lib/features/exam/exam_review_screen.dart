@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/models/exam.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -25,7 +26,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -36,23 +37,31 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
 
   @override
   Widget build(BuildContext context) {
+    void navigateBack() {
+      // Navigate back to the deck directly
+      context.go('/decks/${widget.result.exam.deckId}');
+    }
+
     return PopScope(
-      canPop: true,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop && mounted) {
-          Navigator.of(context).pop();
+          navigateBack();
         }
       },
       child: Scaffold(
         appBar: CustomAppBar(
-          title: 'Review Answers',
-          leading: const BackButton(),
+          title: widget.result.exam.deckName,
+          leading: BackButton(
+            onPressed: navigateBack,
+          ),
           bottom: TabBar(
           controller: _tabController,
           tabs: const [
             Tab(text: 'All'),
             Tab(text: 'Correct'),
             Tab(text: 'Incorrect'),
+            Tab(text: 'Unanswered'),
           ],
         ),
       ),
@@ -66,6 +75,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
                 _buildQuestionsList(ReviewFilter.all),
                 _buildQuestionsList(ReviewFilter.correct),
                 _buildQuestionsList(ReviewFilter.incorrect),
+                _buildQuestionsList(ReviewFilter.unanswered),
               ],
             ),
           ),
