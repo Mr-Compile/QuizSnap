@@ -8,7 +8,7 @@ import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/confirmation_dialog.dart';
-import '../../shared/widgets/success_snackbar.dart';
+import '../../core/services/dialog_service.dart';
 import 'create_tag_dialog.dart';
 
 class TagManagementScreen extends StatefulWidget {
@@ -121,23 +121,12 @@ class _TagManagementScreenState extends State<TagManagementScreen> {
     try {
       await dbProvider.tagRepository.deleteTag(tag.id);
       if (!mounted) return;
-      SuccessSnackbar.show(
-        this.context,
-        message: 'Tag deleted successfully',
-      );
-      if (mounted) {
-        setState(() {});
-      }
+      await DialogService.showSuccess(this.context, 'Tag deleted successfully');
+      if (!mounted) return;
+      setState(() {});
     } catch (e) {
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(this.context);
-      final errorColor = Theme.of(this.context).colorScheme.error;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Error deleting tag: $e'),
-          backgroundColor: errorColor,
-        ),
-      );
+      await DialogService.showError(this.context, 'Error deleting tag: $e');
     }
   }
 }

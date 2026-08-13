@@ -1,14 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:open_filex/open_filex.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../core/providers/backup_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 
 class ChangeBackupFolderScreen extends ConsumerStatefulWidget {
   const ChangeBackupFolderScreen({super.key});
@@ -227,7 +226,7 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
       final hasPermission = await ref.read(backupOperationProvider.notifier).requestStoragePermission();
       if (!hasPermission) {
         if (mounted) {
-          context.read<NotificationService>().showErrorTop('Storage permission is required to select a folder');
+          DialogService.showError(context, 'Storage permission is required to select a folder');
         }
         return;
       }
@@ -241,7 +240,7 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Failed to select folder: $e');
+        DialogService.showError(context, 'Failed to select folder: $e');
       }
     }
   }
@@ -253,7 +252,7 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
       await ref.read(backupOperationProvider.notifier).setCustomBackupPath(_selectedPath);
 
       if (mounted) {
-        context.read<NotificationService>().showSuccess(
+        DialogService.showSuccess(context, 
           _selectedPath == null
               ? 'Reset to default backup location'
               : 'Custom backup location saved',
@@ -263,7 +262,7 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        context.read<NotificationService>().showErrorTop('Failed to save changes: $e');
+        DialogService.showError(context, 'Failed to save changes: $e');
       }
     }
   }
@@ -275,11 +274,11 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
       await testFile.writeAsString('QuizSnap test write successful');
       await testFile.delete();
       if (mounted) {
-        context.read<NotificationService>().showSuccess('Write test passed');
+        DialogService.showSuccess(context, 'Write test passed');
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Write test failed: $e');
+        DialogService.showError(context, 'Write test failed: $e');
       }
     }
   }
@@ -289,11 +288,11 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
     try {
       final result = await OpenFilex.open(_selectedPath!);
       if (result.type != ResultType.done && mounted) {
-        context.read<NotificationService>().showErrorTop('Could not open folder');
+        DialogService.showError(context, 'Could not open folder');
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Failed to open folder: $e');
+        DialogService.showError(context, 'Failed to open folder: $e');
       }
     }
   }

@@ -4,6 +4,7 @@ import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../core/models/export.dart';
+import '../../core/services/dialog_service.dart';
 
 class ExportSuccessScreen extends StatelessWidget {
   final ExportResult exportResult;
@@ -163,9 +164,7 @@ class ExportSuccessScreen extends StatelessWidget {
       await Share.shareXFiles([XFile(exportResult.filePath!)]);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to share: $e')),
-        );
+        await DialogService.showError(context, 'Failed to share: $e');
       }
     }
   }

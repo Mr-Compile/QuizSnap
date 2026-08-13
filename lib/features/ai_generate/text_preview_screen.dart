@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/unified_text_cleaner.dart';
-import '../../core/providers/notification_service.dart';
-import 'package:provider/provider.dart';
+import '../../core/services/dialog_service.dart';
 import '../../shared/widgets/formatted_study_text.dart';
 import 'ai_generation_config_screen.dart';
 
@@ -235,7 +234,7 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
       _textController.text = cleaned;
       _statistics = DocumentExtractionService.getTextStatistics(cleaned);
     });
-    context.read<NotificationService>().showSuccess('Text rearranged');
+    DialogService.showSuccess(context, 'Text rearranged');
   }
 
   void _resetToOriginal() {
@@ -243,7 +242,7 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
       _textController.text = _originalText;
       _statistics = DocumentExtractionService.getTextStatistics(_originalText);
     });
-    context.read<NotificationService>().showInfoTop('Reset to original text');
+    DialogService.showInfo(context, 'Reset to original text');
   }
 
   void _proceedToGeneration() {

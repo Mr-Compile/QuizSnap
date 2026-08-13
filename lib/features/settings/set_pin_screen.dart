@@ -4,6 +4,7 @@ import '../../core/providers/security_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
+import '../../core/services/dialog_service.dart';
 
 class SetPinScreen extends StatefulWidget {
   const SetPinScreen({super.key});
@@ -38,17 +39,14 @@ class _SetPinScreenState extends State<SetPinScreen> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PIN set successfully!')),
-      );
+      if (!mounted) return;
+      if (!mounted) return;
+      await DialogService.showSuccess(context, 'PIN set successfully!');
+      if (!mounted) return;
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to set PIN: ${securityProvider.errorMessage}'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      if (!mounted) return;
+      await DialogService.showError(context, 'Failed to set PIN: ${securityProvider.errorMessage}');
     }
   }
 

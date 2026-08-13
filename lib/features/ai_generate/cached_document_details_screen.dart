@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/providers/database_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/services/cached_document_service.dart';
 import '../../core/services/document_cache_service.dart';
 import '../../core/theme/app_theme.dart';
@@ -122,7 +122,7 @@ class _CachedDocumentDetailsScreenState extends State<CachedDocumentDetailsScree
   void _openSections(BuildContext context, CachedDocument doc) {
     final file = File(doc.filePath);
     if (!file.existsSync()) {
-      context.read<NotificationService>().showErrorTop('Original file not found');
+      DialogService.showError(context, 'Original file not found');
       return;
     }
     Navigator.of(context).push(
@@ -134,7 +134,7 @@ class _CachedDocumentDetailsScreenState extends State<CachedDocumentDetailsScree
 
   void _preview(BuildContext context, String text, String scopeType) {
     if (text.trim().isEmpty) {
-      context.read<NotificationService>().showErrorTop('No content available');
+      DialogService.showError(context, 'No content available');
       return;
     }
     Navigator.of(context).push(
@@ -172,7 +172,7 @@ class _CachedDocumentDetailsScreenState extends State<CachedDocumentDetailsScree
     if (confirmed == true && context.mounted) {
       await _service.deleteCachedDocument(widget.documentId);
       if (context.mounted) {
-        context.read<NotificationService>().showSuccess('Document deleted');
+        DialogService.showSuccess(context, 'Document deleted');
         Navigator.of(context).pop();
       }
     }

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' hide Column;
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/success_snackbar.dart';
+import '../../core/services/dialog_service.dart';
 
 class RenameFolderDialog extends StatefulWidget {
   final int folderId;
@@ -114,20 +114,13 @@ class _RenameFolderDialogState extends State<RenameFolderDialog> {
       );
 
       if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Folder updated successfully',
-        );
+        await DialogService.showSuccess(context, 'Folder updated successfully');
+        if (!mounted) return;
         Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating folder: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        await DialogService.showError(context, 'Error updating folder: $e');
       }
     }
   }

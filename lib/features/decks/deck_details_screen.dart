@@ -6,7 +6,8 @@ import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/deck_bookmark_provider.dart';
 import '../../core/providers/flashcard_selection_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/providers/trash_provider.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -215,7 +216,7 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
                 onPressed: () async {
                   await bookmarks.toggleBookmark(widget.deckId);
                   if (context.mounted) {
-                    context.read<NotificationService>().showSuccess(
+                    await DialogService.showSuccess(context, 
                       isBookmarked ? 'Bookmark removed' : 'Deck bookmarked',
                     );
                   }
@@ -530,17 +531,27 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
     if (confirmed != true || !context.mounted) return;
 
     final db = context.read<DatabaseProvider>();
-    final notify = context.read<NotificationService>();
     try {
       for (final id in selection.selectedIds) {
         await db.flashcardRepository.deleteFlashcard(id);
       }
       await db.deckRepository.updateDeckCardCount(widget.deckId);
-      notify.showSuccess('${selection.selectedCount} flashcards moved to Trash');
+      db.refreshDecks();
+      if (context.mounted) {
+        context.read<TrashProvider>().load();
+      }
+      if (context.mounted) {
+        await DialogService.showSuccess(
+          context,
+          '${selection.selectedCount} flashcards moved to Trash',
+        );
+      }
       selection.clear();
       setState(() {});
     } catch (e) {
-      notify.showErrorTop('Error moving to Trash: $e');
+      if (context.mounted) {
+        await DialogService.showError(context, 'Error moving to Trash: $e');
+      }
     }
   }
 
@@ -548,7 +559,6 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
     if (selection.selectedIds.isEmpty) return;
 
     final db = context.read<DatabaseProvider>();
-    final notify = context.read<NotificationService>();
     try {
       for (final id in selection.selectedIds) {
         final card = await db.flashcardRepository.getFlashcardById(id);
@@ -556,10 +566,18 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
           card.copyWith(isFavorite: !card.isFavorite),
         );
       }
-      notify.showSuccess('${selection.selectedCount} flashcards bookmarked');
+      db.refreshDecks();
+      if (context.mounted) {
+        await DialogService.showSuccess(
+          context,
+          '${selection.selectedCount} flashcards bookmarked',
+        );
+      }
       setState(() {});
     } catch (e) {
-      notify.showErrorTop('Error bookmarking: $e');
+      if (context.mounted) {
+        await DialogService.showError(context, 'Error bookmarking: $e');
+      }
     }
   }
 
@@ -572,7 +590,6 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
   }
 
   void _confirmDelete(BuildContext context) async {
-    final notify = context.read<NotificationService>();
     final dbProvider = context.read<DatabaseProvider>();
     final confirmed = await ConfirmationDialog.show(
       context: context,
@@ -588,12 +605,17 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
         await dbProvider.deckRepository.deleteDeck(widget.deckId);
         dbProvider.refreshDecks();
         if (context.mounted) {
-          notify.showSuccess('Deck moved to trash');
+          context.read<TrashProvider>().load();
+        }
+        if (context.mounted) {
+          await DialogService.showSuccess(context, 'Deck moved to trash');
+        }
+        if (context.mounted) {
           Navigator.of(context).pop();
         }
       } catch (e) {
         if (context.mounted) {
-          notify.showErrorTop('Error deleting deck: $e');
+          await DialogService.showError(context, 'Error deleting deck: $e');
         }
       }
     }

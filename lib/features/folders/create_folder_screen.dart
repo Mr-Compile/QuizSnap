@@ -7,7 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
-import '../../shared/widgets/success_snackbar.dart';
+import '../../core/services/dialog_service.dart';
 
 class CreateFolderScreen extends StatefulWidget {
   const CreateFolderScreen({super.key});
@@ -157,20 +157,13 @@ class _CreateFolderScreenState extends State<CreateFolderScreen> with BackButton
       );
 
       if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Folder created successfully',
-        );
+        await DialogService.showSuccess(context, 'Folder created successfully');
+        if (!mounted) return;
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error creating folder: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        await DialogService.showError(context, 'Error creating folder: $e');
       }
     } finally {
       if (mounted) {

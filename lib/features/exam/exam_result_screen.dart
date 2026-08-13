@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/exam_provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -98,11 +99,22 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
     final result = _result!;
     final gradeColor = _getGradeColor(context, result.percentage);
 
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: 'Exam Results',
-      ),
-      body: SingleChildScrollView(
+    void backToDeck() => context.go('/decks/${result.exam.deckId}');
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) backToDeck();
+      },
+      child: Scaffold(
+        appBar: CustomAppBar(
+          title: 'Exam Results',
+          leading: BackButton(
+            onPressed: backToDeck,
+          ),
+          automaticallyImplyLeading: false,
+        ),
+        body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: Column(
           children: [
@@ -116,6 +128,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -351,14 +364,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
             final examProvider = context.read<ExamProvider>();
             examProvider.clearExam();
             if (mounted) {
-              // Use popUntil to navigate back to the deck details screen
-              Navigator.of(context).popUntil((route) {
-                // Pop until we reach a route that is not an exam-related screen
-                final routeName = route.settings.name;
-                return routeName == '/decks/${result.exam.deckId}' || 
-                       routeName == '/decks' ||
-                       route.isFirst;
-              });
+              context.go('/decks/${result.exam.deckId}');
             }
           },
           isOutlined: true,

@@ -12,7 +12,6 @@ import 'core/providers/security_provider.dart';
 import 'core/providers/reminder_provider.dart';
 import 'core/providers/exam_provider.dart';
 import 'core/providers/export_provider.dart';
-import 'core/providers/notification_service.dart';
 import 'core/providers/deck_bookmark_provider.dart';
 import 'core/providers/flashcard_reveal_provider.dart';
 import 'core/providers/study_session_controller.dart';
@@ -28,7 +27,6 @@ import 'core/providers/flashcard_selection_provider.dart';
 import 'core/services/cleanup_scheduler.dart';
 import 'core/services/trash_service.dart';
 import 'core/navigation/app_router.dart';
-import 'shared/widgets/notification_overlay.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -79,7 +77,6 @@ class QuizSnapApp extends StatelessWidget {
         provider_pkg.ChangeNotifierProvider(create: (_) => StudySessionController(
           persistence: StudySessionPersistence(prefs),
         )),
-        provider_pkg.ChangeNotifierProvider(create: (_) => NotificationService()),
         provider_pkg.ChangeNotifierProvider(create: (_) => RecentGenerationRepository(prefs)),
         provider_pkg.ChangeNotifierProxyProvider<DatabaseProvider, CachedDocumentRepository>(
           create: (context) => CachedDocumentRepository(context.read<DatabaseProvider>()),
@@ -125,7 +122,6 @@ class QuizSnapApp extends StatelessWidget {
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
             routerConfig: AppRouter.router,
-            builder: (context, child) => NotificationOverlay(child: child ?? const SizedBox.shrink()),
           );
         },
       ),

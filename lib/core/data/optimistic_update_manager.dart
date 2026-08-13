@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/dialog_service.dart';
 
 /// OptimisticUpdateManager handles optimistic UI updates for CRUD operations
 /// 
@@ -84,12 +85,7 @@ class OptimisticUpdateManager<T> {
 
   void _showError(BuildContext context, String message) {
     if (showErrorSnackBar && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      DialogService.showError(context, message);
     }
   }
 }
@@ -114,9 +110,7 @@ class OptimisticCRUD {
       // Perform actual delete (caller should handle this)
       // If successful, show success message
       if (successMessage != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(successMessage)),
-        );
+        await DialogService.showSuccess(context, successMessage);
       }
 
       return true;
@@ -125,12 +119,7 @@ class OptimisticCRUD {
       await onRollback(item);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage ?? 'Delete failed: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        await DialogService.showError(context, errorMessage ?? 'Delete failed: $e');
       }
 
       return false;
@@ -152,9 +141,7 @@ class OptimisticCRUD {
 
       // Perform actual create (caller should handle this)
       if (successMessage != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(successMessage)),
-        );
+        await DialogService.showSuccess(context, successMessage);
       }
 
       return true;
@@ -163,12 +150,7 @@ class OptimisticCRUD {
       await onRollback(item);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage ?? 'Create failed: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        await DialogService.showError(context, errorMessage ?? 'Create failed: $e');
       }
 
       return false;
@@ -191,9 +173,7 @@ class OptimisticCRUD {
 
       // Perform actual update (caller should handle this)
       if (successMessage != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(successMessage)),
-        );
+        await DialogService.showSuccess(context, successMessage);
       }
 
       return true;
@@ -202,12 +182,7 @@ class OptimisticCRUD {
       await onRollback(originalItem);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage ?? 'Update failed: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        await DialogService.showError(context, errorMessage ?? 'Update failed: $e');
       }
 
       return false;

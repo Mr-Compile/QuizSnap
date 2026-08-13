@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers/database_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
@@ -257,12 +257,12 @@ class _AddFlashcardScreenState extends State<AddFlashcardScreen> with BackButton
       await dbProvider.deckRepository.updateDeckCardCount(widget.deckId);
 
       if (mounted) {
-        context.read<NotificationService>().showSuccess('Flashcard added successfully');
+        DialogService.showSuccess(context, 'Flashcard added successfully');
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Error adding flashcard: $e');
+        DialogService.showError(context, 'Error adding flashcard: $e');
       }
     } finally {
       if (mounted) {

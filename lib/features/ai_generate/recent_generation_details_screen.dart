@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/database/database.dart';
 import '../../core/models/recent_generation.dart';
 import '../../core/providers/database_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/repositories/recent_generation_repository.dart';
 import '../../core/services/question_generation_service.dart';
 import '../../core/theme/app_theme.dart';
@@ -111,7 +111,7 @@ class RecentGenerationDetailsScreen extends StatelessWidget {
     if (!context.mounted) return;
 
     if (decks.isEmpty) {
-      context.read<NotificationService>().showInfoTop('Create a deck first');
+      await DialogService.showInfo(context, 'Create a deck first');
       return;
     }
 
@@ -142,7 +142,6 @@ class RecentGenerationDetailsScreen extends StatelessWidget {
         .map((json) => GeneratedQuestion.fromJson(json))
         .toList();
     final recentRepo = context.read<RecentGenerationRepository>();
-    final notifier = context.read<NotificationService>();
 
     try {
       for (var i = 0; i < questions.length; i++) {
@@ -160,10 +159,10 @@ class RecentGenerationDetailsScreen extends StatelessWidget {
       await db.deckRepository.updateDeckCardCount(selectedDeckId);
       await recentRepo.updateSavedDeckId(generation.id, selectedDeckId);
       if (!context.mounted) return;
-      notifier.showSuccess('Saved ${questions.length} questions to deck');
+      await DialogService.showSuccess(context, 'Saved ${questions.length} questions to deck');
     } catch (e) {
       if (context.mounted) {
-        notifier.showErrorTop('Failed to save: $e');
+        await DialogService.showError(context, 'Failed to save: $e');
       }
     }
   }

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:provider/provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/services/unified_text_cleaner.dart';
 import 'text_preview_screen.dart';
 
@@ -267,7 +266,7 @@ class _CameraOcrScreenState extends State<CameraOcrScreen> {
           _errorMessage = 'Failed to capture or recognize text: $e';
         });
 
-        context.read<NotificationService>().showErrorTop('Error: $e');
+        DialogService.showError(context, 'Error: $e');
       }
     }
   }

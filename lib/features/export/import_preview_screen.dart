@@ -7,6 +7,7 @@ import '../../shared/widgets/app_bar.dart';
 import '../../core/models/backup_enhanced.dart';
 import '../../core/providers/backup_provider.dart';
 import 'restore_options_dialog.dart';
+import '../../core/services/dialog_service.dart';
 
 class ImportPreviewScreen extends ConsumerStatefulWidget {
   final String filePath;
@@ -426,31 +427,18 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
       if (mounted) {
         if (result != null && result.success) {
           Navigator.pop(context, true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Restore completed successfully'),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-            ),
-          );
+          if (mounted) {
+            await DialogService.showSuccess(context, 'Restore completed successfully');
+          }
         } else {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Restore failed'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
+          await DialogService.showError(context, 'Restore failed');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Restore failed: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        await DialogService.showError(context, 'Restore failed: $e');
       }
     }
   }

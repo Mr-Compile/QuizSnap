@@ -5,7 +5,7 @@ import '../../core/services/document_extraction_service.dart';
 import '../../core/services/document_cache_service.dart';
 import '../../core/services/cached_document_service.dart';
 import '../../core/providers/database_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/stepper_header.dart';
 import 'page_range_selector_screen.dart';
@@ -354,7 +354,7 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
     } catch (e) {
       if (!mounted) return;
 
-      context.read<NotificationService>().showErrorTop('Failed to extract text: $e');
+      DialogService.showError(context, 'Failed to extract text: $e');
     }
   }
 

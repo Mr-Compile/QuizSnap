@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pdfx/pdfx.dart';
 import '../../core/services/document_extraction_service.dart';
 import 'text_preview_screen.dart';
+import '../../core/services/dialog_service.dart';
 
 class PdfPreviewScreen extends StatefulWidget {
   final File file;
@@ -193,9 +194,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
     } catch (e) {
       if (!mounted) return;
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to extract text: $e')),
-      );
+      await DialogService.showError(context, 'Failed to extract text: $e');
     }
   }
 }

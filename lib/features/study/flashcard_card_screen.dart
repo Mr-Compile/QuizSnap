@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/flashcard_reveal_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/services/question_generation_service.dart';
 import '../../core/database/database.dart';
 import 'rate_card_bottom_sheet.dart';
@@ -103,8 +103,8 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                             icon: Icon(
                               flashcard.isFavorite ? Icons.bookmark : Icons.bookmark_border,
                               color: flashcard.isFavorite
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                  ? AppTheme.amber500
+                                  : Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                             onPressed: () => _toggleBookmark(flashcard),
                             tooltip: flashcard.isFavorite ? 'Remove bookmark' : 'Bookmark',
@@ -198,6 +198,8 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
               label: const Text('Show Answer'),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 56),
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+                foregroundColor: Theme.of(context).colorScheme.onSecondary,
               ),
             ),
         ],
@@ -280,6 +282,7 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                     label: const Text('Previous'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 48),
+                      foregroundColor: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ),
@@ -303,6 +306,7 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                     label: const Text('Next'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 48),
+                      foregroundColor: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ),
@@ -358,14 +362,14 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
           }
         });
         
-        context.read<NotificationService>().showToast(
+        await DialogService.showSuccess(
+          context,
           updatedCard.isFavorite ? 'Card bookmarked' : 'Bookmark removed',
-          icon: updatedCard.isFavorite ? Icons.bookmark : Icons.bookmark_border,
         );
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Failed to toggle bookmark: $e');
+        await DialogService.showError(context, 'Failed to toggle bookmark: $e');
       }
     }
   }

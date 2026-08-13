@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
-import '../../core/providers/notification_service.dart';
 import '../../core/providers/trash_provider.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -492,7 +492,6 @@ class _TrashScreenState extends State<TrashScreen> {
   }
 
   Future<void> _restoreAll() async {
-    final notify = context.read<NotificationService>();
     final provider = context.read<TrashProvider>();
     final confirmed = await ConfirmationDialog.show(
       context: context,
@@ -505,19 +504,18 @@ class _TrashScreenState extends State<TrashScreen> {
       try {
         await provider.restoreAll();
         if (mounted) {
-          notify.showSuccess('All items restored');
+          DialogService.showSuccess(context, 'All items restored');
           setState(() {});
         }
       } catch (e) {
         if (mounted) {
-          notify.showErrorTop('Error restoring all: $e');
+          DialogService.showError(context, 'Error restoring all: $e');
         }
       }
     }
   }
 
   Future<void> _emptyTrash() async {
-    final notify = context.read<NotificationService>();
     final provider = context.read<TrashProvider>();
     final confirmed = await ConfirmationDialog.show(
       context: context,
@@ -531,12 +529,12 @@ class _TrashScreenState extends State<TrashScreen> {
       try {
         await provider.emptyTrash();
         if (mounted) {
-          notify.showSuccess('Trash emptied');
+          DialogService.showSuccess(context, 'Trash emptied');
           setState(() {});
         }
       } catch (e) {
         if (mounted) {
-          notify.showErrorTop('Error emptying trash: $e');
+          DialogService.showError(context, 'Error emptying trash: $e');
         }
       }
     }
@@ -544,21 +542,19 @@ class _TrashScreenState extends State<TrashScreen> {
 
   void _restoreFolder(BuildContext context, int id) {
     final db = context.read<DatabaseProvider>();
-    final notify = context.read<NotificationService>();
     db.folderRepository.restoreFolder(id).then((_) {
-      if (mounted) {
-        notify.showSuccess('Folder restored');
+      if (context.mounted) {
+        DialogService.showSuccess(context, 'Folder restored');
         setState(() {});
       }
     }).catchError((e) {
-      if (mounted) {
-        notify.showErrorTop('Error restoring folder: $e');
+      if (context.mounted) {
+        DialogService.showError(context, 'Error restoring folder: $e');
       }
     });
   }
 
   void _permanentlyDeleteFolder(BuildContext context, int id) async {
-    final notify = context.read<NotificationService>();
     final db = context.read<DatabaseProvider>();
     final confirmed = await ConfirmationDialog.show(
       context: context,
@@ -571,35 +567,33 @@ class _TrashScreenState extends State<TrashScreen> {
     if (confirmed && mounted) {
       try {
         await db.folderRepository.permanentlyDeleteFolder(id);
-        if (mounted) {
-          notify.showSuccess('Folder permanently deleted');
+        if (context.mounted) {
+          DialogService.showSuccess(context, 'Folder permanently deleted');
           setState(() {});
         }
       } catch (e) {
-        if (mounted) {
-          notify.showErrorTop('Error deleting folder: $e');
+        if (context.mounted) {
+          DialogService.showError(context, 'Error deleting folder: $e');
         }
       }
     }
   }
 
   void _restoreDeck(BuildContext context, int id) {
-    final notify = context.read<NotificationService>();
     final provider = context.read<TrashProvider>();
     provider.restoreDeck(id).then((_) {
-      if (mounted) {
-        notify.showSuccess('Deck restored');
+      if (context.mounted) {
+        DialogService.showSuccess(context, 'Deck restored');
         setState(() {});
       }
     }).catchError((e) {
-      if (mounted) {
-        notify.showErrorTop('Error restoring deck: $e');
+      if (context.mounted) {
+        DialogService.showError(context, 'Error restoring deck: $e');
       }
     });
   }
 
   void _permanentlyDeleteDeck(BuildContext context, int id) async {
-    final notify = context.read<NotificationService>();
     final provider = context.read<TrashProvider>();
     final confirmed = await ConfirmationDialog.show(
       context: context,
@@ -612,35 +606,33 @@ class _TrashScreenState extends State<TrashScreen> {
     if (confirmed && mounted) {
       try {
         await provider.permanentlyDeleteDeck(id);
-        if (mounted) {
-          notify.showSuccess('Deck permanently deleted');
+        if (context.mounted) {
+          DialogService.showSuccess(context, 'Deck permanently deleted');
           setState(() {});
         }
       } catch (e) {
-        if (mounted) {
-          notify.showErrorTop('Error deleting deck: $e');
+        if (context.mounted) {
+          DialogService.showError(context, 'Error deleting deck: $e');
         }
       }
     }
   }
 
   void _restoreFlashcard(BuildContext context, int id) {
-    final notify = context.read<NotificationService>();
     final provider = context.read<TrashProvider>();
     provider.restoreFlashcard(id).then((_) {
-      if (mounted) {
-        notify.showSuccess('Flashcard restored');
+      if (context.mounted) {
+        DialogService.showSuccess(context, 'Flashcard restored');
         setState(() {});
       }
     }).catchError((e) {
-      if (mounted) {
-        notify.showErrorTop('Error restoring flashcard: $e');
+      if (context.mounted) {
+        DialogService.showError(context, 'Error restoring flashcard: $e');
       }
     });
   }
 
   void _permanentlyDeleteFlashcard(BuildContext context, int id) async {
-    final notify = context.read<NotificationService>();
     final provider = context.read<TrashProvider>();
     final confirmed = await ConfirmationDialog.show(
       context: context,
@@ -653,13 +645,13 @@ class _TrashScreenState extends State<TrashScreen> {
     if (confirmed && mounted) {
       try {
         await provider.permanentlyDeleteFlashcard(id);
-        if (mounted) {
-          notify.showSuccess('Flashcard permanently deleted');
+        if (context.mounted) {
+          DialogService.showSuccess(context, 'Flashcard permanently deleted');
           setState(() {});
         }
       } catch (e) {
-        if (mounted) {
-          notify.showErrorTop('Error deleting flashcard: $e');
+        if (context.mounted) {
+          DialogService.showError(context, 'Error deleting flashcard: $e');
         }
       }
     }

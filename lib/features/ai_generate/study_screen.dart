@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/models/prompt_template.dart';
 import '../../core/services/question_generation_service.dart' as qgs;
+import '../../core/services/dialog_service.dart';
 
 class StudyScreen extends StatefulWidget {
   const StudyScreen({super.key});
@@ -22,9 +23,7 @@ class _StudyScreenState extends State<StudyScreen> {
     final groqProvider = Provider.of<GroqProvider>(context, listen: false);
     
     if (!groqProvider.isInitialized) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please configure your Groq API key first')),
-      );
+      await DialogService.showWarning(context, 'Please configure your Groq API key first');
       return;
     }
 
@@ -55,9 +54,7 @@ class _StudyScreenState extends State<StudyScreen> {
     } catch (e) {
       if (!mounted) return;
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      await DialogService.showError(context, 'Error: ${e.toString()}');
     } finally {
       if (mounted) {
         setState(() {

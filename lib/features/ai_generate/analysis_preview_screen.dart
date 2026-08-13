@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/text_normalization_service.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -230,7 +229,7 @@ class _AnalysisPreviewScreenState extends State<AnalysisPreviewScreen> {
 
   void _generate() {
     if (widget.text.trim().isEmpty) {
-      context.read<NotificationService>().showErrorTop('No content selected for AI generation');
+      DialogService.showError(context, 'No content selected for AI generation');
       return;
     }
 

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/groq_provider.dart';
+import '../../core/services/dialog_service.dart';
 
 class PromptPreviewScreen extends StatefulWidget {
   final String prompt;
@@ -66,9 +67,7 @@ class _PromptPreviewScreenState extends State<PromptPreviewScreen> {
 
   void _copyPrompt() {
     Clipboard.setData(ClipboardData(text: widget.prompt));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Prompt copied to clipboard')),
-    );
+    DialogService.showSuccess(context, 'Prompt copied to clipboard');
   }
 
   @override

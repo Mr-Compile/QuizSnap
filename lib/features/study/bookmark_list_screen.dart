@@ -7,7 +7,7 @@ import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_skeleton.dart';
-import 'flashcard_card_screen.dart';
+import 'flashcard_study_session_screen.dart';
 
 class BookmarkListScreen extends StatefulWidget {
   const BookmarkListScreen({super.key});
@@ -95,8 +95,8 @@ class _BookmarkListScreenState extends State<BookmarkListScreen> {
                                 ? Icons.bookmark
                                 : Icons.bookmark_border,
                             color: flashcard.isFavorite
-                                ? Theme.of(context).colorScheme.secondary
-                                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                                ? AppTheme.amber500
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                           onPressed: () => _toggleBookmark(context, flashcard.id),
                         ),
@@ -115,17 +115,11 @@ class _BookmarkListScreenState extends State<BookmarkListScreen> {
   void _startStudy(BuildContext context, List<Flashcard> flashcards, int startIndex) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => FlashcardCardScreen(
+        builder: (context) => FlashcardStudySessionScreen(
+          deckName: 'Bookmarks',
+          deckId: 0,
           flashcards: flashcards,
-          currentIndex: startIndex,
-          onCardRated: (quality) {
-            // Handle rating for bookmarked cards
-            context.read<DatabaseProvider>().studyRepository.updateCardReview(
-              flashcards[startIndex].id,
-              quality,
-            );
-            Navigator.of(context).pop();
-          },
+          initialIndex: startIndex,
         ),
       ),
     );

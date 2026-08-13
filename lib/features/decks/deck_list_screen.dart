@@ -5,7 +5,7 @@ import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/deck_bookmark_provider.dart';
 import '../../core/navigation/app_routes.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -193,7 +193,8 @@ class _DeckListScreenState extends State<DeckListScreen> {
               onPressed: () async {
                 await bookmarkProvider.toggleBookmark(deck.id);
                 if (context.mounted) {
-                  context.read<NotificationService>().showSuccess(
+                  await DialogService.showSuccess(
+                    context,
                     isBookmarked ? 'Bookmark removed' : 'Deck bookmarked',
                   );
                 }

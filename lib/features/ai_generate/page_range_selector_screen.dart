@@ -6,7 +6,7 @@ import '../../core/services/document_extraction_service.dart';
 import '../../core/services/document_cache_service.dart';
 import '../../core/services/cached_document_service.dart';
 import '../../core/providers/database_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../shared/widgets/stepper_header.dart';
 import 'analysis_preview_screen.dart';
 
@@ -540,7 +540,7 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      context.read<NotificationService>().showErrorTop('Failed to extract text: $e');
+      DialogService.showError(context, 'Failed to extract text: $e');
     }
   }
 }

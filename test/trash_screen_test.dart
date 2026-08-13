@@ -5,7 +5,6 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:quiz_snap/core/database/database.dart';
 import 'package:quiz_snap/core/providers/database_provider.dart';
-import 'package:quiz_snap/core/providers/notification_service.dart';
 import 'package:quiz_snap/core/providers/trash_provider.dart';
 import 'package:quiz_snap/core/services/trash_service.dart';
 import 'package:quiz_snap/features/trash/trash_screen.dart';
@@ -37,7 +36,6 @@ void main() {
             ),
           ),
         ),
-        ChangeNotifierProvider(create: (_) => NotificationService()),
       ],
       child: const MaterialApp(
         home: TrashScreen(),
@@ -76,8 +74,5 @@ void main() {
 
     expect(find.text('History'), findsNothing);
     expect(find.text('No deleted decks'), findsOneWidget);
-
-    // Let the notification banner's 3-second dismiss timer complete.
-    await tester.pump(const Duration(seconds: 4));
   });
 }

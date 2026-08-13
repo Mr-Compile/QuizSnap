@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
-import 'package:quiz_snap/core/providers/notification_service.dart';
 import 'package:quiz_snap/core/theme/app_theme.dart';
 import 'package:quiz_snap/features/study/rate_card_bottom_sheet.dart';
 import 'package:quiz_snap/shared/widgets/app_loading_screen.dart';
-import 'package:quiz_snap/shared/widgets/app_toast_overlay.dart';
 import 'package:quiz_snap/shared/widgets/custom_button.dart';
-import 'package:quiz_snap/shared/widgets/top_banner_overlay.dart';
 
 void main() {
   group('CustomButton loading spinner', () {
@@ -144,122 +140,6 @@ void main() {
       final goodFg = good.style?.foregroundColor?.resolve({});
       expect(goodBg, colorScheme.primaryContainer);
       expect(goodFg, colorScheme.onPrimaryContainer);
-    });
-  });
-
-  group('TopBannerOverlay', () {
-    testWidgets('success banner uses primaryContainer', (WidgetTester tester) async {
-      final service = NotificationService()..showSuccess('Saved successfully');
-
-      await tester.pumpWidget(
-        ChangeNotifierProvider<NotificationService>.value(
-          value: service,
-          child: MaterialApp(
-            theme: AppTheme.lightTheme,
-            home: TopBannerOverlay(
-              child: Container(),
-            ),
-          ),
-        ),
-      );
-
-      final banner = find.ancestor(
-        of: find.text('Saved successfully'),
-        matching: find.byType(Container),
-      );
-      final container = tester.widget<Container>(banner);
-      final decoration = container.decoration as BoxDecoration;
-
-      expect(decoration.color, AppTheme.lightTheme.colorScheme.primaryContainer);
-
-      // Allow the auto-dismiss timer to fire so the test is clean.
-      await tester.pump(const Duration(seconds: 4));
-    });
-
-    testWidgets('error banner uses errorContainer', (WidgetTester tester) async {
-      final service = NotificationService()..showErrorTop('Save failed');
-
-      await tester.pumpWidget(
-        ChangeNotifierProvider<NotificationService>.value(
-          value: service,
-          child: MaterialApp(
-            theme: AppTheme.lightTheme,
-            home: TopBannerOverlay(
-              child: Container(),
-            ),
-          ),
-        ),
-      );
-
-      final banner = find.ancestor(
-        of: find.text('Save failed'),
-        matching: find.byType(Container),
-      );
-      final container = tester.widget<Container>(banner);
-      final decoration = container.decoration as BoxDecoration;
-
-      expect(decoration.color, AppTheme.lightTheme.colorScheme.errorContainer);
-
-      await tester.pump(const Duration(seconds: 4));
-    });
-  });
-
-  group('AppToastOverlay', () {
-    testWidgets('success toast uses primaryContainer', (WidgetTester tester) async {
-      final service = NotificationService()..showSuccessToast('Copied');
-
-      await tester.pumpWidget(
-        ChangeNotifierProvider<NotificationService>.value(
-          value: service,
-          child: MaterialApp(
-            theme: AppTheme.lightTheme,
-            home: AppToastOverlay(
-              child: Container(),
-            ),
-          ),
-        ),
-      );
-
-      final toast = find.ancestor(
-        of: find.text('Copied'),
-        matching: find.byType(Container),
-      );
-      final container = tester.widget<Container>(toast);
-      final decoration = container.decoration as BoxDecoration;
-
-      expect(decoration.color, AppTheme.lightTheme.colorScheme.primaryContainer);
-
-      await tester.pump(const Duration(seconds: 2));
-    });
-
-    testWidgets('error toast uses errorContainer', (WidgetTester tester) async {
-      final service = NotificationService()..showToast(
-        'Failed',
-        type: InlineMessageType.error,
-      );
-
-      await tester.pumpWidget(
-        ChangeNotifierProvider<NotificationService>.value(
-          value: service,
-          child: MaterialApp(
-            theme: AppTheme.lightTheme,
-            home: AppToastOverlay(
-              child: Container(),
-            ),
-          ),
-        ),
-      );
-
-      final toast = find.ancestor(
-        of: find.text('Failed'),
-        matching: find.byType(Container),
-      );
-      final container = tester.widget<Container>(toast);
-      final decoration = container.decoration as BoxDecoration;
-
-      expect(decoration.color, AppTheme.lightTheme.colorScheme.errorContainer);
-
-      await tester.pump(const Duration(seconds: 2));
     });
   });
 }

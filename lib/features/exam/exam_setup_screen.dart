@@ -8,6 +8,7 @@ import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/custom_card.dart';
 import 'countdown_screen.dart';
+import '../../core/services/dialog_service.dart';
 
 class ExamSetupScreen extends StatefulWidget {
   final int deckId;
@@ -67,9 +68,7 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
       // Check if AI is available if requested
       if (_useAI && !groqProvider.isInitialized) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('AI service not available. Using basic questions.')),
-          );
+          await DialogService.showWarning(context, 'AI service not available. Using basic questions.');
           setState(() {
             _useAI = false;
           });
@@ -98,9 +97,7 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error starting exam: $e')),
-        );
+        await DialogService.showError(context, 'Error starting exam: $e');
       }
     } finally {
       if (mounted) {

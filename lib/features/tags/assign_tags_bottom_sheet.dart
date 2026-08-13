@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/success_snackbar.dart';
+import '../../core/services/dialog_service.dart';
 
 class AssignTagsBottomSheet extends StatefulWidget {
   final int flashcardId;
@@ -144,25 +144,18 @@ class _AssignTagsBottomSheetState extends State<AssignTagsBottomSheet> {
 
   void _saveTags() async {
     final dbProvider = context.read<DatabaseProvider>();
-    
+
     try {
       await dbProvider.tagRepository.setFlashcardTags(widget.flashcardId, _selectedTagIds);
-      
+
       if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Tags updated successfully',
-        );
+        await DialogService.showSuccess(context, 'Tags updated successfully');
+        if (!mounted) return;
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating tags: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        await DialogService.showError(context, 'Error updating tags: $e');
       }
     }
   }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/move_flashcard_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -156,7 +156,7 @@ class _MoveFlashcardScreenState extends State<MoveFlashcardScreen> {
       final label = widget.flashcardIds.length == 1
           ? 'Card moved'
           : '${widget.flashcardIds.length} cards moved';
-      context.read<NotificationService>().showSuccess(label);
+      DialogService.showSuccess(context, label);
       Navigator.of(context).pop();
     }
   }

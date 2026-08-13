@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers/database_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
@@ -315,12 +315,12 @@ class _CreateFlashcardScreenState extends State<CreateFlashcardScreen>
       await db.deckRepository.updateDeckCardCount(widget.deckId);
 
       if (mounted) {
-        context.read<NotificationService>().showSuccess('Flashcard created successfully');
+        DialogService.showSuccess(context, 'Flashcard created successfully');
         Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Error creating flashcard: $e');
+        DialogService.showError(context, 'Error creating flashcard: $e');
       }
     } finally {
       if (mounted) {

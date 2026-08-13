@@ -4,7 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers/database_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/providers/trash_provider.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/database/database.dart';
 import '../../shared/widgets/formatted_study_text.dart';
@@ -55,7 +56,7 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        context.read<NotificationService>().showErrorTop('Error loading flashcard: $e');
+        await DialogService.showError(context, 'Error loading flashcard: $e');
       }
     }
   }
@@ -206,14 +207,14 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
         card.copyWith(isFavorite: !card.isFavorite),
       );
       if (mounted) {
-        context.read<NotificationService>().showSuccess(
+        await DialogService.showSuccess(context, 
           card.isFavorite ? 'Bookmark removed' : 'Flashcard bookmarked',
         );
         _loadCard();
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Failed to bookmark: $e');
+        await DialogService.showError(context, 'Failed to bookmark: $e');
       }
     }
   }
@@ -231,11 +232,11 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
       );
       await db.deckRepository.updateDeckCardCount(card.deckId);
       if (mounted) {
-        context.read<NotificationService>().showSuccess('Flashcard duplicated');
+        await DialogService.showSuccess(context, 'Flashcard duplicated');
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Failed to duplicate: $e');
+        await DialogService.showError(context, 'Failed to duplicate: $e');
       }
     }
   }
@@ -292,13 +293,19 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
     try {
       final db = context.read<DatabaseProvider>();
       await db.flashcardRepository.deleteFlashcard(card.id);
+      db.refreshDecks();
       if (mounted) {
-        context.read<NotificationService>().showSuccess('Flashcard deleted');
+        context.read<TrashProvider>().load();
+      }
+      if (mounted) {
+        await DialogService.showSuccess(context, 'Flashcard deleted');
+      }
+      if (mounted) {
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Failed to delete: $e');
+        await DialogService.showError(context, 'Failed to delete: $e');
       }
     }
   }

@@ -15,6 +15,7 @@ import 'change_backup_folder_screen.dart';
 import 'permission_explanation_dialog.dart';
 import 'export_success_screen_backup.dart';
 import 'schedule_settings_dialog.dart';
+import '../../core/services/dialog_service.dart';
 
 class BackupRestoreScreenEnhanced extends ConsumerStatefulWidget {
   const BackupRestoreScreenEnhanced({super.key});
@@ -429,9 +430,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to select file: $e')),
-        );
+        await DialogService.showError(context, 'Failed to select file: $e');
       }
     }
   }
@@ -445,9 +444,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     );
 
     if (result == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Backup folder changed')),
-      );
+      await DialogService.showSuccess(context, 'Backup folder changed');
     }
   }
 
@@ -462,9 +459,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
       await ref.read(backupOperationProvider.notifier).openBackupLocation(directory.path);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to open folder: $e')),
-        );
+        await DialogService.showError(context, 'Failed to open folder: $e');
       }
     }
   }
@@ -489,9 +484,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     if (result != null && mounted) {
       await ref.read(backupOperationProvider.notifier).updateBackupSchedule(result);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Schedule settings updated')),
-        );
+        await DialogService.showSuccess(context, 'Schedule settings updated');
       }
     }
   }
@@ -543,9 +536,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
 
   Future<void> _handleRestore(BackupMetadata backup) async {
     if (backup.filePath == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Backup file path not available')),
-      );
+      await DialogService.showWarning(context, 'Backup file path not available');
       return;
     }
 
@@ -563,9 +554,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load backup: $e')),
-        );
+        await DialogService.showError(context, 'Failed to load backup: $e');
       }
     }
   }
@@ -593,15 +582,11 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
       try {
         await ref.read(backupOperationProvider.notifier).deleteBackupFile(backup.filePath!);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Backup deleted')),
-          );
+          await DialogService.showSuccess(context, 'Backup deleted');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete: $e')),
-          );
+          await DialogService.showError(context, 'Failed to delete: $e');
         }
       }
     }
@@ -609,9 +594,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
 
   Future<void> _copyPath(String path) async {
     // This would need clipboard package
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Path: $path')),
-    );
+    await DialogService.showInfo(context, 'Path: $path');
   }
 
   Widget _detailRow(String label, String value) {

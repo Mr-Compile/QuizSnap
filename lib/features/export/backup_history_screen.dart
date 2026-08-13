@@ -6,6 +6,7 @@ import '../../shared/widgets/empty_state.dart';
 import '../../core/models/backup.dart';
 import '../../core/providers/export_provider.dart';
 import 'restore_confirmation_dialog.dart';
+import '../../core/services/dialog_service.dart';
 
 class BackupHistoryScreen extends StatefulWidget {
   const BackupHistoryScreen({super.key});
@@ -148,16 +149,12 @@ class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
       try {
         await _exportProvider.restoreBackup(backup.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Backup restored successfully')),
-          );
+          await DialogService.showSuccess(context, 'Backup restored successfully');
           await _loadBackups();
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to restore: $e')),
-          );
+          await DialogService.showError(context, 'Failed to restore: $e');
         }
       }
     }
@@ -186,16 +183,12 @@ class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
       try {
         await _exportProvider.deleteBackup(backup.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Backup deleted')),
-          );
+          await DialogService.showSuccess(context, 'Backup deleted');
           await _loadBackups();
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete: $e')),
-          );
+          await DialogService.showError(context, 'Failed to delete: $e');
         }
       }
     }

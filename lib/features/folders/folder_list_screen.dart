@@ -7,6 +7,7 @@ import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
 import 'create_folder_screen.dart';
+import '../../core/services/dialog_service.dart';
 
 class FolderListScreen extends StatefulWidget {
   const FolderListScreen({super.key});
@@ -125,8 +126,6 @@ class _FolderListScreenState extends State<FolderListScreen> {
 
   void _navigateToFolderDetails(BuildContext context, dynamic folder) {
     // Folder details screen not implemented yet
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Folder: ${folder.name}')),
-    );
+    DialogService.showInfo(context, 'Folder: ${folder.name}');
   }
 }

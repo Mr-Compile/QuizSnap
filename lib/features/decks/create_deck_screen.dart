@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
 import '../../core/providers/database_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
-import '../../shared/widgets/success_snackbar.dart';
 
 class CreateDeckScreen extends StatefulWidget {
   const CreateDeckScreen({super.key});
@@ -209,15 +208,14 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
       dbProvider.refreshDecks();
 
       if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Deck created successfully',
-        );
+        await DialogService.showSuccess(context, 'Deck created successfully');
+      }
+      if (mounted) {
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Error creating deck: $e');
+        await DialogService.showError(context, 'Error creating deck: $e');
       }
     }
   }

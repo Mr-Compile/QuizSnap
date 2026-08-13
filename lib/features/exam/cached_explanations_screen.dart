@@ -9,6 +9,7 @@ import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_skeleton.dart';
 import 'full_explanation_screen.dart';
+import '../../core/services/dialog_service.dart';
 
 class CachedExplanationsScreen extends StatefulWidget {
   const CachedExplanationsScreen({super.key});
@@ -56,9 +57,7 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
     await _loadExplanations();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Expired explanations cleared')),
-      );
+      await DialogService.showSuccess(context, 'Expired explanations cleared');
     }
   }
 
@@ -88,9 +87,7 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
       await _loadExplanations();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All explanations cleared')),
-        );
+        await DialogService.showSuccess(context, 'All explanations cleared');
       }
     }
   }
@@ -101,9 +98,7 @@ class _CachedExplanationsScreenState extends State<CachedExplanationsScreen> {
     await _loadExplanations();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Explanation deleted')),
-      );
+      await DialogService.showSuccess(context, 'Explanation deleted');
     }
   }
 

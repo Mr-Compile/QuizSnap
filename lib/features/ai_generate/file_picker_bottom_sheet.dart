@@ -2,10 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:provider/provider.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/file_management_service.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import 'document_scope_selection_screen.dart';
 import 'text_preview_screen.dart';
 
@@ -167,7 +166,7 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
         Navigator.of(context).pop();
         
         // Show success message
-        context.read<NotificationService>().showSuccess('File imported successfully');
+        DialogService.showSuccess(context, 'File imported successfully');
         
         // Navigate to document scope selection screen
         if (widget.fileType.toLowerCase() == 'pdf') {
@@ -197,7 +196,7 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
             );
           } catch (e) {
             if (!mounted) return;
-            context.read<NotificationService>().showErrorTop('Failed to extract text: $e');
+            DialogService.showError(context, 'Failed to extract text: $e');
           }
         } else if (widget.fileType.toLowerCase() == 'docx') {
           // For DOCX, extract text and go to text preview
@@ -217,7 +216,7 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
             );
           } catch (e) {
             if (!mounted) return;
-            context.read<NotificationService>().showErrorTop('Failed to extract text: $e');
+            DialogService.showError(context, 'Failed to extract text: $e');
           }
         }
       } else {

@@ -6,7 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
-import '../../shared/widgets/success_snackbar.dart';
+import '../../core/services/dialog_service.dart';
 
 class EditDeckScreen extends StatefulWidget {
   final int deckId;
@@ -256,20 +256,13 @@ class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerM
       );
 
       if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Deck updated successfully',
-        );
+        await DialogService.showSuccess(context, 'Deck updated successfully');
+        if (!mounted) return;
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating deck: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        await DialogService.showError(context, 'Error updating deck: $e');
       }
     } finally {
       if (mounted) {

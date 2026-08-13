@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import 'api_configuration_screen.dart';
 import 'set_pin_screen.dart';
+import '../../core/services/dialog_service.dart';
 
 class SecuritySettingsScreen extends StatefulWidget {
   const SecuritySettingsScreen({super.key});
@@ -182,9 +183,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       
       if (!mounted) return;
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PIN lock disabled')),
-      );
+      await DialogService.showInfo(context, 'PIN lock disabled');
     }
   }
 
@@ -279,7 +278,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 onPressed: securityProvider.isLoading
                     ? null
                     : () async {
-                        final colorScheme = Theme.of(context).colorScheme;
                         if (!formKey.currentState!.validate()) return;
                         
                         final success = await securityProvider.changePin(
@@ -294,18 +292,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                           Navigator.pop(dialogContext);
                           if (!mounted) return;
                           // ignore: use_build_context_synchronously
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('PIN changed successfully')),
-                          );
+                          await DialogService.showSuccess(context, 'PIN changed successfully');
                         } else {
                           if (!mounted) return;
                           // ignore: use_build_context_synchronously
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(securityProvider.errorMessage ?? 'Failed to change PIN'),
-                              backgroundColor: colorScheme.error,
-                            ),
-                          );
+                          await DialogService.showError(context, securityProvider.errorMessage ?? 'Failed to change PIN');
                         }
                       },
                 child: securityProvider.isLoading
@@ -445,9 +436,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
       securityProvider.clearAllSecurityData();
       groqProvider.clearApiKey();
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All security data cleared')),
-      );
+      await DialogService.showSuccess(context, 'All security data cleared');
     }
   }
 }

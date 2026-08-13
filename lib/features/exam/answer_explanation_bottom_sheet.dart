@@ -240,8 +240,29 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
       );
     }
 
-    if (_explanation == null) {
-      return const SizedBox.shrink();
+    final sanitized = _explanation != null && _explanation!.isNotEmpty
+        ? ExplanationSanitizer.sanitize(_explanation)
+        : '';
+
+    if (sanitized.isEmpty) {
+      return CustomCard(
+        child: Column(
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: AppTheme.spacingMd),
+            Text(
+              'No explanation available',
+              style: AppTheme.bodyLarge.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return Column(
@@ -264,7 +285,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
         const SizedBox(height: AppTheme.spacingMd),
         CustomCard(
           child: FormattedStudyText(
-            text: ExplanationSanitizer.sanitize(_explanation),
+            text: sanitized,
             style: AppTheme.bodyLarge.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
             ),

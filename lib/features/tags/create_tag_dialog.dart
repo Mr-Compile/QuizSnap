@@ -4,7 +4,7 @@ import 'package:drift/drift.dart' as drift;
 import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/success_snackbar.dart';
+import '../../core/services/dialog_service.dart';
 
 class CreateTagDialog extends StatefulWidget {
   const CreateTagDialog({super.key});
@@ -132,20 +132,13 @@ class _CreateTagDialogState extends State<CreateTagDialog> {
       );
 
       if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Tag created successfully',
-        );
+        await DialogService.showSuccess(context, 'Tag created successfully');
+        if (!mounted) return;
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error creating tag: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        await DialogService.showError(context, 'Error creating tag: $e');
       }
     }
   }

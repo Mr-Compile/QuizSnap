@@ -7,6 +7,7 @@ import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/loading_skeleton.dart';
 import 'cached_document_details_screen.dart';
+import '../../core/services/dialog_service.dart';
 
 class CachedDocumentsScreen extends StatefulWidget {
   const CachedDocumentsScreen({super.key});
@@ -246,9 +247,7 @@ class _CachedDocumentsScreenState extends State<CachedDocumentsScreen> {
               Navigator.of(context).pop();
               // Note: We need the document ID to delete it
               // For now, just show a message
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Delete functionality needs document ID')),
-              );
+              await DialogService.showWarning(context, 'Delete functionality needs document ID');
             },
             child: const Text('Delete'),
           ),

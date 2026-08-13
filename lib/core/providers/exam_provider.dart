@@ -347,10 +347,13 @@ class ExamProvider with ChangeNotifier {
       notifyListeners();
       return explanation;
     } catch (e) {
-      _errorMessage = e.toString();
+      final message = e.toString().toLowerCase();
+      _errorMessage = message.contains('token') || message.contains('quota') || message.contains('limit')
+          ? 'AI Limit Reached. You have used today\'s AI generation limit. You can try again tomorrow or ask the administrator for additional quota.'
+          : 'An error occurred while generating the explanation. Please try again.';
       _isLoading = false;
       notifyListeners();
-      rethrow;
+      throw Exception(_errorMessage);
     }
   }
 

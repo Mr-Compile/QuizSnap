@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
-import '../../shared/widgets/success_snackbar.dart';
 
 class EditFlashcardScreen extends StatefulWidget {
   final int flashcardId;
@@ -175,15 +174,13 @@ class _EditFlashcardScreenState extends State<EditFlashcardScreen> with BackButt
       );
 
       if (mounted) {
-        SuccessSnackbar.show(
-          context,
-          message: 'Flashcard updated successfully',
-        );
+        await DialogService.showSuccess(context, 'Flashcard updated successfully');
+        if (!mounted) return;
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Error updating flashcard: $e');
+        DialogService.showError(context, 'Error updating flashcard: $e');
       }
     } finally {
       if (mounted) {

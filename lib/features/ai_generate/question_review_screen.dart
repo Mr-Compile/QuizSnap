@@ -5,7 +5,7 @@ import '../../core/models/prompt_template.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/repositories/recent_generation_repository.dart';
 import '../../core/database/database.dart';
 import 'package:provider/provider.dart';
@@ -538,7 +538,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
 
       if (!mounted) return;
 
-      context.read<NotificationService>().showSuccess(
+      DialogService.showSuccess(context, 
         'Successfully saved ${_selectedQuestions.length} questions',
       );
 
@@ -551,7 +551,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         _isSaving = false;
       });
 
-      context.read<NotificationService>().showErrorTop('Failed to save questions: $e');
+      DialogService.showError(context, 'Failed to save questions: $e');
     }
   }
 
@@ -697,7 +697,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         _isSaving = false;
       });
 
-      context.read<NotificationService>().showErrorTop('Regeneration failed: $e');
+      DialogService.showError(context, 'Regeneration failed: $e');
     }
   }
 
@@ -763,7 +763,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
               setState(() {
                 // For now, just show a message
               });
-              context.read<NotificationService>().showSuccess(
+              DialogService.showSuccess(context, 
                 'Questions updated with regenerated versions',
               );
             },
@@ -1234,11 +1234,11 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
     widget.onSave(editedQuestion);
     Navigator.of(context).pop();
 
-    context.read<NotificationService>().showSuccess('Question saved successfully');
+    DialogService.showSuccess(context, 'Question saved successfully');
   }
 
   void _showValidationError(String message) {
-    context.read<NotificationService>().showErrorTop(message);
+    DialogService.showError(context, message);
   }
 
   void _showUnsavedChangesDialog() {

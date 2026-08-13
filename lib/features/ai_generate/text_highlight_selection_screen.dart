@@ -7,6 +7,7 @@ import '../../core/providers/highlighted_selection_provider.dart';
 import '../../shared/widgets/selectable_document_viewer.dart';
 import '../../shared/widgets/selected_text_summary_sheet.dart';
 import 'analysis_preview_screen.dart';
+import '../../core/services/dialog_service.dart';
 
 class TextHighlightSelectionScreen extends StatefulWidget {
   final File file;
@@ -229,9 +230,7 @@ class _TextHighlightSelectionScreenState extends State<TextHighlightSelectionScr
 
   void _proceedWithSelection() {
     if (_selectedText.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select some text first')),
-      );
+      DialogService.showWarning(context, 'Please select some text first');
       return;
     }
 

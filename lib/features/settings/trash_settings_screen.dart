@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/providers/database_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/services/trash_cleanup_service.dart';
 import '../../core/services/trash_service.dart';
 import '../../core/theme/app_theme.dart';
@@ -139,11 +139,11 @@ class _TrashSettingsScreenState extends State<TrashSettingsScreen> {
       await service.emptyTrash();
       await _loadState();
       if (mounted) {
-        context.read<NotificationService>().showSuccess('Trash emptied');
+        await DialogService.showSuccess(context, 'Trash emptied');
       }
     } catch (e) {
       if (mounted) {
-        context.read<NotificationService>().showErrorTop('Error emptying trash: $e');
+        await DialogService.showError(context, 'Error emptying trash: $e');
       }
     } finally {
       if (mounted) {

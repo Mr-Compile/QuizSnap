@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/flashcard_selection_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/database/database.dart';
@@ -271,17 +271,18 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
     if (confirmed != true || !context.mounted) return;
 
     final db = context.read<DatabaseProvider>();
-    final notify = context.read<NotificationService>();
     try {
       for (final id in selection.selectedIds) {
         await db.flashcardRepository.deleteFlashcard(id);
       }
       await db.deckRepository.updateDeckCardCount(widget.deckId);
-      notify.showSuccess('${selection.selectedCount} flashcards moved to Trash');
+      if (!context.mounted) return;
+      await DialogService.showSuccess(context, '${selection.selectedCount} flashcards moved to Trash');
       selection.clear();
       setState(() {});
     } catch (e) {
-      notify.showErrorTop('Error moving to Trash: $e');
+      if (!context.mounted) return;
+      await DialogService.showError(context, 'Error moving to Trash: $e');
     }
   }
 
@@ -289,7 +290,6 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
     if (selection.selectedIds.isEmpty) return;
 
     final db = context.read<DatabaseProvider>();
-    final notify = context.read<NotificationService>();
     try {
       for (final id in selection.selectedIds) {
         final card = await db.flashcardRepository.getFlashcardById(id);
@@ -297,10 +297,12 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
           card.copyWith(isFavorite: !card.isFavorite),
         );
       }
-      notify.showSuccess('${selection.selectedCount} flashcards bookmarked');
+      if (!context.mounted) return;
+      await DialogService.showSuccess(context, '${selection.selectedCount} flashcards bookmarked');
       setState(() {});
     } catch (e) {
-      notify.showErrorTop('Error bookmarking: $e');
+      if (!context.mounted) return;
+      await DialogService.showError(context, 'Error bookmarking: $e');
     }
   }
 

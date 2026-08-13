@@ -3,7 +3,7 @@ import '../../core/models/prompt_template.dart';
 import '../../core/models/recent_generation.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/repositories/recent_generation_repository.dart';
 import '../../core/services/question_generation_service.dart';
 import '../../core/services/text_normalization_service.dart';
@@ -243,13 +243,17 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
     final quotaProvider = Provider.of<AiQuotaProvider>(context, listen: false);
     
     if (!groqProvider.isInitialized) {
-      context.read<NotificationService>().showInfoTop('Please configure your Groq API key first');
+      if (mounted) {
+        await DialogService.showInfo(context, 'Please configure your Groq API key first');
+      }
       return;
     }
 
     // Check quota
     if (!quotaProvider.canRequest) {
-      _showQuotaExceededDialog();
+      if (mounted) {
+        await _showQuotaExceededDialog();
+      }
       return;
     }
 
@@ -292,7 +296,15 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
       // Validate questions
       final issues = generationService.validateQuestions(questions);
       if (issues.isNotEmpty && mounted) {
-        context.read<NotificationService>().showWarningTop('Some questions have issues: ${issues.first}');
+        setState(() {
+          _isGenerating = false;
+          _generationProgress = 0.0;
+        });
+        await DialogService.showError(
+          context,
+          'The generated questions contain placeholder or invalid distractors and cannot be saved.\n\nIssue: ${issues.first}',
+        );
+        return;
       }
 
       // Step 5: Saving
@@ -337,26 +349,15 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
         _generationProgress = 0.0;
       });
 
-      context.read<NotificationService>().showErrorTop('Generation failed: $e');
+      if (mounted) {
+        await DialogService.showError(context, 'Generation failed: $e');
+      }
     }
   }
 
-  void _showQuotaExceededDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Daily Limit Reached'),
-        content: Text(
-          'You have reached today\'s AI limit (15/15). Try again tomorrow.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _showQuotaExceededDialog() async {
+    if (!mounted) return;
+    await DialogService.showQuotaExceeded(context);
   }
 
   Widget _buildGeneratingButton() {

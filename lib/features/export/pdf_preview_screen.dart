@@ -7,6 +7,7 @@ import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../core/models/export.dart';
 import 'export_success_screen.dart';
+import '../../core/services/dialog_service.dart';
 
 class PdfPreviewScreen extends StatefulWidget {
   final String filePath;
@@ -100,9 +101,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
       await Share.shareXFiles([XFile(widget.filePath)]);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to share: $e')),
-        );
+        await DialogService.showError(context, 'Failed to share: $e');
       }
     } finally {
       if (mounted) {
@@ -121,9 +120,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to print: $e')),
-        );
+        await DialogService.showError(context, 'Failed to print: $e');
       }
     } finally {
       if (mounted) {

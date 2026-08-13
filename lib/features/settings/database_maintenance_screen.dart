@@ -5,6 +5,7 @@ import '../../core/services/database_maintenance_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
+import '../../core/services/dialog_service.dart';
 
 class DatabaseMaintenanceScreen extends StatefulWidget {
   const DatabaseMaintenanceScreen({super.key});
@@ -115,16 +116,9 @@ class _DatabaseMaintenanceScreenState extends State<DatabaseMaintenanceScreen> {
     if (!mounted) return;
 
     if (result.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Database repaired successfully: ${result.toString()}')),
-      );
+      await DialogService.showSuccess(context, 'Database repaired successfully: ${result.toString()}');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Repair failed: ${result.error}'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      await DialogService.showError(context, 'Repair failed: ${result.error}');
     }
   }
 

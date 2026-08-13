@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/utils/study_text_formatter.dart';
 
 /// A reusable, theme-adaptive widget that renders study text with preserved
@@ -81,7 +80,7 @@ class FormattedStudyText extends StatelessWidget {
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: text));
               if (context.mounted) {
-                context.read<NotificationService>().showSuccessToast('Copied to clipboard');
+                DialogService.showSuccess(context, 'Copied to clipboard');
               }
             },
             tooltip: 'Copy text',

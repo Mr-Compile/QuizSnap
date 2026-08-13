@@ -6,6 +6,7 @@ import '../../core/services/secure_storage_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
+import '../../core/services/dialog_service.dart';
 
 class ApiConfigurationScreen extends StatefulWidget {
   const ApiConfigurationScreen({super.key});
@@ -61,16 +62,9 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Connection successful!')),
-      );
+      await DialogService.showSuccess(context, 'Connection successful!');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Connection failed: ${groqProvider.errorMessage}'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      await DialogService.showError(context, 'Connection failed: ${groqProvider.errorMessage}');
     }
   }
 
@@ -85,20 +79,13 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('API key saved successfully!')),
-      );
+      await DialogService.showSuccess(context, 'API key saved successfully!');
       setState(() {
         _hasChanges = false;
       });
       _apiKeyController.clear();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save API key: ${groqProvider.errorMessage}'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      await DialogService.showError(context, 'Failed to save API key: ${groqProvider.errorMessage}');
     }
   }
 
@@ -126,9 +113,7 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
       final groqProvider = context.read<GroqProvider>();
       groqProvider.clearApiKey();
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('API key cleared')),
-      );
+      await DialogService.showSuccess(context, 'API key cleared');
     }
   }
 

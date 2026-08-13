@@ -21,7 +21,6 @@ class ExamReviewScreen extends StatefulWidget {
 class _ExamReviewScreenState extends State<ExamReviewScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  ReviewFilter _currentFilter = ReviewFilter.all;
 
   @override
   void initState() {
@@ -38,7 +37,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: true,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop && mounted) {
           Navigator.of(context).pop();
@@ -55,26 +54,11 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
             Tab(text: 'Correct'),
             Tab(text: 'Incorrect'),
           ],
-          onTap: (index) {
-            setState(() {
-              switch (index) {
-                case 0:
-                  _currentFilter = ReviewFilter.all;
-                  break;
-                case 1:
-                  _currentFilter = ReviewFilter.correct;
-                  break;
-                case 2:
-                  _currentFilter = ReviewFilter.incorrect;
-                  break;
-              }
-            });
-          },
         ),
       ),
-      body: Column(
-        children: [
-          _buildFilterChips(),
+      body: SafeArea(
+        child: Column(
+          children: [
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -88,77 +72,8 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
         ],
       ),
     ),
+    ),
     );
-  }
-
-  Widget _buildFilterChips() {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingMd),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: ReviewFilter.values.map((filter) {
-            final isSelected = _currentFilter == filter;
-            final count = _getCountForFilter(filter);
-
-            return Padding(
-              padding: const EdgeInsets.only(right: AppTheme.spacingSm),
-              child: FilterChip(
-                label: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(filter.label),
-                    if (count > 0) ...[
-                      const SizedBox(width: AppTheme.spacingXs),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppTheme.spacingXs,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.3)
-                              : Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '$count',
-                          style: AppTheme.bodySmall.copyWith(
-                            color: isSelected
-                                ? Theme.of(context).colorScheme.onPrimary
-                                : Theme.of(context).colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                selected: isSelected,
-                onSelected: (selected) {
-                  setState(() => _currentFilter = filter);
-                },
-                selectedColor: Theme.of(context).colorScheme.primary,
-                checkmarkColor: Theme.of(context).colorScheme.onPrimary,
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  int _getCountForFilter(ReviewFilter filter) {
-    switch (filter) {
-      case ReviewFilter.correct:
-        return widget.result.correctQuestions.length;
-      case ReviewFilter.incorrect:
-        return widget.result.incorrectQuestions.length;
-      case ReviewFilter.unanswered:
-        return widget.result.unansweredQuestions.length;
-      case ReviewFilter.all:
-        return widget.result.questions.length;
-    }
   }
 
   Widget _buildQuestionsList(ReviewFilter filter) {

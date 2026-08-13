@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dialog_service.dart';
 
 enum ErrorType {
   network,
@@ -154,8 +155,10 @@ class ErrorHandlerService {
     AppError error, {
     String? title,
   }) async {
+    if (!context.mounted) return;
     await showDialog(
       context: context,
+      useRootNavigator: true,
       builder: (context) => AlertDialog(
         title: Row(
           children: [
@@ -201,61 +204,23 @@ class ErrorHandlerService {
     );
   }
 
-  /// Show error snackbar
+  /// Show error dialog
   static void showErrorSnackBar(
     BuildContext context,
     AppError error, {
     SnackBarAction? action,
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(error.icon, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(error.message),
-            ),
-          ],
-        ),
-        backgroundColor: error.color,
-        action: action ?? (error.onRetry != null
-            ? SnackBarAction(
-                label: 'RETRY',
-                onPressed: error.onRetry!,
-              )
-            : null),
-      ),
-    );
+    DialogService.showError(context, error.message);
   }
 
-  /// Show success snackbar
+  /// Show success dialog
   static void showSuccessSnackBar(
     BuildContext context,
     String message, {
     VoidCallback? action,
     String? actionLabel,
   }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(message),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        action: action != null && actionLabel != null
-            ? SnackBarAction(
-                label: actionLabel,
-                onPressed: action,
-              )
-            : null,
-      ),
-    );
+    DialogService.showSuccess(context, message);
   }
 
   /// Show loading snackbar

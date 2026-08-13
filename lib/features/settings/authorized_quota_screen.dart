@@ -5,6 +5,7 @@ import '../../core/services/secure_storage_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
+import '../../core/services/dialog_service.dart';
 
 class AuthorizedQuotaScreen extends StatefulWidget {
   const AuthorizedQuotaScreen({super.key});
@@ -106,12 +107,8 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
         });
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Invalid authorization password'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
+          await DialogService.showError(context, 'Invalid authorization password');
+          if (!mounted) return;
           Navigator.pop(context); // Close the screen if password is wrong
         }
       }
@@ -123,12 +120,12 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
     // Auto-authorize using the constant secret key
     final success = await actionCallback();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? 'Action completed successfully' : 'Action failed'),
-          backgroundColor: success ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
-        ),
-      );
+      if (success) {
+        await DialogService.showSuccess(context, 'Action completed successfully');
+      } else {
+        await DialogService.showError(context, 'Action failed');
+      }
+      if (!mounted) return;
       // Refresh quota status
       context.read<AiQuotaProvider>().refreshQuota();
       // Reload last modification time
@@ -217,12 +214,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
         _isAuthEnabled = true;
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Authorization password set successfully'),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-        ),
-      );
+      await DialogService.showSuccess(context, 'Authorization password set successfully');
     }
   }
 
@@ -253,9 +245,7 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
       setState(() {
         _isAuthEnabled = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Authorization disabled')),
-      );
+      await DialogService.showInfo(context, 'Authorization disabled');
     }
   }
 

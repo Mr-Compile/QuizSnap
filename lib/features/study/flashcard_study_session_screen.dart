@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/flashcard_reveal_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/providers/study_session_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -275,11 +275,17 @@ class _FlashcardStudySessionScreenState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 20),
+                  Icon(
+                    icon,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     label,
-                    style: AppTheme.labelSmall,
+                    style: AppTheme.labelSmall.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
                   ),
                 ],
               ),
@@ -315,6 +321,9 @@ class _FlashcardStudySessionScreenState
                 onPressed: controller.currentIndex > 0 ? controller.previousCard : null,
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Previous'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -323,6 +332,9 @@ class _FlashcardStudySessionScreenState
                 onPressed: !controller.isLastCard ? controller.nextCard : null,
                 icon: const Icon(Icons.arrow_forward),
                 label: const Text('Next'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
           ],
@@ -391,8 +403,8 @@ class _FlashcardStudySessionScreenState
       icon: Icon(
         card.isFavorite ? Icons.bookmark : Icons.bookmark_border,
         color: card.isFavorite
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.onSurface,
+            ? AppTheme.amber500
+            : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       onPressed: () => _toggleBookmark(context, card),
       tooltip: card.isFavorite ? 'Remove bookmark' : 'Bookmark card',
@@ -405,13 +417,13 @@ class _FlashcardStudySessionScreenState
     try {
       await db.flashcardRepository.updateFlashcard(updated);
       if (!context.mounted) return;
-      context.read<NotificationService>().showToast(
+      await DialogService.showSuccess(
+        context,
         updated.isFavorite ? 'Card bookmarked' : 'Bookmark removed',
-        icon: updated.isFavorite ? Icons.bookmark : Icons.bookmark_border,
       );
     } catch (e) {
       if (!context.mounted) return;
-      context.read<NotificationService>().showErrorTop('Failed to toggle bookmark: $e');
+      await DialogService.showError(context, 'Failed to toggle bookmark: $e');
     }
   }
 
@@ -424,8 +436,10 @@ class _FlashcardStudySessionScreenState
   }
 
   void _confirmEndSession(BuildContext context) {
+    if (!context.mounted) return;
     showDialog(
       context: context,
+      useRootNavigator: true,
       builder: (context) => AlertDialog(
         title: const Text('End Session'),
         content: const Text('End this study session? Your progress is saved.'),

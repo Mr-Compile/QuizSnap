@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../core/providers/export_provider.dart';
+import '../../core/services/dialog_service.dart';
 
 class CreateBackupDialog extends StatefulWidget {
   const CreateBackupDialog({super.key});
@@ -110,9 +111,7 @@ class _CreateBackupDialogState extends State<CreateBackupDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create backup: $e')),
-        );
+        await DialogService.showError(context, 'Failed to create backup: $e');
       }
     } finally {
       if (mounted) {

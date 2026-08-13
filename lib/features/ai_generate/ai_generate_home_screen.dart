@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
-import '../../core/providers/notification_service.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/models/recent_generation.dart';
 import '../../core/repositories/recent_generation_repository.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -108,16 +108,18 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                           
                           if (apiKey.isEmpty) {
                             groqProvider.clearError();
-                            context.read<NotificationService>().showErrorTop('Please enter an API key');
+                            DialogService.showError(context, 'Please enter an API key');
                             return;
                           }
 
-                          final notifier = context.read<NotificationService>();
                           final success = await groqProvider.initialize(apiKey);
-                          if (!success && mounted) {
-                            notifier.showErrorTop(
-                              groqProvider.errorMessage ?? 'Failed to initialize',
-                            );
+                          if (!success) {
+                            if (context.mounted) {
+                              await DialogService.showError(
+                                context,
+                                groqProvider.errorMessage ?? 'Failed to initialize',
+                              );
+                            }
                           }
                         },
                   child: groqProvider.isLoading

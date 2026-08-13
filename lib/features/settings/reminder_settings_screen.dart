@@ -4,6 +4,7 @@ import '../../core/providers/reminder_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
+import '../../core/services/dialog_service.dart';
 
 class ReminderSettingsScreen extends StatefulWidget {
   const ReminderSettingsScreen({super.key});
@@ -133,21 +134,15 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
                       ? 'Study reminders are active' 
                       : 'Turn on study reminders'),
                   value: reminderProvider.isEnabled,
-                  onChanged: reminderProvider.isLoading 
-                      ? null 
+                  onChanged: reminderProvider.isLoading
+                      ? null
                       : (value) async {
-                          final colorScheme = Theme.of(context).colorScheme;
                           await reminderProvider.setEnabled(value);
                           if (!mounted) return;
 
                           if (reminderProvider.errorMessage != null) {
                             if (!mounted) return;
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              SnackBar(
-                                content: Text(reminderProvider.errorMessage!),
-                                backgroundColor: colorScheme.error,
-                              ),
-                            );
+                            await DialogService.showError(this.context, reminderProvider.errorMessage!);
                           }
                         },
                 ),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:open_filex/open_filex.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -7,6 +10,7 @@ import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../core/models/backup.dart';
 import '../../core/providers/export_provider.dart';
+import '../../core/services/dialog_service.dart';
 import 'create_backup_dialog.dart';
 import 'backup_history_screen.dart';
 import 'restore_confirmation_dialog.dart';
@@ -230,14 +234,13 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
   Future<void> _handleCreateBackup() async {
     final result = await showDialog<BackupMetadata>(
+      useRootNavigator: true,
       context: context,
       builder: (context) => const CreateBackupDialog(),
     );
 
     if (result != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Backup "${result.name}" created successfully')),
-      );
+      await DialogService.showSuccess(context, 'Backup "${result.name}" created successfully');
       setState(() {});
     }
   }
@@ -309,6 +312,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
   void _showBackupDetails(BackupMetadata backup) {
     showDialog(
+      useRootNavigator: true,
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
@@ -347,6 +351,14 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
         ),
         actions: [
           TextButton(
+            onPressed: () => _shareBackup(backup),
+            child: const Text('Share'),
+          ),
+          TextButton(
+            onPressed: () => _openBackup(backup),
+            child: const Text('Open File'),
+          ),
+          TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
@@ -371,8 +383,41 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     );
   }
 
+  Future<String?> _getBackupFilePath(BackupMetadata backup) async {
+    final directory = await getApplicationDocumentsDirectory();
+    return '${directory.path}/backups/${backup.name}.json';
+  }
+
+  Future<void> _shareBackup(BackupMetadata backup) async {
+    final filePath = await _getBackupFilePath(backup);
+    if (filePath == null) return;
+    try {
+      await Share.shareXFiles([XFile(filePath)], text: 'QuizSnap backup: ${backup.name}');
+    } catch (e) {
+      if (mounted) {
+        await DialogService.showError(context, 'Could not share backup: $e');
+      }
+    }
+  }
+
+  Future<void> _openBackup(BackupMetadata backup) async {
+    final filePath = await _getBackupFilePath(backup);
+    if (filePath == null) return;
+    try {
+      final result = await OpenFilex.open(filePath);
+      if (result.type != ResultType.done && mounted) {
+        await DialogService.showError(context, 'Could not open backup: ${result.message}');
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogService.showError(context, 'Could not open backup: $e');
+      }
+    }
+  }
+
   Future<void> _handleRestore(BackupMetadata backup) async {
     final confirmed = await showDialog<bool>(
+      useRootNavigator: true,
       context: context,
       builder: (context) => RestoreConfirmationDialog(backup: backup),
     );
@@ -381,16 +426,12 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       try {
         await context.read<ExportProvider>().restoreBackup(backup.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Backup restored successfully')),
-          );
+          await DialogService.showSuccess(context, 'Backup restored successfully');
           setState(() {});
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to restore: $e')),
-          );
+          await DialogService.showError(context, 'Failed to restore: $e');
         }
       }
     }
@@ -398,6 +439,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
   Future<void> _handleDelete(BackupMetadata backup) async {
     final confirmed = await showDialog<bool>(
+      useRootNavigator: true,
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Backup'),
@@ -419,16 +461,12 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       try {
         await context.read<ExportProvider>().deleteBackup(backup.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Backup deleted')),
-          );
+          await DialogService.showSuccess(context, 'Backup deleted');
           setState(() {});
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete: $e')),
-          );
+          await DialogService.showError(context, 'Failed to delete: $e');
         }
       }
     }

@@ -7,6 +7,7 @@ import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../core/models/backup_enhanced.dart';
 import '../../core/providers/backup_provider.dart';
+import '../../core/services/dialog_service.dart';
 
 class ExportSuccessScreenBackup extends ConsumerWidget {
   final BackupFileModel backupFile;
@@ -251,9 +252,7 @@ class ExportSuccessScreenBackup extends ConsumerWidget {
       await ref.read(backupOperationProvider.notifier).openBackupLocation(backupFile.filePath);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to open folder: $e')),
-        );
+        await DialogService.showError(context, 'Failed to open folder: $e');
       }
     }
   }
@@ -262,15 +261,11 @@ class ExportSuccessScreenBackup extends ConsumerWidget {
     try {
       await Clipboard.setData(ClipboardData(text: backupFile.filePath));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Path copied to clipboard')),
-        );
+        await DialogService.showSuccess(context, 'Path copied to clipboard');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to copy path: $e')),
-        );
+        await DialogService.showError(context, 'Failed to copy path: $e');
       }
     }
   }
@@ -280,20 +275,14 @@ class ExportSuccessScreenBackup extends ConsumerWidget {
       final success = await ref.read(backupOperationProvider.notifier).shareBackup(backupFile.filePath);
       if (context.mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Share dialog opened')),
-          );
+          await DialogService.showSuccess(context, 'Share dialog opened');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to open share dialog')),
-          );
+          await DialogService.showError(context, 'Failed to open share dialog');
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to share: $e')),
-        );
+        await DialogService.showError(context, 'Failed to share: $e');
       }
     }
   }

@@ -8,7 +8,6 @@ import 'package:quiz_snap/core/database/database.dart';
 import 'package:quiz_snap/core/providers/database_provider.dart';
 import 'package:quiz_snap/core/providers/deck_bookmark_provider.dart';
 import 'package:quiz_snap/core/providers/flashcard_selection_provider.dart';
-import 'package:quiz_snap/core/providers/notification_service.dart';
 import 'package:quiz_snap/shared/widgets/app_bar.dart';
 import 'package:quiz_snap/shared/widgets/selectable_flashcard_tile.dart';
 import 'package:quiz_snap/features/decks/deck_details_screen.dart';
@@ -57,7 +56,6 @@ void main() {
         ChangeNotifierProvider.value(value: dbProvider),
         ChangeNotifierProvider(create: (_) => DeckBookmarkProvider(prefs)),
         ChangeNotifierProvider(create: (_) => FlashcardSelectionProvider()),
-        ChangeNotifierProvider(create: (_) => NotificationService()),
       ],
       child: MaterialApp(
         home: DeckDetailsScreen(deckId: targetDeckId),
