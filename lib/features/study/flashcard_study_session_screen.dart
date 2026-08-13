@@ -21,6 +21,7 @@ class FlashcardStudySessionScreen extends StatefulWidget {
   final int deckId;
   final int initialIndex;
   final bool initialRevealed;
+  final bool shuffle;
 
   const FlashcardStudySessionScreen({
     super.key,
@@ -29,6 +30,7 @@ class FlashcardStudySessionScreen extends StatefulWidget {
     this.deckId = 0,
     this.initialIndex = 0,
     this.initialRevealed = false,
+    this.shuffle = false,
   });
 
   @override
@@ -56,6 +58,7 @@ class _FlashcardStudySessionScreenState
         deckName: widget.deckName ?? 'Study Session',
         startIndex: widget.initialIndex,
         startRevealed: widget.initialRevealed,
+        shuffle: widget.shuffle,
       );
     });
   }
@@ -189,6 +192,7 @@ class _FlashcardStudySessionScreenState
                   flashcards: widget.flashcards,
                   deckId: widget.deckId,
                   deckName: widget.deckName ?? 'Study Session',
+                  shuffle: widget.shuffle,
                 );
                 await _startStudySession();
               },
@@ -485,29 +489,19 @@ class _FlashcardStudySessionScreenState
 
   void _confirmEndSession(BuildContext context) {
     if (!context.mounted) return;
-    showDialog(
-      context: context,
-      useRootNavigator: true,
-      builder: (context) => AlertDialog(
-        title: const Text('End Session'),
-        content: const Text('End this study session? Your progress is saved.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              unawaited(_endStudySession());
-              context.read<StudySessionController>().endSession();
-              Navigator.of(context)
-                ..pop()
-                ..pop();
-            },
-            child: const Text('End'),
-          ),
-        ],
-      ),
+    DialogService.showConfirmation(
+      context,
+      'End this study session? Your progress is saved.',
+      title: 'End Session',
+      confirmAction: 'End',
+      isDestructive: true,
+      onConfirm: () {
+        unawaited(_endStudySession());
+        context.read<StudySessionController>().endSession();
+        Navigator.of(context)
+          ..pop()
+          ..pop();
+      },
     );
   }
 }

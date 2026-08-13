@@ -17,6 +17,8 @@ class TodayReviewScreen extends StatefulWidget {
 }
 
 class _TodayReviewScreenState extends State<TodayReviewScreen> {
+  bool _shuffle = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,7 +71,7 @@ class _TodayReviewScreenState extends State<TodayReviewScreen> {
                 Icon(
                   Icons.today,
                   size: 48,
-                  color: const Color(0xFF3B82F6), // Blue
+                  color: AppTheme.blue500,
                 ),
                 const SizedBox(height: AppTheme.spacingMd),
                 Text(
@@ -84,6 +86,17 @@ class _TodayReviewScreenState extends State<TodayReviewScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingLg),
+          SwitchListTile(
+            title: const Text('Shuffle cards'),
+            subtitle: const Text('Randomize the order of cards for this session'),
+            value: _shuffle,
+            onChanged: (value) => setState(() => _shuffle = value),
+            secondary: Icon(
+              Icons.shuffle,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(height: AppTheme.spacingLg),
@@ -109,6 +122,7 @@ class _TodayReviewScreenState extends State<TodayReviewScreen> {
           deckName: 'Today\'s Review',
           deckId: 0,
           flashcards: dueCards,
+          shuffle: _shuffle,
         ),
       ),
     );

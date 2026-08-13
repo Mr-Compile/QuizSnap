@@ -73,8 +73,10 @@ class StudySessionController with ChangeNotifier {
     required String deckName,
     int startIndex = 0,
     bool startRevealed = false,
+    bool shuffle = false,
   }) {
-    _flashcards = List.unmodifiable(flashcards);
+    final source = List<Flashcard>.from(flashcards);
+    _flashcards = List.unmodifiable(shuffle ? _shuffleList(source) : source);
     _deckId = deckId;
     _deckName = deckName;
     _currentIndex = startIndex.clamp(0, max(0, _flashcards.length - 1));
@@ -87,6 +89,18 @@ class StudySessionController with ChangeNotifier {
     }
     _persist();
     notifyListeners();
+  }
+
+  List<T> _shuffleList<T>(List<T> list) {
+    final shuffled = List<T>.from(list);
+    final random = Random();
+    for (int i = shuffled.length - 1; i > 0; i--) {
+      final j = random.nextInt(i + 1);
+      final temp = shuffled[i];
+      shuffled[i] = shuffled[j];
+      shuffled[j] = temp;
+    }
+    return shuffled;
   }
 
   void resumeSession({

@@ -92,7 +92,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
               child: _buildTimeCard(
                 context,
                 'Today',
-                stats.todayMinutes,
+                stats.todaySeconds,
                 stats.todaySessions,
                 Theme.of(context).colorScheme.secondary,
               ),
@@ -102,7 +102,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
               child: _buildTimeCard(
                 context,
                 'This Week',
-                stats.weekMinutes,
+                stats.weekSeconds,
                 stats.weekSessions,
                 Theme.of(context).colorScheme.primary,
               ),
@@ -116,7 +116,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
               child: _buildTimeCard(
                 context,
                 'This Month',
-                stats.monthMinutes,
+                stats.monthSeconds,
                 stats.monthSessions,
                 Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -134,13 +134,11 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
   Widget _buildTimeCard(
     BuildContext context,
     String period,
-    int minutes,
+    int seconds,
     int sessions,
     Color color,
   ) {
-    final hours = minutes ~/ 60;
-    final mins = minutes % 60;
-    final timeText = hours > 0 ? '${hours}h ${mins}m' : '${mins}m';
+    final timeText = AppTheme.formatStudyDuration(seconds);
 
     return CustomCard(
       child: Column(
@@ -178,7 +176,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
   }
 
   Widget _buildGoalCard(BuildContext context, stats) {
-    final progress = (stats.todayMinutes / _dailyGoalMinutes).clamp(0.0, 1.0);
+    final progress = (stats.todaySeconds / (_dailyGoalMinutes * 60)).clamp(0.0, 1.0);
     final percentage = (progress * 100).toInt();
 
     return CustomCard(
@@ -236,9 +234,9 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
-                maxY: stats.todayMinutes > stats.weekMinutes / 7
-                    ? (stats.todayMinutes * 1.2).ceilToDouble()
-                    : (stats.weekMinutes / 7 * 1.2).ceilToDouble(),
+                maxY: (stats.todaySeconds / 60) > (stats.weekSeconds / 7 / 60)
+                    ? ((stats.todaySeconds / 60) * 1.2).ceilToDouble()
+                    : ((stats.weekSeconds / 7 / 60) * 1.2).ceilToDouble(),
                 minY: 0,
                 gridData: FlGridData(
                   show: true,
@@ -297,7 +295,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                     x: 0,
                     barRods: [
                       BarChartRodData(
-                        toY: stats.todayMinutes.toDouble(),
+                        toY: (stats.todaySeconds / 60).toDouble(),
                         color: Theme.of(context).colorScheme.secondary,
                         width: 20,
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
@@ -308,7 +306,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                     x: 1,
                     barRods: [
                       BarChartRodData(
-                        toY: (stats.weekMinutes / 7).toDouble(),
+                        toY: (stats.weekSeconds / 7 / 60).toDouble(),
                         color: Theme.of(context).colorScheme.primary,
                         width: 20,
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
@@ -319,7 +317,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
                     x: 2,
                     barRods: [
                       BarChartRodData(
-                        toY: (stats.monthMinutes / 30).toDouble(),
+                        toY: (stats.monthSeconds / 30 / 60).toDouble(),
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                         width: 20,
                         borderRadius: BorderRadius.circular(AppTheme.radiusSm),
@@ -370,8 +368,8 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
             context,
             'Avg Session Duration',
             stats.todaySessions > 0
-                ? '${(stats.todayMinutes / stats.todaySessions).toInt()} min'
-                : '0 min',
+                ? AppTheme.formatStudyDuration(stats.todaySeconds ~/ stats.todaySessions)
+                : '0 sec',
             Icons.timer,
           ),
         ],

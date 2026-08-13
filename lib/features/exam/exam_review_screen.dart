@@ -52,6 +52,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
           automaticallyImplyLeading: false,
         ),
         body: SafeArea(
+          top: false,
           child: Column(
             children: [
               _buildReviewHeader(context),
@@ -91,10 +92,19 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
+              'Deck',
+              style: AppTheme.labelSmall.copyWith(
+                color: colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingXs),
+            Text(
               widget.result.exam.deckName,
-              style: AppTheme.titleLarge.copyWith(
+              style: AppTheme.titleMedium.copyWith(
                 fontWeight: FontWeight.bold,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: AppTheme.spacingSm),
             Row(
@@ -209,9 +219,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
 
   Widget _buildQuestionCard(ExamQuestion question, UserAnswer answer, int index) {
     final isCorrect = answer.isCorrect;
-    final isUnanswered = (answer.selectedAnswerIndex == null) &&
-        (answer.textAnswer == null || answer.textAnswer!.isEmpty) &&
-        (answer.listAnswer == null || answer.listAnswer!.isEmpty);
+    final isUnanswered = !answer.hasAnswer;
 
     return CustomCard(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
@@ -281,12 +289,13 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
       case QuestionType.enumeration:
         return _buildEnumerationReview(question, answer);
       case QuestionType.mixedFormat:
-        // For mixed format, check if it has options or text answer
+        if (question.correctAnswers != null && question.correctAnswers!.isNotEmpty) {
+          return _buildEnumerationReview(question, answer);
+        }
         if (question.options.length >= 4) {
           return _buildMultipleChoiceReview(question, answer);
-        } else {
-          return _buildIdentificationReview(question, answer);
         }
+        return _buildIdentificationReview(question, answer);
     }
   }
 

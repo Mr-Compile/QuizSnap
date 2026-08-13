@@ -21,12 +21,10 @@ class ExamProvider with ChangeNotifier {
   ExamProvider({
     required FlashcardRepository flashcardRepository,
     required this._cacheService,
-    GroqService? groqService,
+    this._groqService,
   })  : _examService = ExamService(
           flashcardRepository: flashcardRepository,
-          groqService: groqService,
-        ),
-        _groqService = groqService;
+        );
 
   // Getters
   Exam? get currentExam => _currentExam;
@@ -79,9 +77,7 @@ class ExamProvider with ChangeNotifier {
     }
   }
 
-  Future<List<ExamQuestion>> generateQuestions({
-    required bool useAI,
-  }) async {
+  Future<List<ExamQuestion>> generateQuestions({bool shuffle = false}) async {
     if (_currentExam == null) {
       throw Exception('No active exam');
     }
@@ -95,7 +91,7 @@ class ExamProvider with ChangeNotifier {
         examId: _currentExam!.id,
         deckId: _currentExam!.deckId,
         questionCount: _currentExam!.totalQuestions,
-        useAI: useAI,
+        shuffle: shuffle,
       );
 
       _currentQuestions = questions;

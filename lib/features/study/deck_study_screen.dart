@@ -110,51 +110,75 @@ class DeckStudyScreen extends StatelessWidget {
   }
 
   void _showStudyOptions(BuildContext context, dynamic deck) {
+    bool shuffle = false;
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Study ${deck.name}',
-              style: AppTheme.headlineSmall,
-            ),
-            const SizedBox(height: AppTheme.spacingLg),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => FlashcardListScreen(deckId: deck.id, deckName: deck.name),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.view_list),
-              label: const Text('List Mode'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.all(AppTheme.spacingMd),
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Study ${deck.name}',
+                style: AppTheme.headlineSmall,
               ),
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => QuizPracticeScreen(deckId: deck.id, deckName: deck.name),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.quiz),
-              label: const Text('Quiz Mode'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.all(AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacingLg),
+              SwitchListTile(
+                title: const Text('Shuffle cards'),
+                subtitle: const Text('Randomize the order of cards for this session'),
+                value: shuffle,
+                onChanged: (value) =>
+                    setSheetState(() => shuffle = value),
+                secondary: Icon(
+                  Icons.shuffle,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: AppTheme.spacingMd),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => FlashcardListScreen(
+                        deckId: deck.id,
+                        deckName: deck.name,
+                        shuffle: shuffle,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.view_list),
+                label: const Text('List Mode'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacingSm),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => QuizPracticeScreen(
+                        deckId: deck.id,
+                        deckName: deck.name,
+                        shuffle: shuffle,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.quiz),
+                label: const Text('Quiz Mode'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -273,6 +273,11 @@ class UserAnswer {
     required this.timeSpent,
   });
 
+  bool get hasAnswer =>
+      selectedAnswerIndex != null ||
+      (textAnswer != null && textAnswer!.isNotEmpty) ||
+      (listAnswer != null && listAnswer!.isNotEmpty);
+
   UserAnswer copyWith({
     String? questionId,
     int? selectedAnswerIndex,
@@ -382,7 +387,7 @@ class ExamResult {
           timeSpent: Duration.zero,
         ),
       );
-      return answer.selectedAnswerIndex == null;
+      return !answer.hasAnswer;
     }).toList();
   }
 

@@ -15,7 +15,7 @@ class AnalyticsRepository {
     final dueToday = await _database.getDueTodayCount();
     final currentStreak = await _database.getCurrentStreak();
     final averageQuizScore = await _database.getAverageQuizScore();
-    final totalStudyMinutes = await _database.getTotalStudyMinutes();
+    final totalStudySeconds = await _database.getTotalStudySeconds();
     final totalFlashcardsReviewed = await _database.getTotalCardsReviewed();
     final quizAttempts = await _database.getQuizAttemptCount();
 
@@ -26,7 +26,7 @@ class AnalyticsRepository {
       dueToday: dueToday,
       currentStreak: currentStreak,
       averageQuizScore: averageQuizScore,
-      totalStudyMinutes: totalStudyMinutes,
+      totalStudySeconds: totalStudySeconds,
       totalFlashcardsReviewed: totalFlashcardsReviewed,
       quizAttempts: quizAttempts,
     );
@@ -170,14 +170,14 @@ class AnalyticsRepository {
       ..where((tbl) => tbl.startedAt.isBiggerOrEqualValue(startOfMonth)))
       .get();
 
-    final todayMinutes = todaySessions.fold<int>(0, (sum, s) => sum + s.durationSeconds) ~/ 60;
-    final weekMinutes = weekSessions.fold<int>(0, (sum, s) => sum + s.durationSeconds) ~/ 60;
-    final monthMinutes = monthSessions.fold<int>(0, (sum, s) => sum + s.durationSeconds) ~/ 60;
+    final todaySeconds = todaySessions.fold<int>(0, (sum, s) => sum + s.durationSeconds);
+    final weekSeconds = weekSessions.fold<int>(0, (sum, s) => sum + s.durationSeconds);
+    final monthSeconds = monthSessions.fold<int>(0, (sum, s) => sum + s.durationSeconds);
 
     return StudyTimeStats(
-      todayMinutes: todayMinutes,
-      weekMinutes: weekMinutes,
-      monthMinutes: monthMinutes,
+      todaySeconds: todaySeconds,
+      weekSeconds: weekSeconds,
+      monthSeconds: monthSeconds,
       todaySessions: todaySessions.length,
       weekSessions: weekSessions.length,
       monthSessions: monthSessions.length,
@@ -201,7 +201,7 @@ class AnalyticsRepository {
         periodDays: periodDays,
         averageAccuracy: 0.0,
         averageCardsPerSession: 0.0,
-        totalStudyTimeMinutes: 0,
+        totalStudyTimeSeconds: 0,
         trend: 'stable',
       );
     }
@@ -212,7 +212,7 @@ class AnalyticsRepository {
     }) / recentSessions.length.toDouble();
 
     final averageCardsPerSession = recentSessions.fold<int>(0, (sum, s) => sum + s.cardsStudied) / recentSessions.length;
-    final totalStudyTimeMinutes = recentSessions.fold<int>(0, (sum, s) => sum + s.durationSeconds) ~/ 60;
+    final totalStudyTimeSeconds = recentSessions.fold<int>(0, (sum, s) => sum + s.durationSeconds);
 
     // Calculate trend
     final midPoint = recentSessions.length ~/ 2;
@@ -242,7 +242,7 @@ class AnalyticsRepository {
       periodDays: periodDays,
       averageAccuracy: totalAccuracy,
       averageCardsPerSession: averageCardsPerSession.toDouble(),
-      totalStudyTimeMinutes: totalStudyTimeMinutes,
+      totalStudyTimeSeconds: totalStudyTimeSeconds,
       trend: trend,
     );
   }
@@ -256,7 +256,7 @@ class AnalyticsSummary {
   final int dueToday;
   final int currentStreak;
   final double averageQuizScore;
-  final int totalStudyMinutes;
+  final int totalStudySeconds;
   final int totalFlashcardsReviewed;
   final int quizAttempts;
 
@@ -267,24 +267,24 @@ class AnalyticsSummary {
     required this.dueToday,
     required this.currentStreak,
     required this.averageQuizScore,
-    required this.totalStudyMinutes,
+    required this.totalStudySeconds,
     required this.totalFlashcardsReviewed,
     required this.quizAttempts,
   });
 }
 
 class StudyTimeStats {
-  final int todayMinutes;
-  final int weekMinutes;
-  final int monthMinutes;
+  final int todaySeconds;
+  final int weekSeconds;
+  final int monthSeconds;
   final int todaySessions;
   final int weekSessions;
   final int monthSessions;
 
   StudyTimeStats({
-    required this.todayMinutes,
-    required this.weekMinutes,
-    required this.monthMinutes,
+    required this.todaySeconds,
+    required this.weekSeconds,
+    required this.monthSeconds,
     required this.todaySessions,
     required this.weekSessions,
     required this.monthSessions,
@@ -295,14 +295,14 @@ class ImprovementTrends {
   final int periodDays;
   final double averageAccuracy;
   final double averageCardsPerSession;
-  final int totalStudyTimeMinutes;
+  final int totalStudyTimeSeconds;
   final String trend; // 'improving', 'declining', 'stable'
 
   ImprovementTrends({
     required this.periodDays,
     required this.averageAccuracy,
     required this.averageCardsPerSession,
-    required this.totalStudyTimeMinutes,
+    required this.totalStudyTimeSeconds,
     required this.trend,
   });
 }

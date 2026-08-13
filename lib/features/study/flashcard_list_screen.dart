@@ -13,11 +13,13 @@ import 'flashcard_study_session_screen.dart';
 class FlashcardListScreen extends StatefulWidget {
   final int deckId;
   final String deckName;
+  final bool shuffle;
 
   const FlashcardListScreen({
     super.key,
     required this.deckId,
     required this.deckName,
+    this.shuffle = false,
   });
 
   @override
@@ -146,6 +148,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
           deckName: widget.deckName,
           deckId: widget.deckId,
           flashcards: flashcards,
+          shuffle: widget.shuffle,
         ),
       ),
     );

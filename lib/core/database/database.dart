@@ -803,15 +803,15 @@ class AppDatabase extends _$AppDatabase {
         activityMap[dateKey] = DailyStudyActivity(
           date: session.startedAt,
           cardsStudied: 0,
-          studyTimeMinutes: 0,
+          studyTimeSeconds: 0,
           accuracy: 0.0,
         );
       }
 
       final activity = activityMap[dateKey]!;
       final newCardsStudied = activity.cardsStudied + session.cardsStudied;
-      final newStudyTimeMinutes = activity.studyTimeMinutes + (session.durationSeconds / 60).round();
-      
+      final newStudyTimeSeconds = activity.studyTimeSeconds + session.durationSeconds;
+
       // Calculate weighted average accuracy
       double newAccuracy;
       if (newCardsStudied > 0) {
@@ -820,11 +820,11 @@ class AppDatabase extends _$AppDatabase {
       } else {
         newAccuracy = activity.accuracy;
       }
-      
+
       activityMap[dateKey] = DailyStudyActivity(
         date: activity.date,
         cardsStudied: newCardsStudied,
-        studyTimeMinutes: newStudyTimeMinutes,
+        studyTimeSeconds: newStudyTimeSeconds,
         accuracy: newAccuracy,
       );
     }
@@ -837,7 +837,7 @@ class AppDatabase extends _$AppDatabase {
       activities.add(activityMap[dateKey] ?? DailyStudyActivity(
         date: date,
         cardsStudied: 0,
-        studyTimeMinutes: 0,
+        studyTimeSeconds: 0,
         accuracy: 0.0,
       ));
     }
@@ -876,11 +876,10 @@ class AppDatabase extends _$AppDatabase {
     ];
   }
 
-  Future<int> getTotalStudyMinutes() async {
+  Future<int> getTotalStudySeconds() async {
     final sessions = await (select(studySessions)).get();
-    final totalSeconds = sessions.fold<int>(
+    return sessions.fold<int>(
         0, (sum, session) => sum + session.durationSeconds);
-    return totalSeconds ~/ 60;
   }
 
   Future<int> getTotalCardsReviewed() async {
@@ -1036,13 +1035,13 @@ LazyDatabase openConnection() {
 class DailyStudyActivity {
   final DateTime date;
   final int cardsStudied;
-  final int studyTimeMinutes;
+  final int studyTimeSeconds;
   final double accuracy;
 
   DailyStudyActivity({
     required this.date,
     required this.cardsStudied,
-    required this.studyTimeMinutes,
+    required this.studyTimeSeconds,
     required this.accuracy,
   });
 }

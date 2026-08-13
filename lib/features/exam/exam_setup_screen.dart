@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/exam_provider.dart';
-import '../../core/providers/groq_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -26,17 +25,30 @@ class ExamSetupScreen extends StatefulWidget {
 
 class _ExamSetupScreenState extends State<ExamSetupScreen> {
   int _selectedQuestionCount = 10;
-  int _selectedTimeLimit = 30; // in minutes
-  bool _useAI = false;
+  int _selectedTimeLimit = 10; // in minutes
   bool _isLoading = false;
+  bool _isCustomTime = false;
+  bool _shuffle = false;
+  String? _timeError;
+
+  final _customTimeController = TextEditingController();
 
   final List<int> _questionCountOptions = [5, 10, 15, 20, 25, 30, 50, 100];
-  final List<int> _timeLimitOptions = [15, 30, 45, 60, 90, 120];
+  final List<int> _timeLimitPresets = [1, 5, 10, 15, 20, 25, 30];
+  static const int _minTimeLimit = 1;
+  static const int _maxTimeLimit = 120;
 
   @override
   void initState() {
     super.initState();
+    _customTimeController.text = '$_selectedTimeLimit';
     _checkDeckCardCount();
+  }
+
+  @override
+  void dispose() {
+    _customTimeController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkDeckCardCount() async {
@@ -44,10 +56,9 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
     try {
       final flashcards = await dbProvider.flashcardRepository
           .getFlashcardsByDeck(widget.deckId);
-      
+
       if (mounted) {
         setState(() {
-          // Adjust default question count if deck has fewer cards
           if (flashcards.length < _selectedQuestionCount) {
             _selectedQuestionCount = flashcards.length;
           }
@@ -59,23 +70,19 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
   }
 
   Future<void> _startExam() async {
+    if (!_validateTime()) {
+      await DialogService.showError(
+        context,
+        _timeError ?? 'Enter a valid time between $_minTimeLimit and $_maxTimeLimit minutes.',
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
       final examProvider = context.read<ExamProvider>();
-      final groqProvider = context.read<GroqProvider>();
 
-      // Check if AI is available if requested
-      if (_useAI && !groqProvider.isInitialized) {
-        if (mounted) {
-          await DialogService.showWarning(context, 'AI service not available. Using basic questions.');
-          setState(() {
-            _useAI = false;
-          });
-        }
-      }
-
-      // Create exam
       await examProvider.createExam(
         deckId: widget.deckId,
         deckName: widget.deckName,
@@ -83,8 +90,7 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
         timeLimit: _selectedTimeLimit,
       );
 
-      // Generate questions
-      await examProvider.generateQuestions(useAI: _useAI);
+      await examProvider.generateQuestions(shuffle: _shuffle);
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -106,6 +112,17 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
     }
   }
 
+  bool _validateTime() {
+    if (_selectedTimeLimit < _minTimeLimit || _selectedTimeLimit > _maxTimeLimit) {
+      setState(() {
+        _timeError = 'Time must be between $_minTimeLimit and $_maxTimeLimit minutes.';
+      });
+      return false;
+    }
+    setState(() => _timeError = null);
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,7 +142,7 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
                   const SizedBox(height: AppTheme.spacingXl),
                   _buildTimeLimitSelector(),
                   const SizedBox(height: AppTheme.spacingXl),
-                  _buildAIOptions(),
+                  _buildShuffleToggle(),
                   const SizedBox(height: AppTheme.spacingXl),
                   _buildSummary(),
                   const SizedBox(height: AppTheme.spacingXl),
@@ -226,53 +243,79 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
           Wrap(
             spacing: AppTheme.spacingSm,
             runSpacing: AppTheme.spacingSm,
-            children: _timeLimitOptions.map((minutes) {
-              final isSelected = minutes == _selectedTimeLimit;
+            children: _timeLimitPresets.map((minutes) {
+              final isSelected = minutes == _selectedTimeLimit && !_isCustomTime;
               return FilterChip(
                 label: Text(_formatTime(minutes)),
                 selected: isSelected,
                 onSelected: (selected) {
-                  setState(() => _selectedTimeLimit = minutes);
+                  setState(() {
+                    _selectedTimeLimit = minutes;
+                    _isCustomTime = false;
+                    _customTimeController.text = '$minutes';
+                    _timeError = null;
+                  });
                 },
                 selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                 checkmarkColor: Theme.of(context).colorScheme.primary,
               );
             }).toList(),
           ),
+          const SizedBox(height: AppTheme.spacingMd),
+          TextField(
+            controller: _customTimeController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: 'Custom time (minutes)',
+              errorText: _isCustomTime ? _timeError : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacingMd,
+                vertical: AppTheme.spacingSm,
+              ),
+            ),
+            onChanged: (value) {
+              final parsed = int.tryParse(value);
+              setState(() {
+                _isCustomTime = true;
+                if (parsed != null) {
+                  _selectedTimeLimit = parsed;
+                  _timeError = (parsed < _minTimeLimit || parsed > _maxTimeLimit)
+                      ? 'Time must be between $_minTimeLimit and $_maxTimeLimit minutes.'
+                      : null;
+                } else {
+                  _timeError = 'Enter a number.';
+                }
+              });
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildAIOptions() {
-    final groqProvider = context.watch<GroqProvider>();
-    final isAIAvailable = groqProvider.isInitialized;
-
+  Widget _buildShuffleToggle() {
     return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'AI Questions',
-            style: AppTheme.labelLarge,
+      child: SwitchListTile(
+        title: Text(
+          'Shuffle questions',
+          style: AppTheme.labelLarge,
+        ),
+        subtitle: Text(
+          'Randomize the order of questions for this exam',
+          style: AppTheme.bodySmall.copyWith(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
-          const SizedBox(height: AppTheme.spacingSm),
-          SwitchListTile(
-            title: const Text('Generate questions with AI'),
-            subtitle: Text(
-              isAIAvailable
-                  ? 'AI will create varied questions from your flashcards'
-                  : 'AI service not configured',
-            ),
-            value: _useAI && isAIAvailable,
-            onChanged: isAIAvailable
-                ? (value) {
-                    setState(() => _useAI = value);
-                  }
-                : null,
-            contentPadding: EdgeInsets.zero,
-          ),
-        ],
+        ),
+        value: _shuffle,
+        onChanged: (value) => setState(() => _shuffle = value),
+        secondary: Icon(
+          Icons.shuffle,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        contentPadding: EdgeInsets.zero,
       ),
     );
   }
@@ -300,7 +343,7 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
           _buildSummaryRow('Deck', widget.deckName),
           _buildSummaryRow('Questions', '$_selectedQuestionCount'),
           _buildSummaryRow('Time Limit', _formatTime(_selectedTimeLimit)),
-          _buildSummaryRow('Question Type', _useAI ? 'AI Generated' : 'Basic'),
+          _buildSummaryRow('Shuffle', _shuffle ? 'On' : 'Off'),
         ],
       ),
     );

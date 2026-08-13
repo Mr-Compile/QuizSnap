@@ -221,9 +221,9 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
       0,
       (sum, activity) => sum + (activity.cardsStudied as int),
     );
-    final totalMinutes = activities.fold<int>(
+    final totalSeconds = activities.fold<int>(
       0,
-      (sum, activity) => sum + (activity.studyTimeMinutes as int),
+      (sum, activity) => sum + (activity.studyTimeSeconds as int),
     );
     final avgAccuracy = activities.isEmpty
         ? 0.0
@@ -257,7 +257,7 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
               child: _buildStatCard(
                 context,
                 'Total Study Time',
-                '${(totalMinutes / 60).toStringAsFixed(1)}h',
+                AppTheme.formatStudyDuration(totalSeconds),
                 Icons.access_time,
                 Theme.of(context).colorScheme.primary,
               ),

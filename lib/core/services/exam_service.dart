@@ -1,20 +1,17 @@
 import 'dart:math';
 import '../database/database.dart';
 import '../models/exam.dart';
-import '../models/prompt_template.dart';
 import '../repositories/flashcard_repository.dart';
-import 'groq_service.dart';
+import 'question_validation_service.dart';
 
 class ExamService {
   final FlashcardRepository _flashcardRepository;
-  final GroqService? _groqService;
   final Map<String, Exam> _activeExams = {};
   final Map<String, List<ExamQuestion>> _examQuestions = {};
   final Map<String, List<UserAnswer>> _examAnswers = {};
 
   ExamService({
     required this._flashcardRepository,
-    this._groqService,
   });
 
   Exam? getActiveExam(String examId) => _activeExams[examId];
@@ -28,7 +25,7 @@ class ExamService {
     required int timeLimit,
   }) async {
     final flashcards = await _flashcardRepository.getFlashcardsByDeck(deckId);
-    
+
     if (flashcards.length < questionCount) {
       throw Exception(
         'Not enough flashcards in deck. Available: ${flashcards.length}, Requested: $questionCount',
@@ -54,156 +51,81 @@ class ExamService {
     required String examId,
     required int deckId,
     required int questionCount,
-    bool useAI = false,
+    bool shuffle = false,
   }) async {
     final flashcards = await _flashcardRepository.getFlashcardsByDeck(deckId);
-    final selectedFlashcards = _shuffleList(flashcards).take(questionCount).toList();
+    final pool = _shuffleList(flashcards);
+    final selectedFlashcards = pool.take(questionCount).toList();
+    final ordered = shuffle ? _shuffleList(selectedFlashcards) : selectedFlashcards;
 
-    List<ExamQuestion> questions;
-
-    if (useAI && _groqService != null && _groqService.isInitialized) {
-      questions = await _generateAIQuestions(selectedFlashcards);
-    } else {
-      questions = _generateBasicQuestions(selectedFlashcards);
-    }
-
+    final questions = _generateBasicQuestions(ordered);
     _examQuestions[examId] = questions;
     return questions;
   }
 
   List<ExamQuestion> _generateBasicQuestions(List<Flashcard> flashcards) {
+    final otherAnswers = flashcards
+        .map((f) => f.answer.trim())
+        .where((a) => a.isNotEmpty)
+        .toList();
+
     return flashcards.asMap().entries.map((entry) {
       final index = entry.key;
       final flashcard = entry.value;
+      final answer = flashcard.answer.trim();
 
-      // Generate multiple choice options from other flashcards
-      final otherAnswers = flashcards
-          .where((f) => f.id != flashcard.id)
-          .map((f) => f.answer)
-          .toList();
+      String? correctAnswer;
+      List<String>? correctAnswersList;
 
-      final shuffledAnswers = _shuffleList(otherAnswers);
-      final wrongAnswers = shuffledAnswers.take(3).toList();
+      if (answer.isNotEmpty) {
+        final items = EnumerationFormatter.splitItems(answer);
+        if (items.length > 1) {
+          correctAnswersList = items;
+        } else {
+          correctAnswer = answer;
+        }
+      }
 
-      // Ensure we have enough options
-      final options = _shuffleList([
-        flashcard.answer,
-        ...wrongAnswers,
-        if (wrongAnswers.length < 3) ...List.generate(
-          3 - wrongAnswers.length,
-          (i) => 'Distractor option ${i + 1}',
-        ),
-      ]);
+      // Build a multiple-choice option only for short single answers with enough distractors.
+      if (correctAnswer != null && correctAnswer.length <= 40) {
+        final correct = correctAnswer;
+        final distractorPool = otherAnswers
+            .where((a) => a.toLowerCase() != correct.toLowerCase())
+            .toSet()
+            .toList();
 
-      final correctAnswerIndex = options.indexOf(flashcard.answer);
+        final distractors = _shuffleList(distractorPool).take(3).toList();
+
+        if (distractors.length == 3) {
+          final options = _shuffleList([correct, ...distractors]);
+          final correctAnswerIndex = options.indexWhere(
+            (o) => o.toLowerCase() == correct.toLowerCase(),
+          );
+
+          return ExamQuestion(
+            id: 'q_${flashcard.id}_$index',
+            question: flashcard.question,
+            type: QuestionType.multipleChoice,
+            options: options,
+            correctAnswerIndex: correctAnswerIndex,
+            flashcardId: flashcard.id,
+          );
+        }
+      }
+
+      final questionType = correctAnswersList != null && correctAnswersList.length > 1
+          ? QuestionType.enumeration
+          : QuestionType.identification;
 
       return ExamQuestion(
         id: 'q_${flashcard.id}_$index',
         question: flashcard.question,
-        options: options,
-        correctAnswerIndex: correctAnswerIndex,
+        type: questionType,
+        correctAnswer: correctAnswer,
+        correctAnswers: correctAnswersList,
         flashcardId: flashcard.id,
-        type: QuestionType.multipleChoice,
       );
     }).toList();
-  }
-
-  Future<List<ExamQuestion>> _generateAIQuestions(List<Flashcard> flashcards) async {
-    final questions = <ExamQuestion>[];
-
-    for (final flashcard in flashcards) {
-      try {
-        final prompt = '''Generate a multiple choice question based on this flashcard:
-
-Question: ${flashcard.question}
-Answer: ${flashcard.answer}
-
-Create 4 options (A, B, C, D) where only one is correct. Format your response as:
-QUESTION: [your question text]
-A: [option A]
-B: [option B]
-C: [option C]
-D: [option D]
-CORRECT: [A, B, C, or D]''';
-
-        final response = await _groqService!.generateQuestionsWithBuiltInTemplate(
-          content: prompt,
-          type: PromptType.multipleChoice,
-          questionCount: 1,
-          model: _groqService.currentModel,
-        );
-
-        final parsedQuestion = _parseAIQuestion(response, flashcard);
-        if (parsedQuestion != null) {
-          questions.add(parsedQuestion);
-        } else {
-          // Fallback to basic question generation
-          questions.add(_createBasicQuestion(flashcard, questions.length));
-        }
-      } catch (e) {
-        // Fallback to basic question generation on error
-        questions.add(_createBasicQuestion(flashcard, questions.length));
-      }
-    }
-
-    return questions;
-  }
-
-  ExamQuestion? _parseAIQuestion(String response, Flashcard flashcard) {
-    try {
-      final lines = response.split('\n');
-      String? question;
-      final options = <String>[];
-      String? correctLetter;
-
-      for (final line in lines) {
-        if (line.startsWith('QUESTION:')) {
-          question = line.substring(9).trim();
-        } else if (line.startsWith('A:') || line.startsWith('B:') || 
-                   line.startsWith('C:') || line.startsWith('D:')) {
-          options.add(line.substring(2).trim());
-        } else if (line.startsWith('CORRECT:')) {
-          correctLetter = line.substring(8).trim();
-        }
-      }
-
-      if (question == null || options.length != 4 || correctLetter == null) {
-        return null;
-      }
-
-      final correctIndex = {'A': 0, 'B': 1, 'C': 2, 'D': 3}[correctLetter];
-      if (correctIndex == null) return null;
-
-      return ExamQuestion(
-        id: 'ai_${flashcard.id}_${DateTime.now().millisecondsSinceEpoch}',
-        question: question,
-        options: options,
-        correctAnswerIndex: correctIndex,
-        flashcardId: flashcard.id,
-        type: QuestionType.multipleChoice,
-      );
-    } catch (e) {
-      return null;
-    }
-  }
-
-  ExamQuestion _createBasicQuestion(Flashcard flashcard, int index) {
-    // Simple fallback - use the flashcard as-is
-    final options = [
-      flashcard.answer,
-      'Incorrect option 1',
-      'Incorrect option 2',
-      'Incorrect option 3',
-    ];
-
-    return ExamQuestion(
-      id: 'fallback_${flashcard.id}_$index',
-      question: flashcard.question,
-      options: options,
-      correctAnswerIndex: 0,
-      flashcardId: flashcard.id,
-      type: QuestionType.multipleChoice,
-    );
   }
 
   void startExam(String examId) {
@@ -342,7 +264,7 @@ CORRECT: [A, B, C, or D]''';
     }
 
     final correctCount = answers.where((a) => a.isCorrect).length;
-    final incorrectCount = answers.where((a) => !a.isCorrect && _hasAnswer(a)).length;
+    final incorrectCount = answers.where((a) => !a.isCorrect && a.hasAnswer).length;
     final unansweredCount = questions.where((q) {
       final answer = answers.firstWhere(
         (a) => a.questionId == q.id,
@@ -353,7 +275,7 @@ CORRECT: [A, B, C, or D]''';
           timeSpent: Duration.zero,
         ),
       );
-      return !_hasAnswer(answer);
+      return !answer.hasAnswer;
     }).length;
     final percentage = questions.isNotEmpty
         ? (correctCount / questions.length) * 100
@@ -378,12 +300,6 @@ CORRECT: [A, B, C, or D]''';
       percentage: percentage,
       totalTime: completedExam.elapsed,
     );
-  }
-
-  bool _hasAnswer(UserAnswer answer) {
-    return answer.selectedAnswerIndex != null ||
-           (answer.textAnswer != null && answer.textAnswer!.isNotEmpty) ||
-           (answer.listAnswer != null && answer.listAnswer!.isNotEmpty);
   }
 
   void abandonExam(String examId) {

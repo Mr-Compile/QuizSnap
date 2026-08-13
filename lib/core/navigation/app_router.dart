@@ -21,7 +21,6 @@ import '../../features/exam/exam_setup_screen.dart';
 import '../../features/exam/countdown_screen.dart';
 import '../../features/exam/exam_question_screen.dart';
 import '../../features/exam/exam_result_screen.dart';
-import '../../features/exam/exam_review_screen.dart';
 import '../../features/exam/cached_explanations_screen.dart';
 import '../../features/ai_generate/ai_generate_home_screen.dart';
 import '../../features/ai_generate/ai_generation_config_screen.dart';
@@ -278,18 +277,6 @@ class AppRouter {
             return const Scaffold(body: Center(child: Text('Error: No exam result provided')));
           }
           return ExamResultScreen(examId: extra.exam.id);
-        },
-      ),
-      GoRoute(
-        path: '/exam/:examId/review',
-        builder: (context, state) {
-          // ExamReviewScreen needs an ExamResult, not examId
-          // This should be passed via state.extra
-          final extra = state.extra as ExamResult?;
-          if (extra == null) {
-            return const Scaffold(body: Center(child: Text('Error: No exam result provided')));
-          }
-          return ExamReviewScreen(result: extra);
         },
       ),
       GoRoute(

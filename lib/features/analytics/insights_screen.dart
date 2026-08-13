@@ -212,11 +212,11 @@ class _InsightsScreenState extends State<InsightsScreen> {
     }
 
     // Study time insight
-    if (trends != null && trends.totalStudyTimeMinutes < 60) {
+    if (trends != null && trends.totalStudyTimeSeconds < 3600) {
       insights.add(StudyInsight(
         type: InsightType.suggestion,
         title: 'Increase Study Time',
-        description: 'You\'ve studied for ${trends.totalStudyTimeMinutes} minutes recently. Try to study more consistently.',
+        description: 'You\'ve studied for ${AppTheme.formatStudyDuration(trends.totalStudyTimeSeconds)} recently. Try to study more consistently.',
         icon: Icons.access_time,
         priority: InsightPriority.medium,
       ));

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/services/connectivity_guard.dart';
 import '../../core/services/question_generation_service.dart';
 import '../../core/models/prompt_template.dart';
 import '../../core/models/exam.dart';
@@ -741,6 +742,18 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
     final confirmed = await _showRegenerationConfirmation(option);
     if (!confirmed) return;
 
+    if (!mounted) return;
+    await ConnectivityGuard.run(
+      context,
+      () async => await _performRegeneration(option, groqProvider, quotaProvider),
+    );
+  }
+
+  Future<void> _performRegeneration(
+    RegenerationOption option,
+    GroqProvider groqProvider,
+    AiQuotaProvider quotaProvider,
+  ) async {
     setState(() {
       _isSaving = true;
     });
@@ -805,12 +818,27 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _isSaving = false;
       });
 
-      DialogService.showError(context, 'Regeneration failed: $e');
+      final message = e.toString().toLowerCase();
+      if (message.contains('socket') ||
+          message.contains('network') ||
+          message.contains('connection') ||
+          message.contains('host') ||
+          message.contains('failed host lookup')) {
+        await DialogService.showNoInternet(
+          context,
+          onRetry: () => _handleRegeneration(option),
+        );
+      } else {
+        await DialogService.showError(
+          context,
+          'Regeneration failed. Please try again.',
+        );
+      }
     }
   }
 
@@ -828,23 +856,13 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         break;
     }
 
-    return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Regeneration'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Regenerate'),
-          ),
-        ],
-      ),
-    ) ?? false;
+    final confirmed = await DialogService.showConfirmation(
+      context,
+      message,
+      title: 'Confirm Regeneration',
+      confirmAction: 'Regenerate',
+    );
+    return confirmed ?? false;
   }
 
   void _showComparisonDialog(List<GeneratedQuestion> newQuestions) {
@@ -888,19 +906,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
   }
 
   void _showQuotaExceededDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Daily Limit Reached'),
-        content: const Text('You have reached today\'s AI limit (15/15). Try again tomorrow.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    DialogService.showQuotaExceeded(context);
   }
 
   Widget _buildEmptyState(BuildContext context) {

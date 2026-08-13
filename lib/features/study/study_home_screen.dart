@@ -187,7 +187,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
   }
 
   Widget _buildQuickActions(BuildContext context, stats) {
-    final todayReviewColor = const Color(0xFF3B82F6); // Blue
+    final todayReviewColor = AppTheme.blue500;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

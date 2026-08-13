@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/exam.dart';
 import '../../core/providers/exam_provider.dart';
+import '../../core/services/connectivity_guard.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/utils/explanation_sanitizer.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -40,7 +42,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
 
     try {
       final examProvider = context.read<ExamProvider>();
-      
+
       // Check if explanation is already cached
       final cached = await examProvider.getExplanation(widget.question.id);
       if (cached != null) {
@@ -51,17 +53,77 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
         return;
       }
 
+      // AI explanation requires connectivity - guard before the request.
+      final online = await ConnectivityGuard.isOnline();
+      if (!mounted) return;
+      if (!online) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (!mounted) return;
+        // Close the bottom sheet first, then show the dialog from the parent
+        // context so it is centered properly.
+        Navigator.of(context).pop();
+        await DialogService.showNoInternet(
+          context,
+          onRetry: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => AnswerExplanationBottomSheet(
+                question: widget.question,
+              ),
+            );
+          },
+        );
+        return;
+      }
+
       // Generate new explanation
       final explanation = await examProvider.generateExplanation(widget.question);
-      
+
       setState(() {
         _explanation = explanation;
         _isLoading = false;
       });
     } catch (e) {
+      final message = e.toString().toLowerCase();
+      final isNetworkError = message.contains('socket') ||
+          message.contains('network') ||
+          message.contains('connection') ||
+          message.contains('host') ||
+          message.contains('failed host lookup') ||
+          message.contains('internet');
+
+      if (isNetworkError) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (!mounted) return;
+        Navigator.of(context).pop();
+        if (!mounted) return;
+        await DialogService.showNoInternet(
+          context,
+          onRetry: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => AnswerExplanationBottomSheet(
+                question: widget.question,
+              ),
+            );
+          },
+        );
+        return;
+      }
+
+      // AI service unavailable or other non-network failure: show the
+      // standardized "Explanation Unavailable" message instead of raw errors.
       setState(() {
-        _errorMessage = e.toString();
         _isLoading = false;
+        _errorMessage = 'unavailable';
       });
     }
   }
@@ -207,25 +269,32 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
 
     if (_errorMessage != null) {
       final colorScheme = Theme.of(context).colorScheme;
+      final isUnavailable = _errorMessage == 'unavailable';
       return CustomCard(
-        color: colorScheme.errorContainer,
+        color: isUnavailable ? null : colorScheme.errorContainer,
         child: Column(
           children: [
             Icon(
-              Icons.error_outline,
-              color: colorScheme.error,
+              isUnavailable ? Icons.info_outline : Icons.error_outline,
+              color: isUnavailable
+                  ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)
+                  : colorScheme.error,
               size: 48,
             ),
             const SizedBox(height: AppTheme.spacingMd),
             Text(
-              'Failed to load explanation',
+              isUnavailable ? 'Explanation Unavailable' : 'Failed to load explanation',
               style: AppTheme.labelLarge.copyWith(
-                color: colorScheme.error,
+                color: isUnavailable
+                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)
+                    : colorScheme.error,
               ),
             ),
             const SizedBox(height: AppTheme.spacingSm),
             Text(
-              _errorMessage!,
+              isUnavailable
+                  ? 'No explanation is available for this question yet.'
+                  : 'Please check your connection and try again.',
               style: AppTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
@@ -255,10 +324,18 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
             ),
             const SizedBox(height: AppTheme.spacingMd),
             Text(
-              'No explanation available',
-              style: AppTheme.bodyLarge.copyWith(
+              'Explanation Unavailable',
+              style: AppTheme.labelLarge.copyWith(
                 color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
+            ),
+            const SizedBox(height: AppTheme.spacingXs),
+            Text(
+              'No explanation is available for this question yet.',
+              style: AppTheme.bodyMedium.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

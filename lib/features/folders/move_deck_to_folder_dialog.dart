@@ -49,24 +49,26 @@ class _MoveDeckToFolderDialogState extends State<MoveDeckToFolderDialog> {
 
             final folders = snapshot.data ?? [];
 
-            return ListView(
-              shrinkWrap: true,
-              children: [
-                RadioListTile<int?>(
-                  title: const Text('No Folder'),
-                  value: null,
-                  groupValue: _selectedFolderId,
-                  onChanged: _isSaving ? null : (value) => setState(() => _selectedFolderId = value),
-                ),
-                ...folders.map((folder) {
-                  return RadioListTile<int?>(
-                    title: Text(folder.name),
-                    value: folder.id,
-                    groupValue: _selectedFolderId,
-                    onChanged: _isSaving ? null : (value) => setState(() => _selectedFolderId = value),
-                  );
-                }),
-              ],
+            return RadioGroup<int?>(
+              groupValue: _selectedFolderId,
+              onChanged: (int? value) => setState(() => _selectedFolderId = value),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  RadioListTile<int?>(
+                    title: const Text('No Folder'),
+                    value: null,
+                    enabled: !_isSaving,
+                  ),
+                  ...folders.map((folder) {
+                    return RadioListTile<int?>(
+                      title: Text(folder.name),
+                      value: folder.id,
+                      enabled: !_isSaving,
+                    );
+                  }),
+                ],
+              ),
             );
           },
         ),

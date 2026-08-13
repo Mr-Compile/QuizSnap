@@ -3,6 +3,7 @@ import '../../core/models/prompt_template.dart';
 import '../../core/models/recent_generation.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
+import '../../core/services/connectivity_guard.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/repositories/recent_generation_repository.dart';
 import '../../core/services/question_generation_service.dart';
@@ -235,7 +236,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
   Future<void> _startGeneration() async {
     final groqProvider = Provider.of<GroqProvider>(context, listen: false);
     final quotaProvider = Provider.of<AiQuotaProvider>(context, listen: false);
-    
+
     if (!groqProvider.isInitialized) {
       if (mounted) {
         await DialogService.showInfo(context, 'Please configure your Groq API key first');
@@ -251,6 +252,19 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
       return;
     }
 
+    // Connectivity guard - block AI requests when offline
+    if (!mounted) return;
+    final connected = await ConnectivityGuard.run(
+      context,
+      () async => await _performGeneration(groqProvider, quotaProvider),
+    );
+    if (!connected) return;
+  }
+
+  Future<void> _performGeneration(
+    GroqProvider groqProvider,
+    AiQuotaProvider quotaProvider,
+  ) async {
     setState(() {
       _isGenerating = true;
       _generationStep = 'Preparing...';
@@ -260,15 +274,15 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
     try {
       // Step 1: Preparing
       await _updateGenerationProgress('Preparing text for analysis...', 0.1);
-      
+
       // Step 2: Processing
       await _updateGenerationProgress('Processing document content...', 0.2);
-      
+
       final generationService = QuestionGenerationService(groqProvider.service);
-      
+
       // Step 3: Generating
       await _updateGenerationProgress('Generating questions with AI...', 0.5);
-      
+
       final questions = await generationService.generateQuestions(
         sourceText: widget.sourceText,
         type: _selectedType,
@@ -281,7 +295,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
 
       // Step 4: Validating
       await _updateGenerationProgress('Validating generated questions...', 0.8);
-      
+
       if (!mounted) return;
 
       // Increment quota usage
@@ -337,14 +351,29 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _isGenerating = false;
         _generationProgress = 0.0;
       });
 
       if (mounted) {
-        await DialogService.showError(context, 'Generation failed: $e');
+        final message = e.toString().toLowerCase();
+        if (message.contains('socket') ||
+            message.contains('network') ||
+            message.contains('connection') ||
+            message.contains('host') ||
+            message.contains('failed host lookup')) {
+          await DialogService.showNoInternet(
+            context,
+            onRetry: () => _startGeneration(),
+          );
+        } else {
+          await DialogService.showError(
+            context,
+            'Generation failed. Please try again.',
+          );
+        }
       }
     }
   }

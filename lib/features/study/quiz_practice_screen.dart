@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
@@ -10,11 +11,13 @@ import '../../shared/widgets/loading_skeleton.dart';
 class QuizPracticeScreen extends StatefulWidget {
   final int deckId;
   final String deckName;
+  final bool shuffle;
 
   const QuizPracticeScreen({
     super.key,
     required this.deckId,
     required this.deckName,
+    this.shuffle = false,
   });
 
   @override
@@ -28,6 +31,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
   int _incorrectCount = 0;
   bool _showAnswer = false;
   bool _isStarted = false;
+  bool _shuffle = false;
   DateTime? _quizStart;
   int? _studySessionId;
   bool _isRecorded = false;
@@ -114,6 +118,17 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingLg),
+          SwitchListTile(
+            title: const Text('Shuffle cards'),
+            subtitle: const Text('Randomize the order of cards for this quiz'),
+            value: _shuffle,
+            onChanged: (value) => setState(() => _shuffle = value),
+            secondary: Icon(
+              Icons.shuffle,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(height: AppTheme.spacingLg),
@@ -354,8 +369,11 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
       studyMode: 'quiz',
     );
     if (!mounted) return;
+    final ordered = _shuffle || widget.shuffle
+        ? _shuffleList(flashcards)
+        : List<dynamic>.from(flashcards);
     setState(() {
-      _flashcards = flashcards;
+      _flashcards = ordered;
       _currentIndex = 0;
       _correctCount = 0;
       _incorrectCount = 0;
@@ -363,6 +381,18 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
       _isStarted = true;
       _isRecorded = false;
     });
+  }
+
+  List<T> _shuffleList<T>(List<T> list) {
+    final shuffled = List<T>.from(list);
+    final random = math.Random();
+    for (int i = shuffled.length - 1; i > 0; i--) {
+      final j = random.nextInt(i + 1);
+      final temp = shuffled[i];
+      shuffled[i] = shuffled[j];
+      shuffled[j] = temp;
+    }
+    return shuffled;
   }
 
   void _handleAnswer(bool correct) {

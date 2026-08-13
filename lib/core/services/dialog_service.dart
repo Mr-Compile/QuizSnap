@@ -5,6 +5,7 @@ import '../../shared/widgets/dialogs/warning_dialog.dart';
 import '../../shared/widgets/dialogs/info_dialog.dart';
 import '../../shared/widgets/dialogs/confirmation_dialog.dart';
 import '../../shared/widgets/dialogs/loading_dialog.dart';
+import '../../shared/widgets/dialogs/no_internet_dialog.dart';
 
 /// Safe, centered, Material 3 dialog feedback service.
 ///
@@ -135,6 +136,40 @@ class DialogService {
       message: 'You have reached today\'s AI generation limit. You can try again tomorrow or ask the administrator for additional quota.',
       primaryAction: 'OK',
       secondaryAction: '',
+    );
+  }
+
+  /// Show the standardized No Internet dialog used by every AI feature.
+  ///
+  /// [onRetry] is invoked when the user taps Retry. [onClose] is invoked when
+  /// the user dismisses the dialog. The dialog is non-dismissible via barrier
+  /// tap so the user must explicitly choose an action.
+  static Future<void> showNoInternet(
+    BuildContext context, {
+    VoidCallback? onRetry,
+    VoidCallback? onClose,
+  }) async {
+    if (!context.mounted) return;
+    await NoInternetDialog.show(
+      context: context,
+      onRetry: onRetry,
+      onClose: onClose,
+    );
+  }
+
+  /// Show the standardized "Explanation Unavailable" dialog used by the
+  /// View Explanation flow when no explanation can be produced or fetched.
+  static Future<void> showExplanationUnavailable(
+    BuildContext context, {
+    VoidCallback? onAcknowledge,
+  }) async {
+    if (!context.mounted) return;
+    await InfoDialog.show(
+      context: context,
+      title: 'Explanation Unavailable',
+      message: 'No explanation is available for this question yet.',
+      actionLabel: 'OK',
+      onAction: onAcknowledge,
     );
   }
 

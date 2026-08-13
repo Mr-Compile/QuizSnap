@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/providers/exam_provider.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/models/exam.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -26,6 +27,8 @@ class ExamQuestionScreen extends StatefulWidget {
 
 class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
   Timer? _timer;
+  final _textController = TextEditingController();
+  final _listInputController = TextEditingController();
 
   @override
   void initState() {
@@ -50,22 +53,11 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
   }
 
   void _showTimeExpiredDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Time Expired'),
-        content: const Text('Your exam time has expired. Your answers will be submitted automatically.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _submitExam();
-            },
-            child: const Text('Submit'),
-          ),
-        ],
-      ),
+    DialogService.showInfo(
+      context,
+      'Your exam time has expired. Your answers will be submitted automatically.',
+      title: 'Time Expired',
+      onAcknowledge: _submitExam,
     );
   }
 
@@ -76,12 +68,26 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
 
   void _submitTextAnswer(String answer) {
     final examProvider = context.read<ExamProvider>();
-    examProvider.submitTextAnswer(answer);
+    if (answer.trim().isNotEmpty) {
+      examProvider.submitTextAnswer(answer.trim());
+    }
   }
 
   void _submitListAnswer(List<String> answers) {
     final examProvider = context.read<ExamProvider>();
     examProvider.submitListAnswer(answers);
+  }
+
+  void _addListItem(List<String> items, String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+    _listInputController.clear();
+    _submitListAnswer([...items, trimmed]);
+  }
+
+  void _removeListItem(List<String> items, int index) {
+    final updated = List<String>.from(items)..removeAt(index);
+    _submitListAnswer(updated);
   }
 
   void _showSubmitConfirmation() {
@@ -98,6 +104,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
 
   Future<void> _submitExam() async {
     _timer?.cancel();
+    _persistCurrentInput();
 
     final examProvider = context.read<ExamProvider>();
     final result = await examProvider.completeExam();
@@ -130,8 +137,51 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     }
   }
 
+  void _persistCurrentInput() {
+    final examProvider = context.read<ExamProvider>();
+    final question = examProvider.currentQuestion;
+    if (question == null) return;
+
+    switch (question.type) {
+      case QuestionType.identification:
+      case QuestionType.mixedFormat:
+        if (question.type == QuestionType.mixedFormat &&
+            question.correctAnswers != null &&
+            question.correctAnswers!.isNotEmpty) {
+          // Mixed question resolved as enumeration
+          break;
+        }
+        if (question.type == QuestionType.mixedFormat &&
+            question.options.length >= 4) {
+          // Mixed question resolved as multiple choice
+          break;
+        }
+        _submitTextAnswer(_textController.text);
+        break;
+      case QuestionType.enumeration:
+        final current = examProvider.currentAnswers?.firstWhere(
+          (a) => a.questionId == question.id,
+          orElse: () => UserAnswer(
+            questionId: question.id,
+            isCorrect: false,
+            answeredAt: DateTime.now(),
+            timeSpent: Duration.zero,
+          ),
+        );
+        final items = current?.listAnswer ?? <String>[];
+        final pending = _listInputController.text.trim();
+        if (pending.isNotEmpty) {
+          _submitListAnswer([...items, pending]);
+        }
+        break;
+      case QuestionType.multipleChoice:
+        break;
+    }
+  }
+
   void _showPauseDialog() {
     _timer?.cancel();
+    _persistCurrentInput();
     showDialog(
       context: context,
       builder: (context) => PauseDialog(
@@ -156,6 +206,8 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _textController.dispose();
+    _listInputController.dispose();
     super.dispose();
   }
 
@@ -187,23 +239,39 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
               return const Center(child: CircularProgressIndicator());
             }
 
+            final answer = examProvider.currentAnswers?.firstWhere(
+              (a) => a.questionId == question.id,
+              orElse: () => UserAnswer(
+                questionId: question.id,
+                isCorrect: false,
+                answeredAt: DateTime.now(),
+                timeSpent: Duration.zero,
+              ),
+            );
+
+            _textController.text = answer?.textAnswer ?? '';
+            _listInputController.text = '';
+
             return Column(
               children: [
                 _buildProgressBar(examProvider),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(AppTheme.spacingLg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildQuestionNumber(examProvider),
-                        const SizedBox(height: AppTheme.spacingLg),
-                        _buildQuestionCard(question),
-                        const SizedBox(height: AppTheme.spacingXl),
-                        _buildAnswerOptions(question, examProvider),
-                        const SizedBox(height: AppTheme.spacingXl),
-                        _buildNavigationButtons(examProvider),
-                      ],
+                  child: SafeArea(
+                    top: false,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(AppTheme.spacingLg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildQuestionNumber(examProvider),
+                          const SizedBox(height: AppTheme.spacingLg),
+                          _buildQuestionCard(question),
+                          const SizedBox(height: AppTheme.spacingXl),
+                          _buildAnswerOptions(question, answer, examProvider),
+                          const SizedBox(height: AppTheme.spacingXl),
+                          _buildNavigationButtons(examProvider),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -312,19 +380,11 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     );
   }
 
-  Widget _buildAnswerOptions(ExamQuestion question, ExamProvider examProvider) {
-    final answer = examProvider.currentAnswers?.firstWhere(
-      (a) => a.questionId == question.id,
-      orElse: () => UserAnswer(
-        questionId: question.id,
-        selectedAnswerIndex: null,
-        isCorrect: false,
-        answeredAt: DateTime.now(),
-        timeSpent: Duration.zero,
-      ),
-    );
-
-    // Render different UI based on question type
+  Widget _buildAnswerOptions(
+    ExamQuestion question,
+    UserAnswer? answer,
+    ExamProvider examProvider,
+  ) {
     switch (question.type) {
       case QuestionType.multipleChoice:
         return _buildMultipleChoiceOptions(question, answer);
@@ -333,12 +393,13 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
       case QuestionType.enumeration:
         return _buildEnumerationInput(question, answer);
       case QuestionType.mixedFormat:
-        // For mixed format, check if it has options or text answer
+        if (question.correctAnswers != null && question.correctAnswers!.isNotEmpty) {
+          return _buildEnumerationInput(question, answer);
+        }
         if (question.options.length >= 4) {
           return _buildMultipleChoiceOptions(question, answer);
-        } else {
-          return _buildIdentificationInput(question, answer);
         }
+        return _buildIdentificationInput(question, answer);
     }
   }
 
@@ -420,7 +481,6 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
   }
 
   Widget _buildIdentificationInput(ExamQuestion question, UserAnswer? answer) {
-    final controller = TextEditingController(text: answer?.textAnswer ?? '');
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -431,20 +491,15 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         color: colorScheme.surface,
       ),
       child: TextField(
-        controller: controller,
+        controller: _textController,
         decoration: InputDecoration(
           hintText: 'Enter your answer',
           border: InputBorder.none,
           hintStyle: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.5)),
         ),
         style: AppTheme.bodyLarge,
-        onChanged: (value) {
-          // Store the answer temporarily
-          // Will be submitted when user moves to next question
-        },
-        onSubmitted: (value) {
-          _submitTextAnswer(value);
-        },
+        textInputAction: TextInputAction.done,
+        onSubmitted: _submitTextAnswer,
       ),
     );
   }
@@ -464,54 +519,49 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Enter items (one per line):',
+            'Enter items (one at a time):',
             style: AppTheme.labelMedium.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
-          ...List.generate(items.length + 1, (index) {
-            if (index < items.length) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppTheme.spacingXs),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${index + 1}. ${items[index]}',
-                        style: AppTheme.bodyMedium,
-                      ),
+          ...items.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppTheme.spacingXs),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${index + 1}. $item',
+                      style: AppTheme.bodyMedium,
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      onPressed: () {
-                        // Remove item
-                      },
-                    ),
-                  ],
-                ),
-              );
-            } else {
-              return TextField(
-                decoration: InputDecoration(
-                  hintText: 'Add item ${index + 1}',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingSm,
-                    vertical: AppTheme.spacingXs,
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => _removeListItem(items, index),
                   ),
-                ),
-                style: AppTheme.bodyMedium,
-                onSubmitted: (value) {
-                  if (value.trim().isNotEmpty) {
-                    _submitListAnswer([...items, value.trim()]);
-                  }
-                },
-              );
-            }
+                ],
+              ),
+            );
           }),
+          TextField(
+            controller: _listInputController,
+            decoration: InputDecoration(
+              hintText: 'Add item ${items.length + 1}',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacingSm,
+                vertical: AppTheme.spacingXs,
+              ),
+            ),
+            style: AppTheme.bodyMedium,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (value) => _addListItem(items, value),
+          ),
         ],
       ),
     );
@@ -526,7 +576,10 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
           Expanded(
             child: CustomButton(
               text: 'Previous',
-              onPressed: () => examProvider.goToPreviousQuestion(),
+              onPressed: () {
+                _persistCurrentInput();
+                examProvider.goToPreviousQuestion();
+              },
               isOutlined: true,
               icon: Icons.arrow_back,
             ),
@@ -536,9 +589,14 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         Expanded(
           child: CustomButton(
             text: isLastQuestion ? 'Finish Exam' : 'Next',
-            onPressed: isLastQuestion
-                ? _showSubmitConfirmation
-                : () => examProvider.goToNextQuestion(),
+            onPressed: () {
+              _persistCurrentInput();
+              if (isLastQuestion) {
+                _showSubmitConfirmation();
+              } else {
+                examProvider.goToNextQuestion();
+              }
+            },
             icon: isLastQuestion ? Icons.check : Icons.arrow_forward,
           ),
         ),

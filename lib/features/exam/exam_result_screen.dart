@@ -38,7 +38,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
 
     if (exam != null && questions != null && answers != null) {
       final correctCount = answers.where((a) => a.isCorrect).length;
-      final incorrectCount = answers.where((a) => !a.isCorrect && a.selectedAnswerIndex != null).length;
+      final incorrectCount = answers.where((a) => !a.isCorrect && a.hasAnswer).length;
       final unansweredCount = questions.where((q) {
         final answer = answers.firstWhere(
           (a) => a.questionId == q.id,
@@ -49,7 +49,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
             timeSpent: Duration.zero,
           ),
         );
-        return answer.selectedAnswerIndex == null;
+        return !answer.hasAnswer;
       }).length;
       final percentage = questions.isNotEmpty
           ? (correctCount / questions.length) * 100
@@ -111,21 +111,24 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
           ),
           automaticallyImplyLeading: false,
         ),
-        body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
-        child: Column(
-          children: [
-            _buildScoreCard(result, gradeColor),
-            const SizedBox(height: AppTheme.spacingXl),
-            _buildStatisticsCard(result),
-            const SizedBox(height: AppTheme.spacingXl),
-            _buildTimeCard(result),
-            const SizedBox(height: AppTheme.spacingXl),
-            _buildActionButtons(result),
-          ],
+        body: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppTheme.spacingLg),
+            child: Column(
+              children: [
+                _buildScoreCard(result, gradeColor),
+                const SizedBox(height: AppTheme.spacingXl),
+                _buildStatisticsCard(result),
+                const SizedBox(height: AppTheme.spacingXl),
+                _buildTimeCard(result),
+                const SizedBox(height: AppTheme.spacingXl),
+                _buildActionButtons(result),
+              ],
+            ),
+          ),
         ),
       ),
-    ),
     );
   }
 

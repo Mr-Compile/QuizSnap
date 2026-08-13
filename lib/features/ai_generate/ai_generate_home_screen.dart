@@ -403,42 +403,15 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
   }
 
   void _showApiKeyHelpDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('How to get a Groq API Key'),
-        content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '1. Visit console.groq.com',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text('2. Sign up or log in to your account'),
-              SizedBox(height: 8),
-              Text('3. Navigate to the API Keys section'),
-              SizedBox(height: 8),
-              Text('4. Click "Create API Key"'),
-              SizedBox(height: 8),
-              Text('5. Copy your API key and paste it here'),
-              SizedBox(height: 16),
-              Text(
-                'Your API key is stored securely on your device.',
-                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
+    DialogService.showInfo(
+      context,
+      '1. Visit console.groq.com\n'
+      '2. Sign up or log in to your account\n'
+      '3. Navigate to the API Keys section\n'
+      '4. Click "Create API Key"\n'
+      '5. Copy your API key and paste it here\n\n'
+      'Your API key is stored securely on your device.',
+      title: 'How to get a Groq API Key',
     );
   }
 }

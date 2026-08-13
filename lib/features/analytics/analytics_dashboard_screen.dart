@@ -234,7 +234,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                     child: _buildQuickStatItem(
                       context,
                       'Total Study Time',
-                      _formatMinutes(analytics.totalStudyMinutes),
+                      AppTheme.formatStudyDuration(analytics.totalStudySeconds),
                       Icons.access_time,
                       AppTheme.blue600,
                     ),
@@ -392,13 +392,6 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
         ),
       ],
     );
-  }
-
-  String _formatMinutes(int minutes) {
-    final hours = minutes ~/ 60;
-    final mins = minutes % 60;
-    if (hours > 0) return '${hours}h ${mins}m';
-    return '${mins}m';
   }
 
   Widget _buildAnalyticsTile(

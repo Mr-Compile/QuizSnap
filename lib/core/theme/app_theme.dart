@@ -842,4 +842,16 @@ class AppTheme {
       ),
     );
   }
+
+  static String formatStudyDuration(int totalSeconds) {
+    if (totalSeconds < 60) return '$totalSeconds sec';
+    if (totalSeconds < 3600) {
+      final minutes = totalSeconds ~/ 60;
+      final seconds = totalSeconds % 60;
+      return seconds > 0 ? '$minutes min $seconds sec' : '$minutes min';
+    }
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+    return minutes > 0 ? '$hours hr $minutes min' : '$hours hr';
+  }
 }
