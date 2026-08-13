@@ -163,6 +163,15 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateFolder(Folder folder) => update(folders).replace(folder);
 
   Future<bool> deleteFolder(int id) async {
+    // Unassign active decks so they don't reference a deleted folder.
+    await (update(decks)
+          ..where((tbl) => tbl.folderId.equals(id))
+          ..where((tbl) => tbl.deletedAt.isNull()))
+        .write(DecksCompanion(
+          folderId: const Value(null),
+          updatedAt: Value(DateTime.now()),
+        ));
+
     final folder = await getFolderById(id);
     final updatedFolder = folder.copyWith(deletedAt: Value(DateTime.now()));
     return await update(folders).replace(updatedFolder);
@@ -180,6 +189,13 @@ class AppDatabase extends _$AppDatabase {
     .get();
 
   Future<void> permanentlyDeleteFolder(int id) async {
+    // Remove the reference from any linked decks before deleting the folder.
+    await (update(decks)
+          ..where((tbl) => tbl.folderId.equals(id)))
+        .write(DecksCompanion(
+          folderId: const Value(null),
+          updatedAt: Value(DateTime.now()),
+        ));
     await (delete(folders)..where((tbl) => tbl.id.equals(id))).go();
   }
 
@@ -196,6 +212,40 @@ class AppDatabase extends _$AppDatabase {
         ..where((tbl) => tbl.deletedAt.isNull())
         ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
       .get();
+
+  Future<int> getDeckCountForFolder(int folderId) async {
+    final result = await (select(decks)
+          ..where((tbl) => tbl.folderId.equals(folderId))
+          ..where((tbl) => tbl.deletedAt.isNull()))
+        .get();
+    return result.length;
+  }
+
+  Future<List<Deck>> getDecksWithoutFolder() => (select(decks)
+        ..where((tbl) => tbl.folderId.isNull())
+        ..where((tbl) => tbl.deletedAt.isNull())
+        ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
+      .get();
+
+  Future<int> getDeckCountWithoutFolder() async {
+    final result = await (select(decks)
+          ..where((tbl) => tbl.folderId.isNull())
+          ..where((tbl) => tbl.deletedAt.isNull()))
+        .get();
+    return result.length;
+  }
+
+  Future<bool> moveDeckToFolder(int deckId, int? folderId) async {
+    final deck = await getDeckById(deckId);
+    return update(decks).replace(
+      deck.copyWith(
+        folderId: Value<int?>(folderId),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<bool> removeDeckFromFolder(int deckId) => moveDeckToFolder(deckId, null);
 
   Future<Deck> getDeckById(int id) => (select(decks)
         ..where((tbl) => tbl.id.equals(id))
@@ -681,29 +731,41 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> getCurrentStreak() async {
-    // Calculate consecutive days with study activity
+    // Calculate consecutive days with study activity, grouping by date
     final sessions = await (select(studySessions)
         ..orderBy([(tbl) => OrderingTerm.desc(tbl.startedAt)]))
-        .get();
+      .get();
 
     if (sessions.isEmpty) return 0;
 
-    int streak = 0;
-    DateTime? checkDate = DateTime.now();
-
+    final studyDates = <DateTime>{}; // Use a set to store unique dates
     for (final session in sessions) {
-      final sessionDate = DateTime(
+      studyDates.add(DateTime(
         session.startedAt.year,
         session.startedAt.month,
         session.startedAt.day,
-      );
+      ));
+    }
 
-      if (checkDate == null ||
-          sessionDate.isAtSameMomentAs(checkDate) ||
-          sessionDate.isAtSameMomentAs(checkDate.subtract(const Duration(days: 1)))) {
+    final sortedDates = studyDates.toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    if (sortedDates.first != today && sortedDates.first != yesterday) {
+      return 0;
+    }
+
+    int streak = 1;
+    DateTime lastDate = sortedDates.first;
+    for (int i = 1; i < sortedDates.length; i++) {
+      final expected = lastDate.subtract(const Duration(days: 1));
+      if (sortedDates[i] == expected) {
         streak++;
-        checkDate = sessionDate.subtract(const Duration(days: 1));
-      } else {
+        lastDate = sortedDates[i];
+      } else if (sortedDates[i].isBefore(expected)) {
         break;
       }
     }
@@ -812,6 +874,24 @@ class AppDatabase extends _$AppDatabase {
       MasteryDistribution(level: 'Learning', count: learning, percentage: learningPercentage),
       MasteryDistribution(level: 'New', count: newCards, percentage: newCardsPercentage),
     ];
+  }
+
+  Future<int> getTotalStudyMinutes() async {
+    final sessions = await (select(studySessions)).get();
+    final totalSeconds = sessions.fold<int>(
+        0, (sum, session) => sum + session.durationSeconds);
+    return totalSeconds ~/ 60;
+  }
+
+  Future<int> getTotalCardsReviewed() async {
+    final sessions = await (select(studySessions)).get();
+    return sessions.fold<int>(
+        0, (sum, session) => sum + session.cardsStudied);
+  }
+
+  Future<int> getQuizAttemptCount() async {
+    final results = await (select(quizResults)).get();
+    return results.length;
   }
 
   Future<List<DeckAccuracy>> getAccuracyByDeck() async {

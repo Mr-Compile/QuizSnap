@@ -6,6 +6,7 @@ import '../repositories/flashcard_repository.dart';
 import '../repositories/tag_repository.dart';
 import '../repositories/study_repository.dart';
 import '../repositories/analytics_repository.dart';
+import '../repositories/backup_repository.dart';
 
 class DatabaseProvider extends ChangeNotifier {
   AppDatabase? _database;
@@ -15,6 +16,7 @@ class DatabaseProvider extends ChangeNotifier {
   late final TagRepository _tagRepository;
   late final StudyRepository _studyRepository;
   late final AnalyticsRepository _analyticsRepository;
+  late final BackupRepository _backupRepository;
 
   AppDatabase get database => _database!;
   FolderRepository get folderRepository => _folderRepository;
@@ -23,6 +25,7 @@ class DatabaseProvider extends ChangeNotifier {
   TagRepository get tagRepository => _tagRepository;
   StudyRepository get studyRepository => _studyRepository;
   AnalyticsRepository get analyticsRepository => _analyticsRepository;
+  BackupRepository get backupRepository => _backupRepository;
 
   DatabaseProvider();
 
@@ -35,6 +38,7 @@ class DatabaseProvider extends ChangeNotifier {
     _tagRepository = TagRepository(_database!);
     _studyRepository = StudyRepository(_database!);
     _analyticsRepository = AnalyticsRepository(_database!);
+    _backupRepository = BackupRepository(_database!);
   }
 
   Future<AppDatabase> initializeDatabase() async {
@@ -47,6 +51,7 @@ class DatabaseProvider extends ChangeNotifier {
     _tagRepository = TagRepository(_database!);
     _studyRepository = StudyRepository(_database!);
     _analyticsRepository = AnalyticsRepository(_database!);
+    _backupRepository = BackupRepository(_database!);
     
     return _database!;
   }

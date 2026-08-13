@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- App-specific storage -->
+    <files-path name="app_files" path="."/>
+    <cache-path name="app_cache" path="."/>
+    
+    <!-- External storage -->
+    <external-files-path name="external_files" path="."/>
+    <external-cache-path name="external_cache" path="."/>
+    
+    <!-- Documents directory for backups (app-private storage) -->
+    <external-files-path name="documents" path="QuizSnap/"/>
+    
+    <!-- Root documents directory for broader access if needed -->
+    <external-path name="external_documents" path="Documents/"/>
+</paths>

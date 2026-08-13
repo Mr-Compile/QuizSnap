@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -249,7 +250,9 @@ class ExportSuccessScreenBackup extends ConsumerWidget {
 
   Future<void> _openFolder(BuildContext context, WidgetRef ref) async {
     try {
-      await ref.read(backupOperationProvider.notifier).openBackupLocation(backupFile.filePath);
+      // Get the directory from the file path
+      final directory = Directory(backupFile.filePath).parent.path;
+      await ref.read(backupOperationProvider.notifier).openBackupFolder(directory);
     } catch (e) {
       if (context.mounted) {
         await DialogService.showError(context, 'Failed to open folder: $e');

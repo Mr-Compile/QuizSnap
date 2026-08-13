@@ -1,3 +1,5 @@
+import '../models/exam.dart';
+
 /// Validates and formats AI-generated answers so they stay useful for
 /// flashcards and study sessions.
 class IdentificationAnswerValidator {
@@ -50,7 +52,7 @@ class EnumerationFormatter {
       issues.add('Question ${questionIndex + 1}: Enumeration answer is empty');
       return issues;
     }
-    final items = _splitItems(trimmed);
+    final items = splitItems(trimmed);
     if (items.isEmpty) {
       issues.add('Question ${questionIndex + 1}: Enumeration has no items');
       return issues;
@@ -68,11 +70,11 @@ class EnumerationFormatter {
 
   /// Returns the answer as a cleaned comma-separated string.
   static String format(String answer) {
-    final items = _splitItems(answer);
+    final items = splitItems(answer);
     return items.join(', ');
   }
 
-  static List<String> _splitItems(String answer) {
+  static List<String> splitItems(String answer) {
     return answer
         .split(RegExp(r'\n|,(?![^\(]*\))'))
         .map((s) => s.replaceAll(RegExp(r'^\s*[\d•\-\*\.\)]+\s*'), '').trim())
@@ -179,5 +181,104 @@ class MultipleChoiceQuestionValidator {
       correctAnswerIndex: repairedIndex,
       warnings: warnings,
     );
+  }
+}
+
+/// Type-aware validation for a single generated question.
+class QuestionValidationService {
+  static String _normalizeType(String? type) {
+    return (type ?? '').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  /// Determines the concrete [QuestionType] for a single question.
+  ///
+  /// When [type] is mixed or not provided, the question is classified by its
+  /// structure: four options is multiple choice, a multi-item answer is
+  /// enumeration, otherwise identification.
+  static QuestionType determineQuestionType({
+    String? type,
+    required List<String> options,
+    required String? answer,
+  }) {
+    final normalized = _normalizeType(type);
+
+    if (normalized == 'multiplechoice' || normalized == 'multiple') {
+      return QuestionType.multipleChoice;
+    }
+    if (normalized == 'identification') {
+      return QuestionType.identification;
+    }
+    if (normalized == 'enumeration') {
+      return QuestionType.enumeration;
+    }
+
+    // Mixed or unknown types are classified per-question.
+    if (options.length == 4) {
+      return QuestionType.multipleChoice;
+    }
+    if (answer != null && answer.trim().isNotEmpty) {
+      final items = EnumerationFormatter.splitItems(answer);
+      if (items.length > 1) {
+        return QuestionType.enumeration;
+      }
+      return QuestionType.identification;
+    }
+    if (options.length >= 2) {
+      return QuestionType.enumeration;
+    }
+
+    return QuestionType.identification;
+  }
+
+  /// Validates a question according to the rules for its [QuestionType].
+  static List<String> validateQuestion({
+    required QuestionType type,
+    required String question,
+    required List<String> options,
+    required int correctAnswerIndex,
+    required String? answer,
+    required int questionIndex,
+  }) {
+    final issues = <String>[];
+
+    if (question.trim().isEmpty) {
+      issues.add('Question ${questionIndex + 1}: Empty question text');
+    }
+
+    switch (type) {
+      case QuestionType.multipleChoice:
+        issues.addAll(MultipleChoiceQuestionValidator.validate(
+          options: options,
+          correctAnswerIndex: correctAnswerIndex,
+          questionIndex: questionIndex,
+          answer: answer,
+        ));
+        break;
+      case QuestionType.identification:
+        if (options.isNotEmpty) {
+          issues.add('Question ${questionIndex + 1}: Identification questions cannot have options');
+        }
+        if (answer == null || answer.trim().isEmpty) {
+          issues.add('Question ${questionIndex + 1}: Identification question is missing an answer');
+        } else {
+          issues.addAll(IdentificationAnswerValidator.validate(answer, questionIndex));
+        }
+        break;
+      case QuestionType.enumeration:
+        if (options.isNotEmpty) {
+          issues.add('Question ${questionIndex + 1}: Enumeration questions cannot have options');
+        }
+        if (answer == null || answer.trim().isEmpty) {
+          issues.add('Question ${questionIndex + 1}: Enumeration question is missing answers');
+        } else {
+          issues.addAll(EnumerationFormatter.validate(answer, questionIndex));
+        }
+        break;
+      case QuestionType.mixedFormat:
+        // Individual questions should resolve to a concrete type.
+        break;
+    }
+
+    return issues;
   }
 }

@@ -84,10 +84,7 @@ enum PromptType {
   multipleChoice,
   identification,
   enumeration,
-  examSimulation,
-  explanation,
-  studyDeck,
-  mixed,
+  mixedFormat,
 }
 
 enum Difficulty {
@@ -106,13 +103,7 @@ extension PromptTypeExtension on PromptType {
         return 'Identification';
       case PromptType.enumeration:
         return 'Enumeration';
-      case PromptType.examSimulation:
-        return 'Exam Simulation';
-      case PromptType.explanation:
-        return 'Explanation';
-      case PromptType.studyDeck:
-        return 'Study Deck';
-      case PromptType.mixed:
+      case PromptType.mixedFormat:
         return 'Mixed Format';
     }
   }
@@ -125,13 +116,7 @@ extension PromptTypeExtension on PromptType {
         return '🔍';
       case PromptType.enumeration:
         return '📋';
-      case PromptType.examSimulation:
-        return '🎯';
-      case PromptType.explanation:
-        return '💡';
-      case PromptType.studyDeck:
-        return '📚';
-      case PromptType.mixed:
+      case PromptType.mixedFormat:
         return '🎲';
     }
   }

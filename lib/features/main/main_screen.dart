@@ -5,7 +5,7 @@ import '../../shared/widgets/bottom_navigation.dart';
 import '../../core/providers/security_provider.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../../core/navigation/app_routes.dart';
-import '../decks/deck_list_screen.dart';
+import '../library/library_screen.dart';
 import '../settings/settings_screen.dart';
 import '../study/study_home_screen.dart';
 import '../ai_generate/ai_generate_home_screen.dart';
@@ -112,7 +112,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget _getScreenForIndex(int index) {
     switch (index) {
       case 0:
-        return const DeckListScreen();
+        return const LibraryScreen();
       case 1:
         return const AiGenerateHomeScreen();
       case 2:
@@ -122,7 +122,7 @@ class _MainScreenState extends State<MainScreen> {
       case 4:
         return const SettingsScreen();
       default:
-        return const DeckListScreen();
+        return const LibraryScreen();
     }
   }
 

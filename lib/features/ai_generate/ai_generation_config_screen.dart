@@ -170,14 +170,8 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
         return 'Direct answer questions';
       case PromptType.enumeration:
         return 'List-based questions';
-      case PromptType.examSimulation:
-        return 'Mixed question types for exam practice';
-      case PromptType.explanation:
-        return 'Questions with detailed explanations';
-      case PromptType.studyDeck:
-        return 'Comprehensive study deck with mixed question types';
-      case PromptType.mixed:
-        return 'Multiple formats in one request (multiple choice, identification, enumeration, free-response)';
+      case PromptType.mixedFormat:
+        return 'Multiple formats in one request (multiple choice, identification, enumeration)';
     }
   }
 

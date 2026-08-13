@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart' as share_plus;
 import 'package:open_filex/open_filex.dart';
@@ -18,7 +18,7 @@ class BackupServiceEnhanced {
 
   BackupServiceEnhanced(this._database);
 
-  // Export backup with file picker
+  // Export backup to app documents directory by default
   Future<BackupFileModel> exportBackup({
     String? name,
     String? description,
@@ -85,22 +85,14 @@ class BackupServiceEnhanced {
       final checksum = backupData.generateChecksum();
       final finalBackupData = backupData.copyWith(checksum: checksum);
 
-      // Determine save location
-      String? savePath = customPath;
-      if (savePath == null) {
-        // Use file picker to let user choose location
-        final result = await FilePicker.platform.saveFile(
-          dialogTitle: 'Save Backup',
-          fileName: '$backupName.quizsnap',
-          type: FileType.custom,
-          allowedExtensions: ['quizsnap'],
-          lockParentWindow: true,
-        );
-
-        if (result == null) {
-          throw Exception('User cancelled save operation');
-        }
-        savePath = result;
+      // Determine save location - use app documents directory by default
+      String savePath;
+      if (customPath != null) {
+        savePath = customPath;
+      } else {
+        // Use app documents directory by default
+        final backupDir = await getDefaultBackupDirectory();
+        savePath = '${backupDir.path}/$backupName.quizsnap';
       }
 
       // Ensure directory exists
@@ -239,7 +231,11 @@ class BackupServiceEnhanced {
         if (files.isNotEmpty) {
           await OpenFilex.open(files.first.path);
         } else {
-          throw Exception('Could not open folder and no files found to use as workaround');
+          // If no files exist, try to use share_plus as a fallback
+          await share_plus.Share.shareXFiles(
+            [share_plus.XFile(folderPath)],
+            text: 'QuizSnap Backup Folder',
+          );
         }
       }
     } catch (e) {
@@ -249,9 +245,7 @@ class BackupServiceEnhanced {
 
   // Copy backup file path to clipboard
   Future<void> copyBackupPath(String filePath) async {
-    // This would need a clipboard package
-    // For now, we'll return the path for the UI to handle
-    throw UnimplementedError('Clipboard functionality requires additional package');
+    await Clipboard.setData(ClipboardData(text: filePath));
   }
 
   // Delete backup file

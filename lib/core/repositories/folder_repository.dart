@@ -22,4 +22,6 @@ class FolderRepository {
   Future<void> permanentlyDeleteFolder(int id) => _database.permanentlyDeleteFolder(id);
 
   Future<List<Folder>> searchFolders(String query) => _database.searchFolders(query);
+
+  Future<int> getDeckCountForFolder(int folderId) => _database.getDeckCountForFolder(folderId);
 }

@@ -28,6 +28,9 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
   int _incorrectCount = 0;
   bool _showAnswer = false;
   bool _isStarted = false;
+  DateTime? _quizStart;
+  int? _studySessionId;
+  bool _isRecorded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +40,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
         actions: [
           if (_isStarted)
             TextButton(
-              onPressed: () => _showSummary(context),
+              onPressed: () { _showSummary(context); },
               child: const Text('Finish'),
             ),
         ],
@@ -117,7 +120,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => _startQuiz(flashcards),
+              onPressed: () { _startQuiz(flashcards); },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
               ),
@@ -210,7 +213,9 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _nextCard,
+                onPressed: () { 
+                  _nextCard(); 
+                },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.all(AppTheme.spacingMd),
                 ),
@@ -341,7 +346,14 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
     );
   }
 
-  void _startQuiz(List<dynamic> flashcards) {
+  Future<void> _startQuiz(List<dynamic> flashcards) async {
+    _quizStart = DateTime.now();
+    final db = context.read<DatabaseProvider>();
+    _studySessionId = await db.analyticsRepository.startStudySession(
+      deckId: widget.deckId,
+      studyMode: 'quiz',
+    );
+    if (!mounted) return;
     setState(() {
       _flashcards = flashcards;
       _currentIndex = 0;
@@ -349,6 +361,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
       _incorrectCount = 0;
       _showAnswer = false;
       _isStarted = true;
+      _isRecorded = false;
     });
   }
 
@@ -372,22 +385,52 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
     });
   }
 
-  void _nextCard() {
+  Future<void> _nextCard() async {
     if (_currentIndex < _flashcards.length - 1) {
       setState(() {
         _currentIndex++;
         _showAnswer = false;
       });
     } else {
+      await _finishQuiz();
+      if (!mounted) return;
       setState(() {
         _flashcards = [];
       });
     }
   }
 
-  void _showSummary(BuildContext context) {
+  Future<void> _showSummary(BuildContext context) async {
+    await _finishQuiz();
+    if (!mounted) return;
     setState(() {
       _flashcards = [];
     });
+  }
+
+  Future<void> _finishQuiz() async {
+    if (_isRecorded || _studySessionId == null) return;
+    _isRecorded = true;
+    final total = _correctCount + _incorrectCount;
+    final score = total > 0 ? _correctCount / total : 0.0;
+    final durationSeconds = _quizStart != null
+        ? DateTime.now().difference(_quizStart!).inSeconds
+        : 0;
+    final db = context.read<DatabaseProvider>();
+    await db.analyticsRepository.endStudySession(
+      _studySessionId!,
+      cardsStudied: total,
+      cardsCorrect: _correctCount,
+      durationSeconds: durationSeconds,
+    );
+    await db.analyticsRepository.createQuizResult(
+      deckId: widget.deckId,
+      totalQuestions: total,
+      correctAnswers: _correctCount,
+      score: score,
+      durationSeconds: durationSeconds,
+      quizType: 'practice',
+    );
+    db.refreshAnalytics();
   }
 }

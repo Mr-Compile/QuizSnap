@@ -407,13 +407,7 @@ class _TemplateCard extends StatelessWidget {
         return colors.secondary;
       case PromptType.enumeration:
         return colors.onSurfaceVariant;
-      case PromptType.examSimulation:
-        return colors.tertiary;
-      case PromptType.explanation:
-        return colors.error;
-      case PromptType.studyDeck:
-        return colors.primaryContainer;
-      case PromptType.mixed:
+      case PromptType.mixedFormat:
         return colors.outline;
     }
   }

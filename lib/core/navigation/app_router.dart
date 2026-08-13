@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../features/main/main_screen.dart';
-import '../../features/decks/deck_list_screen.dart';
+import '../../features/library/library_screen.dart';
 import '../../features/decks/deck_details_screen.dart';
 import '../../features/decks/create_deck_screen.dart';
 import '../../features/decks/edit_deck_screen.dart';
@@ -62,6 +62,7 @@ import '../../features/settings/database_maintenance_screen.dart';
 import '../../features/settings/trash_settings_screen.dart';
 import '../../features/folders/folder_list_screen.dart';
 import '../../features/folders/create_folder_screen.dart';
+import '../../features/folders/folder_details_screen.dart';
 import '../../features/tags/tag_management_screen.dart';
 import '../../features/search/global_search_screen.dart';
 import '../../features/trash/trash_screen.dart';
@@ -101,10 +102,10 @@ class AppRouter {
         builder: (context, state) => const MainScreen(),
       ),
 
-      // Deck routes
+      // Deck / Library routes
       GoRoute(
         path: AppRoutes.decks,
-        builder: (context, state) => const DeckListScreen(),
+        builder: (context, state) => const LibraryScreen(),
         routes: [
           GoRoute(
             path: ':deckId',
@@ -459,8 +460,8 @@ class AppRouter {
           GoRoute(
             path: ':folderId',
             builder: (context, state) {
-              // Note: Folder details screen needs to be implemented
-              return const FolderListScreen(); // Placeholder
+              final folderId = int.parse(state.pathParameters['folderId']!);
+              return FolderDetailsScreen(folderId: folderId);
             },
           ),
         ],

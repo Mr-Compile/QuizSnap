@@ -74,6 +74,11 @@ class BackupRepository {
     await _backupService.openBackupFolder(folderPath);
   }
 
+  // Copy backup path to clipboard
+  Future<void> copyBackupPath(String filePath) async {
+    await _backupService.copyBackupPath(filePath);
+  }
+
   // Get backup schedule
   Future<BackupSchedule> getBackupSchedule() async {
     return await _backupService.getBackupSchedule();

@@ -37,7 +37,7 @@ class _StudyScreenState extends State<StudyScreen> {
       
       final questions = await generationService.generateQuestions(
         sourceText: _textController.text,
-        type: PromptType.studyDeck,
+        type: PromptType.mixedFormat,
         difficulty: Difficulty.medium,
         questionCount: 15,
         model: groqProvider.selectedModel,

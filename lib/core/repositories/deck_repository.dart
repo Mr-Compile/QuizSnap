@@ -30,4 +30,14 @@ class DeckRepository {
   Future<List<Deck>> searchDecks(String query) => _database.searchDecks(query);
 
   Future<List<Deck>> searchActiveDecks(String query) => _database.searchActiveDecks(query);
+
+  Future<int> getDeckCountForFolder(int folderId) => _database.getDeckCountForFolder(folderId);
+
+  Future<int> getDeckCountWithoutFolder() => _database.getDeckCountWithoutFolder();
+
+  Future<List<Deck>> getDecksWithoutFolder() => _database.getDecksWithoutFolder();
+
+  Future<bool> moveDeckToFolder(int deckId, int? folderId) => _database.moveDeckToFolder(deckId, folderId);
+
+  Future<bool> removeDeckFromFolder(int deckId) => _database.removeDeckFromFolder(deckId);
 }

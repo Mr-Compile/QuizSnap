@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -36,11 +38,18 @@ class FlashcardStudySessionScreen extends StatefulWidget {
 
 class _FlashcardStudySessionScreenState
     extends State<FlashcardStudySessionScreen> {
+  int? _dbSessionId;
+  DateTime? _dbSessionStart;
+  bool _isDbSessionEnded = false;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       context.read<FlashcardRevealProvider>().clear();
+      await _startStudySession();
+      if (!mounted) return;
       context.read<StudySessionController>().startSession(
         flashcards: widget.flashcards,
         deckId: widget.deckId,
@@ -156,21 +165,32 @@ class _FlashcardStudySessionScreenState
             _buildSummaryCard(context, summary, minutes, seconds),
             const SizedBox(height: AppTheme.spacingXl),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                final controller = context.read<StudySessionController>();
+                final navigator = Navigator.of(context);
+                await _endStudySession();
+                if (!mounted) return;
                 controller.endSession();
-                Navigator.of(context).pop();
+                navigator.pop();
               },
               child: const Text('Return Home'),
             ),
             const SizedBox(height: AppTheme.spacingSm),
             OutlinedButton(
-              onPressed: () {
+              onPressed: () async {
+                final controller = context.read<StudySessionController>();
+                await _endStudySession();
+                if (!mounted) return;
                 controller.endSession();
+                _dbSessionId = null;
+                _dbSessionStart = null;
+                _isDbSessionEnded = false;
                 controller.startSession(
                   flashcards: widget.flashcards,
                   deckId: widget.deckId,
                   deckName: widget.deckName ?? 'Study Session',
                 );
+                await _startStudySession();
               },
               child: const Text('Continue Studying'),
             ),
@@ -411,6 +431,34 @@ class _FlashcardStudySessionScreenState
     );
   }
 
+  Future<void> _startStudySession() async {
+    _dbSessionStart = DateTime.now();
+    final db = context.read<DatabaseProvider>();
+    _dbSessionId = await db.analyticsRepository.startStudySession(
+      deckId: widget.deckId == 0 ? null : widget.deckId,
+      studyMode: 'review',
+    );
+  }
+
+  Future<void> _endStudySession() async {
+    if (_isDbSessionEnded || _dbSessionId == null || _dbSessionStart == null) {
+      return;
+    }
+    final controller = context.read<StudySessionController>();
+    final cardsStudied = controller.ratedCardIds.length;
+    final cardsCorrect = controller.cardRatings.values.where((q) => q >= 3).length;
+    final durationSeconds = DateTime.now().difference(_dbSessionStart!).inSeconds;
+    final db = context.read<DatabaseProvider>();
+    await db.analyticsRepository.endStudySession(
+      _dbSessionId!,
+      cardsStudied: cardsStudied,
+      cardsCorrect: cardsCorrect,
+      durationSeconds: durationSeconds,
+    );
+    _isDbSessionEnded = true;
+    db.refreshAnalytics();
+  }
+
   Future<void> _toggleBookmark(BuildContext context, Flashcard card) async {
     final db = context.read<DatabaseProvider>();
     final updated = card.copyWith(isFavorite: !card.isFavorite);
@@ -450,6 +498,7 @@ class _FlashcardStudySessionScreenState
           ),
           TextButton(
             onPressed: () {
+              unawaited(_endStudySession());
               context.read<StudySessionController>().endSession();
               Navigator.of(context)
                 ..pop()

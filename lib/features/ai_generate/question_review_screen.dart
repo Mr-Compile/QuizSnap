@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/question_generation_service.dart';
 import '../../core/models/prompt_template.dart';
+import '../../core/models/exam.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
@@ -11,8 +12,8 @@ import '../../core/database/database.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
 import 'package:go_router/go_router.dart';
-import '../../core/utils/explanation_sanitizer.dart';
 import '../../core/services/question_validation_service.dart';
+import '../../core/utils/explanation_sanitizer.dart';
 import '../../shared/widgets/formatted_study_text.dart';
 import 'regeneration_options_bottom_sheet.dart';
 import 'text_preview_screen.dart';
@@ -169,12 +170,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
   }
 
   Widget _buildQuestionCard(GeneratedQuestion question, int index, bool isSelected) {
-    final warnings = MultipleChoiceQuestionValidator.validate(
-      options: question.options,
-      correctAnswerIndex: question.correctAnswerIndex,
-      questionIndex: index,
-      answer: question.answer,
-    );
+    final warnings = _validateQuestion(question, index);
     final isInvalid = warnings.isNotEmpty;
 
     return Card(
@@ -257,138 +253,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
                     ),
                   ),
                 ],
-                if (question.options.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  ...question.options.take(4).toList().asMap().entries.map((entry) {
-                    final optionIndex = entry.key;
-                    final optionText = entry.value;
-                    final isCorrect = optionIndex == question.correctAnswerIndex;
-
-                    return Padding(
-                      padding: const EdgeInsets.only(left: 16, bottom: 4),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: isCorrect
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Center(
-                              child: Text(
-                                String.fromCharCode(65 + optionIndex),
-                                style: TextStyle(
-                                  color: isCorrect
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                      : Theme.of(context).colorScheme.onSurface,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: FormattedStudyText(
-                              text: _cleanOptionText(optionText),
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                decoration: isCorrect ? TextDecoration.underline : null,
-                              ),
-                              showActions: false,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                  if (question.correctAnswerIndex >= 0 && question.correctAnswerIndex < question.options.length) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 16,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Correct Answer: ${String.fromCharCode(65 + question.correctAnswerIndex)}. ${_cleanOptionText(question.options[question.correctAnswerIndex])}',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-                if (question.answer != null && question.options.isEmpty) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Answer: ${QuestionGenerationService.sanitizeText(question.answer ?? '')}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                if (question.explanation != null && question.explanation!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.tertiaryContainer,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.lightbulb,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.tertiary,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: FormattedStudyText(
-                            text: ExplanationSanitizer.sanitize(question.explanation),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onTertiaryContainer,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                _buildQuestionBody(question),
               ],
             ),
           ),
@@ -514,9 +379,13 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
 
       // Save each question as a flashcard
       for (final question in _selectedQuestions) {
-        final answerText = question.options.isNotEmpty
-            ? question.options[question.correctAnswerIndex]
-            : (question.answer ?? '');
+        final answerText = switch (_getQuestionType(question)) {
+          QuestionType.multipleChoice => question.options.isNotEmpty && question.correctAnswerIndex >= 0
+              ? question.options[question.correctAnswerIndex]
+              : (question.answer ?? ''),
+          QuestionType.enumeration => EnumerationFormatter.format(question.answer ?? ''),
+          _ => question.answer ?? '',
+        };
         
         await dbProvider.flashcardRepository.createFlashcard(
           FlashcardsCompanion(
@@ -563,13 +432,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         return Icons.search;
       case PromptType.enumeration:
         return Icons.list;
-      case PromptType.examSimulation:
-        return Icons.assignment;
-      case PromptType.explanation:
-        return Icons.lightbulb;
-      case PromptType.studyDeck:
-        return Icons.menu_book;
-      case PromptType.mixed:
+      case PromptType.mixedFormat:
         return Icons.auto_awesome_mosaic;
     }
   }
@@ -592,6 +455,257 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
     // Strip a leading A) / B. label because the UI already shows the letter.
     // Requires a punctuation marker so "Central" keeps its C.
     return sanitized.replaceFirst(RegExp(r'^\s*[A-Da-d][.)]\s+'), '').trim();
+  }
+
+  
+  QuestionType _getQuestionType(GeneratedQuestion question) {
+    return QuestionValidationService.determineQuestionType(
+      type: question.type,
+      options: question.options,
+      answer: question.answer,
+    );
+  }
+
+  List<String> _validateQuestion(GeneratedQuestion question, int index) {
+    return QuestionValidationService.validateQuestion(
+      type: _getQuestionType(question),
+      question: question.question,
+      options: question.options,
+      correctAnswerIndex: question.correctAnswerIndex,
+      answer: question.answer,
+      questionIndex: index,
+    );
+  }
+
+  Widget _buildQuestionBody(GeneratedQuestion question) {
+    final type = _getQuestionType(question);
+    final List<Widget> children = [];
+    switch (type) {
+      case QuestionType.multipleChoice:
+        children.addAll(_buildMultipleChoiceContent(question));
+        break;
+      case QuestionType.identification:
+        children.addAll(_buildIdentificationContent(question));
+        break;
+      case QuestionType.enumeration:
+        children.addAll(_buildEnumerationContent(question));
+        break;
+      case QuestionType.mixedFormat:
+        final answer = question.answer ?? '';
+        if (question.options.length == 4) {
+          children.addAll(_buildMultipleChoiceContent(question));
+        } else if (EnumerationFormatter.splitItems(answer).length > 1) {
+          children.addAll(_buildEnumerationContent(question));
+        } else {
+          children.addAll(_buildIdentificationContent(question));
+        }
+        break;
+    }
+    if (question.explanation != null && question.explanation!.isNotEmpty) {
+      children.add(const SizedBox(height: 8));
+      children.add(_buildExplanationBox(question.explanation));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: children,
+    );
+  }
+
+  List<Widget> _buildMultipleChoiceContent(GeneratedQuestion question) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return [
+      const SizedBox(height: 12),
+      ...question.options.take(4).toList().asMap().entries.map((entry) {
+        final optionIndex = entry.key;
+        final optionText = entry.value;
+        final isCorrect = optionIndex == question.correctAnswerIndex;
+        return Padding(
+          padding: const EdgeInsets.only(left: 16, bottom: 4),
+          child: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: isCorrect
+                      ? colorScheme.primary
+                      : colorScheme.outline.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Center(
+                  child: Text(
+                    String.fromCharCode(65 + optionIndex),
+                    style: TextStyle(
+                      color: isCorrect
+                          ? colorScheme.onPrimary
+                          : colorScheme.onSurface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FormattedStudyText(
+                  text: _cleanOptionText(optionText),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    decoration: isCorrect ? TextDecoration.underline : null,
+                  ),
+                  showActions: false,
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+      if (question.correctAnswerIndex >= 0 && question.correctAnswerIndex < question.options.length) ...[
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                size: 16,
+                color: colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                    'Correct Answer: ${String.fromCharCode(65 + question.correctAnswerIndex)}. ${_cleanOptionText(question.options[question.correctAnswerIndex])}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onPrimaryContainer,
+                    ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ];
+  }
+
+  List<Widget> _buildIdentificationContent(GeneratedQuestion question) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final answer = QuestionGenerationService.sanitizeText(question.answer ?? '');
+    return [
+      const SizedBox(height: 8),
+      Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.check_circle,
+              size: 16,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                answer.isEmpty ? 'Correct Answer: (missing)' : 'Correct Answer: $answer',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _buildEnumerationContent(GeneratedQuestion question) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final rawItems = question.options.isNotEmpty
+        ? question.options
+        : (question.answer ?? '').split(RegExp(r',\s*|\n'));
+    final sanitizedItems = rawItems
+        .map((i) => QuestionGenerationService.sanitizeText(i))
+        .where((i) => i.isNotEmpty)
+        .toList();
+    return [
+      const SizedBox(height: 8),
+      Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  size: 16,
+                  color: colorScheme.primary,
+                ),
+              const SizedBox(width: 8),
+              Text(
+                'Correct Answers:',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ...sanitizedItems.asMap().entries.map((entry) {
+            return Padding(
+              padding: const EdgeInsets.only(left: 24, bottom: 2),
+              child: Text(
+                '${entry.key + 1}. ${entry.value}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onPrimaryContainer,
+                ),
+              ),
+            );
+          }),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  Widget _buildExplanationBox(String? explanation) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: colorScheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.lightbulb,
+            size: 16,
+            color: colorScheme.tertiary,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: FormattedStudyText(
+              text: explanation ?? '',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colorScheme.onTertiaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showRegenerationOptions() {

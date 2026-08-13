@@ -277,6 +277,17 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
     }
   }
 
+  // Copy backup path to clipboard
+  Future<bool> copyBackupPath(String filePath) async {
+    try {
+      await _repository.copyBackupPath(filePath);
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+      return false;
+    }
+  }
+
   // Update backup schedule
   Future<bool> updateBackupSchedule(BackupSchedule schedule) async {
     try {

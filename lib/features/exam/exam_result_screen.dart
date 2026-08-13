@@ -102,10 +102,7 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
     void backToDeck() => context.go('/decks/${result.exam.deckId}');
 
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) backToDeck();
-      },
+      canPop: true,
       child: Scaffold(
         appBar: CustomAppBar(
           title: 'Exam Results',

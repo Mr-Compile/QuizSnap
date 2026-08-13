@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -15,6 +16,24 @@ class StudyTimeScreen extends StatefulWidget {
 }
 
 class _StudyTimeScreenState extends State<StudyTimeScreen> {
+  int _dailyGoalMinutes = 30;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDailyGoal();
+  }
+
+  Future<void> _loadDailyGoal() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedGoal = prefs.getInt('daily_study_goal_minutes');
+    if (savedGoal != null && savedGoal > 0) {
+      setState(() {
+        _dailyGoalMinutes = savedGoal;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -159,9 +178,7 @@ class _StudyTimeScreenState extends State<StudyTimeScreen> {
   }
 
   Widget _buildGoalCard(BuildContext context, stats) {
-    // Assume daily goal of 30 minutes
-    const dailyGoalMinutes = 30;
-    final progress = (stats.todayMinutes / dailyGoalMinutes).clamp(0.0, 1.0);
+    final progress = (stats.todayMinutes / _dailyGoalMinutes).clamp(0.0, 1.0);
     final percentage = (progress * 100).toInt();
 
     return CustomCard(

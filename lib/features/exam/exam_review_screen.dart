@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/models/exam.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/custom_card.dart';
+import 'package:intl/intl.dart';
 import 'answer_explanation_bottom_sheet.dart';
 
 class ExamReviewScreen extends StatefulWidget {
@@ -26,7 +26,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -38,51 +38,94 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
   @override
   Widget build(BuildContext context) {
     void navigateBack() {
-      // Navigate back to the deck directly
-      context.go('/decks/${widget.result.exam.deckId}');
+      Navigator.of(context).pop();
     }
 
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && mounted) {
-          navigateBack();
-        }
-      },
+      canPop: true,
       child: Scaffold(
         appBar: CustomAppBar(
-          title: widget.result.exam.deckName,
+          title: 'Review Answers',
           leading: BackButton(
             onPressed: navigateBack,
           ),
-          bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'All'),
-            Tab(text: 'Correct'),
-            Tab(text: 'Incorrect'),
-            Tab(text: 'Unanswered'),
+          automaticallyImplyLeading: false,
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildReviewHeader(context),
+              TabBar(
+                controller: _tabController,
+                tabs: const [
+                  Tab(text: 'All'),
+                  Tab(text: 'Correct'),
+                  Tab(text: 'Incorrect'),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildQuestionsList(ReviewFilter.all),
+                    _buildQuestionsList(ReviewFilter.correct),
+                    _buildQuestionsList(ReviewFilter.incorrect),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewHeader(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final dateTaken = widget.result.exam.completedAt ?? widget.result.exam.createdAt;
+
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.spacingMd),
+      child: CustomCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.result.exam.deckName,
+              style: AppTheme.titleLarge.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingSm),
+            Row(
+              children: [
+                Icon(Icons.score, color: colorScheme.primary, size: 18),
+                const SizedBox(width: AppTheme.spacingSm),
+                Text(
+                  'Score: ${widget.result.percentage.toStringAsFixed(1)}%',
+                  style: AppTheme.bodyLarge.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.spacingSm),
+            Row(
+              children: [
+                Icon(Icons.calendar_today, color: colorScheme.onSurfaceVariant, size: 18),
+                const SizedBox(width: AppTheme.spacingSm),
+                Text(
+                'Date taken: ${DateFormat.yMMMd().format(dateTaken)}',
+                style: AppTheme.bodyMedium.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              ],
+            ),
           ],
         ),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildQuestionsList(ReviewFilter.all),
-                _buildQuestionsList(ReviewFilter.correct),
-                _buildQuestionsList(ReviewFilter.incorrect),
-                _buildQuestionsList(ReviewFilter.unanswered),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
-    ),
     );
   }
 
@@ -137,8 +180,6 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
         return widget.result.correctQuestions;
       case ReviewFilter.incorrect:
         return widget.result.incorrectQuestions;
-      case ReviewFilter.unanswered:
-        return widget.result.unansweredQuestions;
       case ReviewFilter.all:
         return widget.result.questions;
     }
@@ -150,8 +191,6 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
         return Icons.check_circle_outline;
       case ReviewFilter.incorrect:
         return Icons.cancel_outlined;
-      case ReviewFilter.unanswered:
-        return Icons.help_outline;
       case ReviewFilter.all:
         return Icons.quiz_outlined;
     }
@@ -163,8 +202,6 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
         return 'No correct answers';
       case ReviewFilter.incorrect:
         return 'No incorrect answers';
-      case ReviewFilter.unanswered:
-        return 'No unanswered questions';
       case ReviewFilter.all:
         return 'No questions to review';
     }
@@ -172,7 +209,9 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
 
   Widget _buildQuestionCard(ExamQuestion question, UserAnswer answer, int index) {
     final isCorrect = answer.isCorrect;
-    final isUnanswered = answer.selectedAnswerIndex == null;
+    final isUnanswered = (answer.selectedAnswerIndex == null) &&
+        (answer.textAnswer == null || answer.textAnswer!.isEmpty) &&
+        (answer.listAnswer == null || answer.listAnswer!.isEmpty);
 
     return CustomCard(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
@@ -253,7 +292,8 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
 
   Widget _buildMultipleChoiceReview(ExamQuestion question, UserAnswer answer) {
     return Column(
-      children: question.options.asMap().entries.map((entry) {
+      children: [
+        ...question.options.asMap().entries.map((entry) {
         final index = entry.key;
         final option = entry.value;
         final isCorrectAnswer = index == question.correctAnswerIndex;
@@ -332,13 +372,27 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
             ],
           ),
         );
-      }).toList(),
+      }),
+      if (answer.selectedAnswerIndex == null)
+        Padding(
+          padding: const EdgeInsets.only(top: AppTheme.spacingMd),
+          child: Text(
+            'No answer submitted.',
+            style: AppTheme.bodyMedium.copyWith(
+              color: Theme.of(context).colorScheme.error,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+    ],
     );
   }
 
   Widget _buildIdentificationReview(ExamQuestion question, UserAnswer answer) {
     final colorScheme = Theme.of(context).colorScheme;
-    final userAnswer = answer.textAnswer ?? 'Not answered';
+    final userAnswer = (answer.textAnswer?.isNotEmpty == true)
+        ? answer.textAnswer!
+        : 'No answer submitted.';
     final correctAnswer = question.correctAnswer ?? '';
     final isCorrect = answer.isCorrect;
 
@@ -404,7 +458,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
         )),
         if (userAnswers.isEmpty)
           Text(
-            'Not answered',
+            'No answer submitted.',
             style: AppTheme.bodyMedium.copyWith(
               color: colorScheme.error,
               fontStyle: FontStyle.italic,
@@ -539,7 +593,6 @@ enum ReviewFilter {
   all,
   correct,
   incorrect,
-  unanswered,
 }
 
 extension ReviewFilterExtension on ReviewFilter {
@@ -551,8 +604,6 @@ extension ReviewFilterExtension on ReviewFilter {
         return 'Correct';
       case ReviewFilter.incorrect:
         return 'Incorrect';
-      case ReviewFilter.unanswered:
-        return 'Unanswered';
     }
   }
 }

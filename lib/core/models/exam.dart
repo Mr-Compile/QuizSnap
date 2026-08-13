@@ -367,7 +367,7 @@ class ExamResult {
           timeSpent: Duration.zero,
         ),
       );
-      return !answer.isCorrect && answer.selectedAnswerIndex != null;
+      return !answer.isCorrect;
     }).toList();
   }
 

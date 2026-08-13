@@ -111,68 +111,11 @@ Answer:
         isBuiltIn: true,
       ),
 
-      // Exam Simulation Template
-      PromptTemplate(
-        id: 'builtin_exam_simulation',
-        name: 'Exam Simulation',
-        description: 'Generate board-exam-style questions with moderate to high difficulty.',
-        template: '''You are an expert exam creator. Based on the following study material, generate a comprehensive exam with {count} questions.
-
-Requirements:
-- Mix of multiple-choice, identification, and enumeration questions
-- Moderate to high difficulty level
-- Questions should simulate real board exam conditions
-- Include scenario-based questions when applicable
-- Difficulty level: {difficulty}
-
-Study Material:
-{content}
-
-Format each question clearly with its type and instructions.
-Include an answer key at the end.''',
-        type: PromptType.examSimulation,
-        difficulty: Difficulty.hard,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        isBuiltIn: true,
-      ),
-
-      // Explanation Template
-      PromptTemplate(
-        id: 'builtin_explanation',
-        name: 'Explanation Questions',
-        description: 'Generate questions that require detailed explanations of concepts.',
-        template: '''You are an expert educator. Based on the following study material, generate {count} explanation questions.
-
-Requirements:
-- Questions should require detailed, thoughtful responses
-- Focus on "why" and "how" rather than "what"
-- Answers should demonstrate deep understanding
-- Include guidance on key points to cover
-- Difficulty level: {difficulty}
-
-Study Material:
-{content}
-
-Format each question as:
-Question: [question text]
-Key Points to Cover:
-- [point 1]
-- [point 2]
-- [point 3]
-Sample Answer Framework: [brief structure]''',
-        type: PromptType.explanation,
-        difficulty: Difficulty.hard,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        isBuiltIn: true,
-      ),
-
       // Mixed Format Template (JSON) - one of each type per batch
       PromptTemplate(
-        id: 'builtin_mixed',
+        id: 'builtin_mixed_format',
         name: 'Mixed Question Formats',
-        description: 'Generate a mix of multiple choice, identification, enumeration, and free-response items in one request.',
+        description: 'Generate a mix of multiple choice, identification, and enumeration items in one request.',
         template: '''Return ONLY a single JSON object with no Markdown and no extra commentary. Use this exact structure:
 
 {
@@ -199,13 +142,6 @@ Sample Answer Framework: [brief structure]''',
       "options": ["item 1", "item 2"],
       "answer": "item 1, item 2",
       "explanation": "..."
-    },
-    {
-      "type": "free_response",
-      "difficulty": "[Hard]",
-      "question": "...",
-      "answer": "...",
-      "explanation": "..."
     }
   ]
 }
@@ -215,71 +151,12 @@ Rules:
 - Multiple choice items must have exactly 4 options and one correct letter A-D.
 - Enumeration items must have 2-5 items.
 - Identification answers must be 1-3 sentences.
-- Free-response answers must be concise conceptual explanations (1-3 sentences).
 - Vary angles: definition, mechanism, application, compare/contrast, cause/effect, process/sequence.
 - Avoid duplicates and compound questions.
 
 Source Material:
 {content}''',
-        type: PromptType.mixed,
-        difficulty: Difficulty.medium,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        isBuiltIn: true,
-      ),
-
-      // Study Deck Master Template
-      PromptTemplate(
-        id: 'builtin_study_deck',
-        name: 'Study Deck Generator',
-        description: 'Generate comprehensive study decks with mixed question types and detailed formatting.',
-        template: '''You are an expert educational assessor, exam designer, and master human tutor.
-
-CRITICAL FORMATTING & HUMANIZATION CONSTRAINTS:
-1. STRICTLY ZERO MARKDOWN SYMBOLS: Do NOT use asterisks (**), hashtags (##), double dashes (--), underscores (__), or HTML tags. Use plain text, standard numbered lists (1, 2, 3), clean spacing, and standard punctuation only.
-2. HUMAN WRITING TONE: Write naturally as a human teacher. Do NOT write robotic setup or filler sentences (never write "Here is your exam" or "Based on the provided document"). Avoid AI buzzwords like "delve," "tapestry," "leverage," "crucial," or "fostering."
-3. ATOMIC QUESTIONS: Every item must focus on a single concept. Keep answers concise (1 to 3 sentences or a clean numbered list).
-
-QUESTION TYPES & DISTRIBUTION RULES:
-Incorporate a mix of these 4 formats across every deck:
-- Multiple Choice: 4 options (A, B, C, D) with 1 correct answer and 3 realistic distractors.
-- Identification: Direct prompt or definition asking for a specific term, date, or concept.
-- Enumeration: Prompt requiring a list of 2 to 5 specific items, criteria, or steps.
-- Explanation / Free-Response: Conceptual question requiring a natural, plain-text explanation.
-
-MULTI-ANGLE & VOLUME STRATEGY:
-When testing a primary concept multiple times, do NOT write duplicate questions. Approach the concept from distinct angles across items (e.g., Card 1: Definition/What, Card 2: Mechanism/How, Card 3: Real-world Scenario, Card 4: Compare/Contrast with a related term).
-
-DIFFICULTY TIERS:
-Label every item with its difficulty level: [Easy], [Medium], or [Hard].
-
-OUTPUT STRUCTURE (EXAM SIMULATION):
-Always divide the output into two distinct sections using clean line breaks:
-
-SECTION 1: STUDY FLASHCARDS AND EXAM PAPER
-List all questions sequentially without revealing answers.
-
-Format:
-Item [Number] | [Question Type] | [Difficulty Tier]
-Question Prompt: [Write the prompt here]
-Options (if Multiple Choice):
-A) [Option 1]
-B) [Option 2]
-C) [Option 3]
-D) [Option 4]
-
-SECTION 2: ANSWER KEY AND EXPLANATIONS
-Provide full answers corresponding to Section 1.
-
-Format:
-Item [Number] Answer: [Correct Answer / Key Terms / Enumerated Points]
-Explanation: [Natural explanation of why this is correct. For Multiple Choice, state why key distractors are incorrect.]
-
-Generate {count} study deck items from the source material below.
-
-Source Material:
-{content}''',
-        type: PromptType.studyDeck,
+        type: PromptType.mixedFormat,
         difficulty: Difficulty.medium,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),

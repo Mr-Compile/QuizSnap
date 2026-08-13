@@ -7,7 +7,7 @@ class AnalyticsRepository {
 
   AnalyticsRepository(this._database);
 
-  // Get overall analytics summary
+  // Get overall analytics summary (all values are aggregated from SQLite)
   Future<AnalyticsSummary> getAnalyticsSummary() async {
     final totalDecks = await _database.getTotalDecks();
     final totalFlashcards = await _database.getTotalFlashcards();
@@ -15,6 +15,9 @@ class AnalyticsRepository {
     final dueToday = await _database.getDueTodayCount();
     final currentStreak = await _database.getCurrentStreak();
     final averageQuizScore = await _database.getAverageQuizScore();
+    final totalStudyMinutes = await _database.getTotalStudyMinutes();
+    final totalFlashcardsReviewed = await _database.getTotalCardsReviewed();
+    final quizAttempts = await _database.getQuizAttemptCount();
 
     return AnalyticsSummary(
       totalDecks: totalDecks,
@@ -23,6 +26,9 @@ class AnalyticsRepository {
       dueToday: dueToday,
       currentStreak: currentStreak,
       averageQuizScore: averageQuizScore,
+      totalStudyMinutes: totalStudyMinutes,
+      totalFlashcardsReviewed: totalFlashcardsReviewed,
+      quizAttempts: quizAttempts,
     );
   }
 
@@ -108,22 +114,20 @@ class AnalyticsRepository {
     ));
   }
 
-  // End a study session
+  // End a study session and persist final statistics
   Future<void> endStudySession(int sessionId, {
     required int cardsStudied,
     required int cardsCorrect,
     required int durationSeconds,
   }) async {
-    final session = await (_database.select(_database.studySessions)
-      ..where((tbl) => tbl.id.equals(sessionId)))
-      .getSingle();
-
-    await _database.updateStudySession(session.copyWith(
-      cardsStudied: cardsStudied,
-      cardsCorrect: cardsCorrect,
-      durationSeconds: durationSeconds,
-      endedAt: Value(DateTime.now()),
-    ));
+    await (_database.update(_database.studySessions)
+          ..where((tbl) => tbl.id.equals(sessionId)))
+        .write(StudySessionsCompanion(
+          cardsStudied: Value(cardsStudied),
+          cardsCorrect: Value(cardsCorrect),
+          durationSeconds: Value(durationSeconds),
+          endedAt: Value(DateTime.now()),
+        ));
   }
 
   // Create a quiz result
@@ -252,6 +256,9 @@ class AnalyticsSummary {
   final int dueToday;
   final int currentStreak;
   final double averageQuizScore;
+  final int totalStudyMinutes;
+  final int totalFlashcardsReviewed;
+  final int quizAttempts;
 
   AnalyticsSummary({
     required this.totalDecks,
@@ -260,6 +267,9 @@ class AnalyticsSummary {
     required this.dueToday,
     required this.currentStreak,
     required this.averageQuizScore,
+    required this.totalStudyMinutes,
+    required this.totalFlashcardsReviewed,
+    required this.quizAttempts,
   });
 }
 

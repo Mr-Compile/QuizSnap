@@ -22,6 +22,7 @@ import 'deck_details_tablet_layout.dart';
 import 'edit_deck_screen.dart';
 import 'selection_preview_pane.dart';
 import '../exam/exam_setup_screen.dart';
+import '../folders/move_deck_to_folder_dialog.dart';
 import '../flashcards/add_flashcard_screen.dart';
 import '../flashcards/flashcard_detail_screen.dart';
 import '../study/flashcard_study_session_screen.dart';
@@ -233,6 +234,15 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
             icon: const Icon(Icons.edit),
             onPressed: () => _navigateToEditDeck(context),
             tooltip: 'Edit deck',
+          ),
+        ),
+        Semantics(
+          button: true,
+          label: 'Move deck to folder',
+          child: IconButton(
+            icon: const Icon(Icons.drive_file_move),
+            onPressed: () => _moveToFolder(context),
+            tooltip: 'Move to folder',
           ),
         ),
         Semantics(
@@ -577,6 +587,29 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
     } catch (e) {
       if (context.mounted) {
         await DialogService.showError(context, 'Error bookmarking: $e');
+      }
+    }
+  }
+
+  Future<void> _moveToFolder(BuildContext context) async {
+    if (!context.mounted) return;
+    final dbProvider = context.read<DatabaseProvider>();
+    try {
+      final deck = await dbProvider.deckRepository.getDeckById(widget.deckId);
+      if (!context.mounted) return;
+      final result = await showDialog(
+        context: context,
+        builder: (context) => MoveDeckToFolderDialog(
+          deckId: widget.deckId,
+          currentFolderId: deck.folderId,
+        ),
+      );
+      if (result == true && mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      if (context.mounted) {
+        await DialogService.showError(context, 'Error loading deck: $e');
       }
     }
   }

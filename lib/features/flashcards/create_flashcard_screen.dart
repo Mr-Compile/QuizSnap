@@ -33,14 +33,14 @@ class _CreateFlashcardScreenState extends State<CreateFlashcardScreen>
   final _answerController = TextEditingController();
   final _tagsController = TextEditingController();
   final List<String> _selectedTags = [];
-  String _questionType = 'basic';
+  String _questionType = 'multiple_choice';
   bool _isLoading = false;
 
   final Map<String, String> _questionTypeLabels = const {
-    'basic': 'Basic flashcard',
-    'multiple_choice': 'Multiple choice',
-    'true_false': 'True / False',
+    'multiple_choice': 'Multiple Choice',
     'identification': 'Identification',
+    'enumeration': 'Enumeration',
+    'mixed_format': 'Mixed Format',
   };
 
   @override

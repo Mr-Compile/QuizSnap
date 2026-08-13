@@ -197,31 +197,59 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Today\'s Progress',
+          'Study Metrics',
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: AppTheme.spacing4),
         CustomCard(
-          child: Row(
+          child: Column(
             children: [
-              Expanded(
-                child: _buildQuickStatItem(
-                  context,
-                  'Cards Studied',
-                  analytics.cardsStudiedToday.toString(),
-                  Icons.check_circle,
-                  AppTheme.bambooGreen600,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickStatItem(
+                      context,
+                      'Cards Studied',
+                      analytics.cardsStudiedToday.toString(),
+                      Icons.check_circle,
+                      AppTheme.bambooGreen600,
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacing4),
+                  Expanded(
+                    child: _buildQuickStatItem(
+                      context,
+                      'Avg Quiz Score',
+                      '${analytics.averageQuizScore.toStringAsFixed(1)}%',
+                      Icons.quiz,
+                      AppTheme.purple600,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: AppTheme.spacing4),
-              Expanded(
-                child: _buildQuickStatItem(
-                  context,
-                  'Avg Quiz Score',
-                  '${analytics.averageQuizScore.toStringAsFixed(1)}%',
-                  Icons.quiz,
-                  AppTheme.purple600,
-                ),
+              const SizedBox(height: AppTheme.spacing4),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickStatItem(
+                      context,
+                      'Total Study Time',
+                      _formatMinutes(analytics.totalStudyMinutes),
+                      Icons.access_time,
+                      AppTheme.blue600,
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacing4),
+                  Expanded(
+                    child: _buildQuickStatItem(
+                      context,
+                      'Quiz Attempts',
+                      analytics.quizAttempts.toString(),
+                      Icons.emoji_events,
+                      AppTheme.amber600,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -364,6 +392,13 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
         ),
       ],
     );
+  }
+
+  String _formatMinutes(int minutes) {
+    final hours = minutes ~/ 60;
+    final mins = minutes % 60;
+    if (hours > 0) return '${hours}h ${mins}m';
+    return '${mins}m';
   }
 
   Widget _buildAnalyticsTile(

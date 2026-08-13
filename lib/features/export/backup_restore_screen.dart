@@ -1,31 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../core/models/backup.dart';
+import '../../core/models/backup_enhanced.dart';
+import '../../core/providers/backup_provider.dart';
 import '../../core/providers/export_provider.dart';
 import '../../core/services/dialog_service.dart';
 import 'create_backup_dialog.dart';
 import 'backup_history_screen.dart';
 import 'restore_confirmation_dialog.dart';
-import 'permission_explanation_dialog.dart';
+import 'import_preview_screen.dart';
 
-class BackupRestoreScreen extends StatefulWidget {
+class BackupRestoreScreen extends ConsumerStatefulWidget {
   const BackupRestoreScreen({super.key});
 
   @override
-  State<BackupRestoreScreen> createState() => _BackupRestoreScreenState();
+  ConsumerState<BackupRestoreScreen> createState() => _BackupRestoreScreenState();
 }
 
-class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
-  BackupSchedule? _schedule;
+class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
+  BackupSchedule _schedule = BackupSchedule(enabled: false);
   bool _isLoading = true;
 
   @override
@@ -35,8 +37,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
   }
 
   Future<void> _loadSchedule() async {
-    final exportProvider = context.read<ExportProvider>();
-    final schedule = await exportProvider.getBackupSchedule();
+    final schedule = await ref.read(backupScheduleProvider.future);
     if (mounted) {
       setState(() {
         _schedule = schedule;
@@ -95,6 +96,19 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: CustomButton(
+                  text: 'Restore',
+                  icon: Icons.restore,
+                  isSecondary: true,
+                  onPressed: _handleRestoreFromFile,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: CustomButton(
                   text: 'View History',
                   icon: Icons.history,
                   isSecondary: true,
@@ -123,26 +137,26 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
                     ),
               ),
               Switch(
-                value: _schedule?.enabled ?? false,
+                value: _schedule.enabled,
                 onChanged: _handleToggleAutoBackup,
               ),
             ],
           ),
           const SizedBox(height: 16),
-          if (_schedule?.enabled ?? false) ...[
-            _buildScheduleDetail('Interval', '${_schedule?.intervalDays ?? 7} days'),
+          if (_schedule.enabled) ...[
+            _buildScheduleDetail('Interval', '${_schedule.intervalDays} days'),
             const SizedBox(height: 8),
             _buildScheduleDetail(
               'Last Backup',
-              _schedule?.lastBackupDate != null
-                  ? _formatDateTime(_schedule!.lastBackupDate!)
+              _schedule.lastBackupDate != null
+                  ? _formatDateTime(_schedule.lastBackupDate!)
                   : 'Never',
             ),
             const SizedBox(height: 8),
             _buildScheduleDetail(
               'Next Backup',
-              _schedule?.nextBackupDate != null
-                  ? _formatDateTime(_schedule!.nextBackupDate!)
+              _schedule.nextBackupDate != null
+                  ? _formatDateTime(_schedule.nextBackupDate!)
                   : 'Not scheduled',
             ),
           ] else
@@ -197,7 +211,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
           ),
           const SizedBox(height: 16),
           FutureBuilder<List<BackupMetadata>>(
-            future: context.read<ExportProvider>().backupService.getBackupHistory(),
+            future: ref.watch(backupHistoryProvider.future),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -235,22 +249,6 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
   }
 
   Future<void> _handleCreateBackup() async {
-    // Check permission first
-    final hasPermission = await Permission.storage.request();
-    if (!hasPermission.isGranted) {
-      if (mounted) {
-        if (hasPermission.isPermanentlyDenied) {
-          await PermanentlyDeniedDialog.show(context);
-        } else {
-          await PermissionExplanationDialog.showStoragePermissionDialog(
-            context,
-            onOpenSettings: () => PermanentlyDeniedDialog.show(context),
-          );
-        }
-      }
-      return;
-    }
-
     if (!mounted) return;
     
     final result = await showDialog<BackupMetadata>(
@@ -274,22 +272,58 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
   }
 
   Future<void> _handleToggleAutoBackup(bool enabled) async {
-    final intervalDays = _schedule?.intervalDays ?? 7;
+    final intervalDays = _schedule.intervalDays;
     final newSchedule = BackupSchedule(
       enabled: enabled,
-      intervalDays: intervalDays,
-      lastBackupDate: _schedule?.lastBackupDate,
+      frequency: _schedule.frequency,
+      retention: _schedule.retention,
+      lastBackupDate: _schedule.lastBackupDate,
       nextBackupDate: enabled
           ? DateTime.now().add(Duration(days: intervalDays))
           : null,
+      customBackupPath: _schedule.customBackupPath,
     );
 
-    await context.read<ExportProvider>().updateBackupSchedule(newSchedule);
+    await ref.read(backupOperationProvider.notifier).updateBackupSchedule(newSchedule);
 
     if (mounted) {
       setState(() {
         _schedule = newSchedule;
       });
+    }
+  }
+
+  Future<void> _handleRestoreFromFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['quizsnap', 'json'],
+        dialogTitle: 'Select Backup File',
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
+
+      final filePath = result.files.first.path;
+      if (filePath == null) {
+        if (mounted) {
+          await DialogService.showError(context, 'Invalid file path');
+        }
+        return;
+      }
+
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ImportPreviewScreen(filePath: filePath),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogService.showError(context, 'Failed to select file: $e');
+      }
     }
   }
 
@@ -445,6 +479,8 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
     if (confirmed == true && mounted) {
       try {
+        // For now, this uses the old backup service since the new one requires BackupData
+        // This should be updated to use the new enhanced service
         await context.read<ExportProvider>().restoreBackup(backup.id);
         if (mounted) {
           await DialogService.showSuccess(context, 'Backup restored successfully');
@@ -480,6 +516,8 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
     if (confirmed == true && mounted) {
       try {
+        // For now, this uses the old backup service since the new one requires file path
+        // This should be updated to use the new enhanced service
         await context.read<ExportProvider>().deleteBackup(backup.id);
         if (mounted) {
           await DialogService.showSuccess(context, 'Backup deleted');

@@ -50,29 +50,24 @@ class GeneratedQuestion {
   }
 
   ExamQuestion toExamQuestion(String id) {
-    // Determine the question type based on the generated structure
-    QuestionType questionType;
-    if (type == 'identification' || (options.length <= 1 && answer != null)) {
-      questionType = QuestionType.identification;
-    } else if (type == 'enumeration' || (options.length > 1 && answer != null)) {
-      questionType = QuestionType.enumeration;
-    } else if (type == 'mixed' || type == 'mixed_format') {
-      questionType = QuestionType.mixedFormat;
-    } else {
-      questionType = QuestionType.multipleChoice;
-    }
+    final questionType = QuestionValidationService.determineQuestionType(
+      type: type,
+      options: options,
+      answer: answer,
+    );
 
-    // Set type-specific fields
     String? correctAnswerText;
     List<String>? correctAnswersList;
 
     if (questionType == QuestionType.identification) {
-      correctAnswerText = answer;
+      final trimmed = answer?.trim();
+      correctAnswerText = trimmed?.isNotEmpty == true ? trimmed : null;
     } else if (questionType == QuestionType.enumeration) {
-      if (options.length > 1) {
+      final trimmed = answer?.trim();
+      if (trimmed != null && trimmed.isNotEmpty) {
+        correctAnswersList = EnumerationFormatter.splitItems(trimmed);
+      } else if (options.isNotEmpty) {
         correctAnswersList = options;
-      } else if (answer != null) {
-        correctAnswersList = [answer!];
       } else {
         correctAnswersList = [];
       }
@@ -82,8 +77,8 @@ class GeneratedQuestion {
       id: id,
       question: question,
       type: questionType,
-      options: options,
-      correctAnswerIndex: correctAnswerIndex,
+      options: questionType == QuestionType.multipleChoice ? options : const [],
+      correctAnswerIndex: questionType == QuestionType.multipleChoice ? correctAnswerIndex : 0,
       correctAnswer: correctAnswerText,
       correctAnswers: correctAnswersList,
       explanation: explanation,
@@ -252,13 +247,7 @@ class QuestionGenerationService {
           return _sanitizeQuestions(_parseIdentificationQuestions(response));
         case PromptType.enumeration:
           return _sanitizeQuestions(_parseEnumerationQuestions(response));
-        case PromptType.examSimulation:
-          return _sanitizeQuestions(_parseExamSimulationQuestions(response));
-        case PromptType.explanation:
-          return _sanitizeQuestions(_parseExplanationQuestions(response));
-        case PromptType.studyDeck:
-          return _sanitizeQuestions(_parseStudyDeckQuestions(response));
-        case PromptType.mixed:
+        case PromptType.mixedFormat:
           return _sanitizeQuestions(_tryParseJsonQuestions(response));
       }
     } catch (e) {
@@ -567,9 +556,10 @@ class QuestionGenerationService {
 
     return GeneratedQuestion(
       question: questionText,
-      options: [answer],
-      correctAnswerIndex: 0,
+      options: const [],
+      correctAnswerIndex: -1,
       answer: answer,
+      type: 'identification',
     );
   }
 
@@ -624,130 +614,18 @@ class QuestionGenerationService {
 
     if (items.isEmpty) return null;
 
-    final answer = items.join(', ');
+    final answer = EnumerationFormatter.format(items.join(', '));
 
     return GeneratedQuestion(
       question: questionText,
-      options: items,
-      correctAnswerIndex: 0,
+      options: const [],
+      correctAnswerIndex: -1,
       answer: answer,
+      type: 'enumeration',
     );
   }
 
-  /// Parse exam simulation questions (mixed types)
-  List<GeneratedQuestion> _parseExamSimulationQuestions(String response) {
-    // Default to multiple choice parsing for exam simulation
-    return _parseMultipleChoiceQuestions(response);
-  }
 
-  /// Parse explanation questions
-  List<GeneratedQuestion> _parseExplanationQuestions(String response) {
-    // Similar to multiple choice but with required explanations
-    final questions = _parseMultipleChoiceQuestions(response);
-    
-    // Ensure all questions have explanations
-    return questions.map((q) {
-      if (q.explanation == null || q.explanation!.isEmpty) {
-        return GeneratedQuestion(
-          question: q.question,
-          options: q.options,
-          correctAnswerIndex: q.correctAnswerIndex,
-          explanation: 'This is the correct answer based on the content.',
-        );
-      }
-      return q;
-    }).toList();
-  }
-
-  /// Parse study deck questions (mixed types with two-section format)
-  List<GeneratedQuestion> _parseStudyDeckQuestions(String response) {
-    final questions = <GeneratedQuestion>[];
-    
-    // Split into sections
-    final sections = response.split(RegExp(r'SECTION 2:|ANSWER KEY', caseSensitive: false));
-    if (sections.length < 2) {
-      // Fallback to multiple choice parsing if sections not found
-      return _parseMultipleChoiceQuestions(response);
-    }
-    
-    final questionsSection = sections[0];
-    final answersSection = sections[1];
-    
-    // Parse questions from section 1
-    final questionBlocks = questionsSection.split(RegExp(r'Item \d+', caseSensitive: false));
-    
-    for (final block in questionBlocks) {
-      if (block.trim().isEmpty) continue;
-      
-      try {
-        final question = _parseStudyDeckItem(block, answersSection);
-        if (question != null) {
-          questions.add(question);
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-    
-    return questions;
-  }
-
-  GeneratedQuestion? _parseStudyDeckItem(String questionBlock, String answersSection) {
-    // Extract question type and difficulty
-    final typeMatch = RegExp(r'\| ([^\|]+) \| ([^\|]+)').firstMatch(questionBlock);
-    // ignore: unused_local_variable
-    final questionType = typeMatch?.group(1)?.trim() ?? 'Multiple Choice';
-    // ignore: unused_local_variable
-    final difficulty = typeMatch?.group(2)?.trim() ?? 'Medium';
-    
-    // Extract question prompt
-    final promptMatch = RegExp(r'Question Prompt: (.+?)(?=Options:|$)', dotAll: true).firstMatch(questionBlock);
-    final questionText = promptMatch?.group(1)?.trim() ?? '';
-    
-    if (questionText.isEmpty) return null;
-    
-    // Extract options if present
-    final options = <String>[];
-    final optionRegex = RegExp(r'[A-D]\) (.+?)(?=\n[A-D]|$)', multiLine: true);
-    
-    for (final match in optionRegex.allMatches(questionBlock)) {
-      options.add(match.group(1)?.trim() ?? '');
-    }
-    
-    // Find corresponding answer from section 2
-    final itemNumberMatch = RegExp(r'Item (\d+)').firstMatch(questionBlock);
-    // ignore: unused_local_variable
-    final itemNumber = itemNumberMatch?.group(1) ?? '';
-    
-    final answerMatch = RegExp(
-      'Item $itemNumber Answer: (.+?)(?=Explanation:|\\nItem |${String.fromCharCode(36)})',
-      dotAll: true,
-    ).firstMatch(answersSection);
-    final answer = answerMatch?.group(1)?.trim();
-
-    final explanationMatch = RegExp(
-      'Item $itemNumber Explanation: (.+?)(?=Item \\d+|${String.fromCharCode(36)})',
-      dotAll: true,
-    ).firstMatch(answersSection);
-    final explanation = explanationMatch?.group(1)?.trim();
-    
-    // Determine correct answer index based on options
-    int correctAnswerIndex = 0;
-    if (options.isNotEmpty && answer != null) {
-      final answerIndex = options.indexWhere((opt) => opt.contains(answer) || answer.contains(opt));
-      if (answerIndex >= 0) {
-        correctAnswerIndex = answerIndex;
-      }
-    }
-    
-    return GeneratedQuestion(
-      question: questionText,
-      options: options.isNotEmpty ? options : [answer ?? ''],
-      correctAnswerIndex: correctAnswerIndex,
-      explanation: explanation,
-      answer: answer,
-    );
-  }
 
   /// Convert generated questions to exam questions
   List<ExamQuestion> toExamQuestions(List<GeneratedQuestion> generatedQuestions) {
@@ -764,104 +642,25 @@ class QuestionGenerationService {
 
     for (int i = 0; i < questions.length; i++) {
       final question = questions[i];
+      final questionType = QuestionValidationService.determineQuestionType(
+        type: question.type,
+        options: question.options,
+        answer: question.answer,
+      );
 
-      if (question.question.trim().isEmpty) {
-        issues.add('Question ${i + 1}: Empty question text');
-      }
+      issues.addAll(QuestionValidationService.validateQuestion(
+        type: questionType,
+        question: question.question,
+        options: question.options,
+        correctAnswerIndex: question.correctAnswerIndex,
+        answer: question.answer,
+        questionIndex: i,
+      ));
 
-      // Type-aware validation
-      final questionType = _determineQuestionType(question);
-      
-      switch (questionType) {
-        case QuestionType.multipleChoice:
-          issues.addAll(_validateMultipleChoiceQuestion(question, i));
-          break;
-        case QuestionType.identification:
-          issues.addAll(_validateIdentificationQuestion(question, i));
-          break;
-        case QuestionType.enumeration:
-          issues.addAll(_validateEnumerationQuestion(question, i));
-          break;
-        case QuestionType.mixedFormat:
-          // For mixed format, validate based on structure
-          if (question.options.length >= 4) {
-            issues.addAll(_validateMultipleChoiceQuestion(question, i));
-          } else {
-            issues.addAll(_validateIdentificationQuestion(question, i));
-          }
-          break;
+      if (questionType == QuestionType.multipleChoice) {
+        issues.addAll(_validateDistractorQuality(question, i));
       }
     }
-
-    return issues;
-  }
-
-  QuestionType _determineQuestionType(GeneratedQuestion question) {
-    if (question.type == 'identification' || (question.options.length <= 1 && question.answer != null)) {
-      return QuestionType.identification;
-    } else if (question.type == 'enumeration' || (question.options.length > 1 && question.answer != null)) {
-      return QuestionType.enumeration;
-    } else if (question.type == 'mixed' || question.type == 'mixed_format') {
-      return QuestionType.mixedFormat;
-    } else {
-      return QuestionType.multipleChoice;
-    }
-  }
-
-  List<String> _validateMultipleChoiceQuestion(GeneratedQuestion question, int questionIndex) {
-    final issues = <String>[];
-
-    if (question.options.length != 4) {
-      issues.add('Question ${questionIndex + 1}: Multiple choice must have exactly 4 options (found ${question.options.length})');
-    }
-
-    if (question.correctAnswerIndex < 0 || question.correctAnswerIndex >= question.options.length) {
-      issues.add('Question ${questionIndex + 1}: Invalid correct answer index');
-    }
-
-    issues.addAll(MultipleChoiceQuestionValidator.validate(
-      options: question.options,
-      correctAnswerIndex: question.correctAnswerIndex,
-      questionIndex: questionIndex,
-      answer: question.answer,
-    ));
-
-    // Validate distractor quality
-    issues.addAll(_validateDistractorQuality(question, questionIndex));
-
-    return issues;
-  }
-
-  List<String> _validateIdentificationQuestion(GeneratedQuestion question, int questionIndex) {
-    final issues = <String>[];
-
-    if (question.answer == null || question.answer!.trim().isEmpty) {
-      issues.add('Question ${questionIndex + 1}: Identification questions must have a correct answer');
-    }
-
-    // Identification questions should not have options (or have empty options)
-    if (question.options.length > 1) {
-      issues.add('Question ${questionIndex + 1}: Identification questions should not have multiple options');
-    }
-
-    issues.addAll(IdentificationAnswerValidator.validate(question.answer ?? '', questionIndex));
-
-    return issues;
-  }
-
-  List<String> _validateEnumerationQuestion(GeneratedQuestion question, int questionIndex) {
-    final issues = <String>[];
-
-    if (question.answer == null || question.answer!.trim().isEmpty) {
-      issues.add('Question ${questionIndex + 1}: Enumeration questions must have correct answers');
-    }
-
-    // Enumeration questions can have options as the answer list
-    if (question.options.isEmpty && (question.answer == null || question.answer!.isEmpty)) {
-      issues.add('Question ${questionIndex + 1}: Enumeration questions must have answer items');
-    }
-
-    issues.addAll(EnumerationFormatter.validate(question.answer ?? '', questionIndex));
 
     return issues;
   }

@@ -19,8 +19,8 @@ class MainBottomNavigation extends StatelessWidget {
       elevation: 8,
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.style),
-          label: 'Decks',
+          icon: Icon(Icons.library_books),
+          label: 'Library',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.auto_awesome),

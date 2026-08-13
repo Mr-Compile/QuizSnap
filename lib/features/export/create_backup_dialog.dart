@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/widgets/custom_button.dart';
-import '../../core/providers/export_provider.dart';
+import '../../core/providers/backup_provider.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
+import 'export_success_screen_backup.dart';
 
-class CreateBackupDialog extends StatefulWidget {
+class CreateBackupDialog extends ConsumerStatefulWidget {
   const CreateBackupDialog({super.key});
 
   @override
-  State<CreateBackupDialog> createState() => _CreateBackupDialogState();
+  ConsumerState<CreateBackupDialog> createState() => _CreateBackupDialogState();
 }
 
-class _CreateBackupDialogState extends State<CreateBackupDialog> {
+class _CreateBackupDialogState extends ConsumerState<CreateBackupDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -124,22 +125,20 @@ class _CreateBackupDialogState extends State<CreateBackupDialog> {
     setState(() => _isCreating = true);
 
     try {
-      final exportProvider = context.read<ExportProvider>();
-
-      final backup = await exportProvider.createBackup(
+      final backupFile = await ref.read(backupOperationProvider.notifier).exportBackup(
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
       );
 
-      if (mounted) {
-        Navigator.pop(context, backup);
-        // Show success dialog with educational-friendly message
-        await DialogService.showSuccess(
-          context,
-          'Backup "$backup" was created successfully.',
-          title: 'Backup Created',
+      if (mounted && backupFile != null) {
+        Navigator.pop(context);
+        // Navigate to success screen with file manager options
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ExportSuccessScreenBackup(backupFile: backupFile),
+          ),
         );
       }
     } catch (e) {

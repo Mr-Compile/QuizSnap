@@ -3,7 +3,7 @@ import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../core/models/export.dart';
 import 'export_options_screen.dart';
-import 'backup_restore_screen.dart';
+import 'backup_restore_screen_enhanced.dart';
 
 class ExportCenterScreen extends StatelessWidget {
   const ExportCenterScreen({super.key});
@@ -162,7 +162,7 @@ class ExportCenterScreen extends StatelessWidget {
   void _navigateToBackupRestore(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const BackupRestoreScreen(),
+        builder: (context) => const BackupRestoreScreenEnhanced(),
       ),
     );
   }
