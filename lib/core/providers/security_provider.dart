@@ -9,15 +9,38 @@ class SecurityProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  /// The route location the user was on before the app was locked.
+  /// Used to restore the previous screen after successful unlock.
+  String? _routeBeforeLock;
+
   bool get isPinEnabled => _isPinEnabled;
   bool get isLocked => _isLocked;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String? get routeBeforeLock => _routeBeforeLock;
 
   SecurityProvider() : _secureStorage = SecureStorageService();
 
+  /// Stores the route the user was on before locking so it can be
+  /// restored after unlock. Only saves if not already on the pin-lock
+  /// route and if no route has been saved yet (prevents overwriting).
+  void setRouteBeforeLock(String route) {
+    if (route == '/settings/pin-lock') return;
+    _routeBeforeLock = route;
+    debugPrint('[SecurityProvider] routeBeforeLock saved: $route');
+  }
+
+  /// Returns the saved route and clears it. Returns null if no route
+  /// was saved.
+  String? consumeRouteBeforeLock() {
+    final route = _routeBeforeLock;
+    _routeBeforeLock = null;
+    return route;
+  }
+
   // Initialize security settings
   Future<void> initialize() async {
+    debugPrint('[SecurityProvider] initialize() started');
     _isLoading = true;
     notifyListeners();
 
@@ -25,8 +48,10 @@ class SecurityProvider with ChangeNotifier {
       _isPinEnabled = await _secureStorage.isPinEnabled();
       _isLocked = _isPinEnabled;
       _isLoading = false;
+      debugPrint('[SecurityProvider] initialize() done — pinEnabled: $_isPinEnabled, locked: $_isLocked');
       notifyListeners();
     } catch (e) {
+      debugPrint('[SecurityProvider] initialize() error: $e');
       _errorMessage = e.toString();
       _isLoading = false;
       notifyListeners();
@@ -63,25 +88,29 @@ class SecurityProvider with ChangeNotifier {
   }
 
   Future<bool> verifyPin(String pin) async {
+    debugPrint('[SecurityProvider] verifyPin() started');
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
       final isValid = await _secureStorage.verifyPin(pin);
-      
+
       if (isValid) {
+        debugPrint('[SecurityProvider] verifyPin() success — unlocking');
         _isLocked = false;
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
+        debugPrint('[SecurityProvider] verifyPin() failed — incorrect PIN');
         _errorMessage = 'Incorrect PIN';
         _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
+      debugPrint('[SecurityProvider] verifyPin() error: $e');
       _errorMessage = e.toString();
       _isLoading = false;
       notifyListeners();
@@ -145,6 +174,7 @@ class SecurityProvider with ChangeNotifier {
   // Lock Management
   void lockApp() {
     if (_isPinEnabled) {
+      debugPrint('[SecurityProvider] lockApp() triggered');
       _isLocked = true;
       notifyListeners();
     }
@@ -158,6 +188,16 @@ class SecurityProvider with ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  /// Defensive method to clear the loading flag.  Called from the
+  /// [PinLockScreen] unlock finally-block as a guarantee that no
+  /// spinner remains active after unlock.
+  void clearLoading() {
+    if (_isLoading) {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   // Clear all security data

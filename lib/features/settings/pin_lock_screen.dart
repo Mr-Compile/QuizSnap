@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/security_provider.dart';
+import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
 
 class PinLockScreen extends StatefulWidget {
@@ -15,11 +18,50 @@ class _PinLockScreenState extends State<PinLockScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _obscurePin = true;
   int _failedAttempts = 0;
+  Timer? _blackScreenGuard;
 
   @override
   void dispose() {
+    _blackScreenGuard?.cancel();
     _pinController.dispose();
     super.dispose();
+  }
+
+  /// Navigates to the route the user was on before the app was locked,
+  /// falling back to [AppRoutes.home] if no route was saved or the saved
+  /// route is the pin-lock route itself.
+  void _restoreRoute() {
+    final securityProvider = context.read<SecurityProvider>();
+    final savedRoute = securityProvider.consumeRouteBeforeLock();
+
+    String destination;
+    if (savedRoute != null &&
+        savedRoute != AppRoutes.pinLock &&
+        savedRoute != AppRoutes.setPin) {
+      destination = savedRoute;
+      debugPrint('[PinLockScreen] restoring saved route: $destination');
+    } else {
+      destination = AppRoutes.home;
+      debugPrint('[PinLockScreen] no saved route, falling back to home');
+    }
+
+    // Use go() for a clean replacement — the pin-lock route was reached
+    // via redirect (replacement), so there is nothing to pop back to.
+    context.go(destination);
+    debugPrint('[PinLockScreen] route restored to $destination');
+
+    // Black-screen guard: if the navigation didn't reach a valid screen
+    // within 1 second, force-navigate to home as a last resort.
+    _blackScreenGuard?.cancel();
+    _blackScreenGuard = Timer(const Duration(seconds: 1), () {
+      if (!mounted) return;
+      final currentLocation = GoRouterState.of(context).uri.path;
+      debugPrint('[PinLockScreen] black-screen guard check — current: $currentLocation');
+      if (currentLocation == AppRoutes.pinLock) {
+        debugPrint('[PinLockScreen] black-screen guard — forcing navigation to home');
+        context.go(AppRoutes.home);
+      }
+    });
   }
 
   Future<void> _unlock() async {
@@ -28,21 +70,38 @@ class _PinLockScreenState extends State<PinLockScreen> {
     final securityProvider = context.read<SecurityProvider>();
     final pin = _pinController.text;
 
-    final success = await securityProvider.verifyPin(pin);
+    debugPrint('[PinLockScreen] unlock started');
+
+    bool success = false;
+    try {
+      success = await securityProvider.verifyPin(pin);
+    } catch (e) {
+      debugPrint('[PinLockScreen] unlock error: $e');
+      success = false;
+    } finally {
+      // Always clear the loading flag — verifyPin already does this
+      // internally, but this is a defensive guarantee so no spinner
+      // can remain active after unlock success or failure.
+      if (securityProvider.isLoading) {
+        securityProvider.clearLoading();
+      }
+    }
 
     if (!mounted) return;
 
     if (success) {
+      debugPrint('[PinLockScreen] unlock success — restoring route');
       setState(() {
         _failedAttempts = 0;
       });
-      Navigator.pop(context);
+      _restoreRoute();
     } else {
+      debugPrint('[PinLockScreen] unlock failed — incorrect PIN');
       setState(() {
         _failedAttempts++;
       });
       _pinController.clear();
-      
+
       if (_failedAttempts >= 3) {
         _showTooManyAttemptsDialog();
       }

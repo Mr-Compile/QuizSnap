@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:quiz_snap/main.dart';
 import 'package:quiz_snap/core/providers/database_provider.dart';
+import 'package:quiz_snap/core/providers/security_provider.dart';
 
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
@@ -22,7 +23,11 @@ void main() {
     final dbProvider = DatabaseProvider();
     await dbProvider.initializeDatabase();
     
-    await tester.pumpWidget(QuizSnapApp(prefs: prefs, dbProvider: dbProvider));
+    await tester.pumpWidget(QuizSnapApp(
+      prefs: prefs,
+      dbProvider: dbProvider,
+      securityProvider: SecurityProvider(),
+    ));
 
     // Verify that our app builds.
     expect(find.byType(MaterialApp), findsOneWidget);

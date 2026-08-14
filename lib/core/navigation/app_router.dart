@@ -79,16 +79,38 @@ import '../../core/navigation/error_screens/network_error_screen.dart';
 /// - Error handling and fallback screens
 /// - Consistent navigation patterns
 /// - State preservation for bottom navigation tabs
+/// A lightweight [ChangeNotifier] used as a [GoRouter.refreshListenable]
+/// bridge.  [AppRouter.refresh] is called whenever the [SecurityProvider]
+/// changes state so the router re-evaluates its redirect (e.g. when the
+/// app is locked on resume from background).
+class _RouterRefreshNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
 class AppRouter {
   AppRouter._();
 
+  static final _RouterRefreshNotifier _refreshNotifier =
+      _RouterRefreshNotifier();
+
+  /// Triggers a GoRouter redirect re-evaluation.  Called after
+  /// [SecurityProvider] state changes that affect locking.
+  static void refresh() {
+    debugPrint('[AppRouter] refresh() triggered');
+    _refreshNotifier.notify();
+  }
+
   static final GoRouter router = GoRouter(
     initialLocation: AppRoutes.home,
+    refreshListenable: _refreshNotifier,
     errorBuilder: (context, state) => const NotFoundScreen(),
     redirect: (context, state) {
       // Security check - redirect to PIN lock if app is locked
       final securityProvider = context.read<SecurityProvider>();
       if (securityProvider.isLocked && state.uri.path != AppRoutes.pinLock) {
+        // Save the route the user was on so it can be restored after unlock.
+        securityProvider.setRouteBeforeLock(state.uri.path);
+        debugPrint('[AppRouter] redirect to pin-lock from ${state.uri.path}');
         return AppRoutes.pinLock;
       }
       return null;
