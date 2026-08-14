@@ -51,20 +51,22 @@ class _MoveDeckToFolderDialogState extends State<MoveDeckToFolderDialog> {
 
             return RadioGroup<int?>(
               groupValue: _selectedFolderId,
-              onChanged: (int? value) => setState(() => _selectedFolderId = value),
+              onChanged: (value) {
+                if (!_isSaving) {
+                  setState(() => _selectedFolderId = value);
+                }
+              },
               child: ListView(
                 shrinkWrap: true,
                 children: [
                   RadioListTile<int?>(
                     title: const Text('No Folder'),
                     value: null,
-                    enabled: !_isSaving,
                   ),
                   ...folders.map((folder) {
                     return RadioListTile<int?>(
                       title: Text(folder.name),
                       value: folder.id,
-                      enabled: !_isSaving,
                     );
                   }),
                 ],
