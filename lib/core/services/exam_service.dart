@@ -1,4 +1,5 @@
 import 'dart:math';
+import '../utils/flashcard_answer_codec.dart';
 import '../database/database.dart';
 import '../models/exam.dart';
 import '../repositories/flashcard_repository.dart';
@@ -64,15 +65,26 @@ class ExamService {
   }
 
   List<ExamQuestion> _generateBasicQuestions(List<Flashcard> flashcards) {
-    final otherAnswers = flashcards
-        .map((f) => f.answer.trim())
-        .where((a) => a.isNotEmpty)
-        .toList();
-
     return flashcards.asMap().entries.map((entry) {
       final index = entry.key;
       final flashcard = entry.value;
-      final answer = flashcard.answer.trim();
+      final rawAnswer = flashcard.answer.trim();
+
+      // Check if this flashcard has encoded MCQ options.
+      final mcqData = FlashcardAnswerCodec.decodeMcq(rawAnswer);
+      if (mcqData != null && mcqData.options.length >= 2) {
+        return ExamQuestion(
+          id: 'q_${flashcard.id}_$index',
+          question: flashcard.question,
+          type: QuestionType.multipleChoice,
+          options: mcqData.options,
+          correctAnswerIndex: mcqData.correctAnswerIndex.clamp(0, mcqData.options.length - 1),
+          flashcardId: flashcard.id,
+        );
+      }
+
+      // Use the display answer (strip any encoding) for ID/Enum.
+      final answer = FlashcardAnswerCodec.displayAnswer(rawAnswer);
 
       String? correctAnswer;
       List<String>? correctAnswersList;
@@ -83,33 +95,6 @@ class ExamService {
           correctAnswersList = items;
         } else {
           correctAnswer = answer;
-        }
-      }
-
-      // Build a multiple-choice option only for short single answers with enough distractors.
-      if (correctAnswer != null && correctAnswer.length <= 40) {
-        final correct = correctAnswer;
-        final distractorPool = otherAnswers
-            .where((a) => a.toLowerCase() != correct.toLowerCase())
-            .toSet()
-            .toList();
-
-        final distractors = _shuffleList(distractorPool).take(3).toList();
-
-        if (distractors.length == 3) {
-          final options = _shuffleList([correct, ...distractors]);
-          final correctAnswerIndex = options.indexWhere(
-            (o) => o.toLowerCase() == correct.toLowerCase(),
-          );
-
-          return ExamQuestion(
-            id: 'q_${flashcard.id}_$index',
-            question: flashcard.question,
-            type: QuestionType.multipleChoice,
-            options: options,
-            correctAnswerIndex: correctAnswerIndex,
-            flashcardId: flashcard.id,
-          );
         }
       }
 

@@ -43,10 +43,39 @@ class _FlashcardStudySessionScreenState
   int? _dbSessionId;
   DateTime? _dbSessionStart;
   bool _isDbSessionEnded = false;
+  DatabaseProvider? _dbProvider;
+
+  @override
+  void dispose() {
+    // Best-effort: end the session if the user exits without confirming
+    // (e.g. system back button). We cannot await in dispose, so we fire
+    // a microtask that performs the DB update.
+    if (!_isDbSessionEnded && _dbSessionId != null && _dbSessionStart != null) {
+      final sessionId = _dbSessionId!;
+      final sessionStart = _dbSessionStart!;
+      final durationSeconds = DateTime.now().difference(sessionStart).inSeconds;
+      final db = _dbProvider;
+      // Use a microtask to avoid async work in dispose.
+      Future.microtask(() async {
+        if (db == null) return;
+        try {
+          await db.analyticsRepository.endStudySession(
+            sessionId,
+            cardsStudied: 0,
+            cardsCorrect: 0,
+            durationSeconds: durationSeconds,
+          );
+          db.refreshAnalytics();
+        } catch (_) {}
+      });
+    }
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
+    _dbProvider = context.read<DatabaseProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       context.read<FlashcardRevealProvider>().clear();
@@ -437,7 +466,7 @@ class _FlashcardStudySessionScreenState
 
   Future<void> _startStudySession() async {
     _dbSessionStart = DateTime.now();
-    final db = context.read<DatabaseProvider>();
+    final db = _dbProvider ?? context.read<DatabaseProvider>();
     _dbSessionId = await db.analyticsRepository.startStudySession(
       deckId: widget.deckId == 0 ? null : widget.deckId,
       studyMode: 'review',
@@ -452,7 +481,7 @@ class _FlashcardStudySessionScreenState
     final cardsStudied = controller.ratedCardIds.length;
     final cardsCorrect = controller.cardRatings.values.where((q) => q >= 3).length;
     final durationSeconds = DateTime.now().difference(_dbSessionStart!).inSeconds;
-    final db = context.read<DatabaseProvider>();
+    final db = _dbProvider ?? context.read<DatabaseProvider>();
     await db.analyticsRepository.endStudySession(
       _dbSessionId!,
       cardsStudied: cardsStudied,

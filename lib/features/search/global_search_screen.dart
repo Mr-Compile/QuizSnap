@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/utils/flashcard_answer_codec.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/search_bar.dart';
@@ -340,7 +341,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
                   ),
                   const SizedBox(height: AppTheme.spacingXs),
                   Text(
-                    flashcard.answer,
+                    FlashcardAnswerCodec.displayAnswer(flashcard.answer),
                     style: AppTheme.bodyMedium.copyWith(
                       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),

@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
 import 'package:go_router/go_router.dart';
 import '../../core/services/question_validation_service.dart';
+import '../../core/utils/flashcard_answer_codec.dart';
 import '../../shared/widgets/formatted_study_text.dart';
 import 'regeneration_options_bottom_sheet.dart';
 import 'text_preview_screen.dart';
@@ -381,7 +382,11 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
       for (final question in _selectedQuestions) {
         final answerText = switch (_getQuestionType(question)) {
           QuestionType.multipleChoice => question.options.isNotEmpty && question.correctAnswerIndex >= 0
-              ? question.options[question.correctAnswerIndex]
+              ? FlashcardAnswerCodec.encodeMcq(
+                  correctAnswer: question.options[question.correctAnswerIndex],
+                  options: question.options,
+                  correctAnswerIndex: question.correctAnswerIndex,
+                )
               : (question.answer ?? ''),
           QuestionType.enumeration => EnumerationFormatter.format(question.answer ?? ''),
           _ => question.answer ?? '',

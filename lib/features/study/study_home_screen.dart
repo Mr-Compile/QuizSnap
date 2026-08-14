@@ -97,9 +97,9 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
   }
 
   Widget _buildStatsCard(BuildContext context, stats) {
-    final dueTodayColor = const Color(0xFF3B82F6); // Blue
-    final bookmarkedColor = const Color(0xFFF59E0B); // Amber
-    final accuracyColor = const Color(0xFF22C55E); // Green
+    final dueTodayColor = AppTheme.blue500;
+    final bookmarkedColor = AppTheme.amber500;
+    final accuracyColor = AppTheme.emerald500;
     
     return CustomCard(
       child: Column(
@@ -285,8 +285,8 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
   }
 
   Widget _buildStudyModes(BuildContext context) {
-    final bookmarksColor = const Color(0xFFF59E0B); // Amber/Orange
-    final deckStudyColor = const Color(0xFF8B5CF6); // Purple
+    final bookmarksColor = AppTheme.amber500;
+    final deckStudyColor = AppTheme.purple500;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

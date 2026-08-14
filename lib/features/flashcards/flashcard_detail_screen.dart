@@ -8,6 +8,7 @@ import '../../core/providers/trash_provider.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/database/database.dart';
+import '../../core/utils/flashcard_answer_codec.dart';
 import '../../shared/widgets/formatted_study_text.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -151,7 +152,7 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   FormattedStudyText(
-                    text: card.answer,
+                    text: FlashcardAnswerCodec.displayAnswer(card.answer),
                     style: AppTheme.bodyMedium,
                   ),
                 ],
@@ -225,7 +226,7 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
       await db.flashcardRepository.createFlashcard(
         FlashcardsCompanion(
           question: drift.Value('${card.question} (Copy)'),
-          answer: drift.Value(card.answer),
+          answer: drift.Value(FlashcardAnswerCodec.displayAnswer(card.answer)),
           deckId: drift.Value(card.deckId),
           order: drift.Value(card.order + 1),
         ),
@@ -242,7 +243,7 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
   }
 
   void _shareCard(Flashcard card) {
-    final text = 'Question:\n${card.question}\n\nAnswer:\n${card.answer}';
+    final text = 'Question:\n${card.question}\n\nAnswer:\n${FlashcardAnswerCodec.displayAnswer(card.answer)}';
     Share.share(text, subject: 'QuizSnap Flashcard');
   }
 

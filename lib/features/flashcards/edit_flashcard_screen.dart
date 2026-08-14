@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/services/dialog_service.dart';
+import '../../core/utils/flashcard_answer_codec.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -52,13 +53,13 @@ class _EditFlashcardScreenState extends State<EditFlashcardScreen> with BackButt
     if (mounted) {
       setState(() {
         _questionController.text = flashcard.question;
-        _answerController.text = flashcard.answer;
+        _answerController.text = FlashcardAnswerCodec.displayAnswer(flashcard.answer);
         _isFavorite = flashcard.isFavorite;
         _isLoading = false;
         
         // Store initial values for unsaved changes detection
         _initialQuestion = flashcard.question;
-        _initialAnswer = flashcard.answer;
+        _initialAnswer = FlashcardAnswerCodec.displayAnswer(flashcard.answer);
         _initialFavorite = flashcard.isFavorite;
       });
     }

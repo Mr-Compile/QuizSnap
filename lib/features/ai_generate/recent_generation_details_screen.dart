@@ -8,6 +8,9 @@ import '../../core/providers/database_provider.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/repositories/recent_generation_repository.dart';
 import '../../core/services/question_generation_service.dart';
+import '../../core/services/question_validation_service.dart';
+import '../../core/utils/flashcard_answer_codec.dart';
+import '../../core/models/exam.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -146,7 +149,22 @@ class RecentGenerationDetailsScreen extends StatelessWidget {
     try {
       for (var i = 0; i < questions.length; i++) {
         final q = questions[i];
-        final answer = q.answer ?? (q.options.isNotEmpty ? q.options[q.correctAnswerIndex] : '');
+        final qType = QuestionValidationService.determineQuestionType(
+          type: q.type,
+          options: q.options,
+          answer: q.answer,
+        );
+        final answer = switch (qType) {
+          QuestionType.multipleChoice => q.options.isNotEmpty && q.correctAnswerIndex >= 0
+              ? FlashcardAnswerCodec.encodeMcq(
+                  correctAnswer: q.options[q.correctAnswerIndex],
+                  options: q.options,
+                  correctAnswerIndex: q.correctAnswerIndex,
+                )
+              : (q.answer ?? ''),
+          QuestionType.enumeration => EnumerationFormatter.format(q.answer ?? ''),
+          _ => q.answer ?? '',
+        };
         await db.flashcardRepository.createFlashcard(
           FlashcardsCompanion(
             question: drift.Value(q.question),

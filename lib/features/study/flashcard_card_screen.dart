@@ -6,6 +6,7 @@ import '../../core/providers/database_provider.dart';
 import '../../core/providers/flashcard_reveal_provider.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/services/question_generation_service.dart';
+import '../../core/utils/flashcard_answer_codec.dart';
 import '../../core/database/database.dart';
 import 'rate_card_bottom_sheet.dart';
 
@@ -170,7 +171,7 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                                   ),
                                   const SizedBox(height: AppTheme.spacingMd),
                                   Text(
-                                    QuestionGenerationService.sanitizeText(flashcard.answer),
+                                    QuestionGenerationService.sanitizeText(FlashcardAnswerCodec.displayAnswer(flashcard.answer)),
                                     style: AppTheme.headlineSmall,
                                     textAlign: TextAlign.center,
                                     softWrap: true,

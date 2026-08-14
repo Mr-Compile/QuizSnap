@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/database/database.dart';
+import '../../core/utils/flashcard_answer_codec.dart';
 import '../../core/providers/flashcard_selection_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -130,7 +131,7 @@ class SelectionPreviewPane extends StatelessWidget {
           ),
           const SizedBox(height: AppTheme.spacingXs),
           Text(
-            card.answer,
+            FlashcardAnswerCodec.displayAnswer(card.answer),
             style: AppTheme.bodySmall.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),

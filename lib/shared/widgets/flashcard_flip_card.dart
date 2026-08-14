@@ -2,6 +2,7 @@ import 'dart:math' show pi;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/services/question_generation_service.dart';
+import '../../core/utils/flashcard_answer_codec.dart';
 
 /// A 3D flip card for study mode.
 ///
@@ -68,7 +69,7 @@ class _FlashcardFlipCardState extends State<FlashcardFlipCard>
   @override
   Widget build(BuildContext context) {
     final sanitizedQuestion = QuestionGenerationService.sanitizeText(widget.question);
-    final sanitizedAnswer = QuestionGenerationService.sanitizeText(widget.answer);
+    final sanitizedAnswer = QuestionGenerationService.sanitizeText(FlashcardAnswerCodec.displayAnswer(widget.answer));
 
     return GestureDetector(
       onTap: () {

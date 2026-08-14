@@ -99,16 +99,14 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
     final result = _result!;
     final gradeColor = _getGradeColor(context, result.percentage);
 
-    void backToDeck() => context.go('/decks/${result.exam.deckId}');
-
     return PopScope(
-      canPop: true,
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        // Prevent any back navigation — Results is terminal.
+      },
       child: Scaffold(
         appBar: CustomAppBar(
           title: 'Exam Results',
-          leading: BackButton(
-            onPressed: backToDeck,
-          ),
           automaticallyImplyLeading: false,
         ),
         body: SafeArea(

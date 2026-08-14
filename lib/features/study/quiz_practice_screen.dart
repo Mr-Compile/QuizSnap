@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/utils/flashcard_answer_codec.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -35,6 +36,36 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
   DateTime? _quizStart;
   int? _studySessionId;
   bool _isRecorded = false;
+  DatabaseProvider? _dbProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _dbProvider = context.read<DatabaseProvider>();
+  }
+
+  @override
+  void dispose() {
+    // Best-effort: end the session if the user exits without finishing.
+    if (!_isRecorded && _studySessionId != null && _quizStart != null) {
+      final sessionId = _studySessionId!;
+      final durationSeconds = DateTime.now().difference(_quizStart!).inSeconds;
+      final db = _dbProvider;
+      Future.microtask(() async {
+        if (db == null) return;
+        try {
+          await db.analyticsRepository.endStudySession(
+            sessionId,
+            cardsStudied: 0,
+            cardsCorrect: 0,
+            durationSeconds: durationSeconds,
+          );
+          db.refreshAnalytics();
+        } catch (_) {}
+      });
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -188,7 +219,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                   ),
                   const SizedBox(height: AppTheme.spacingMd),
                   Text(
-                    flashcard.answer,
+                    FlashcardAnswerCodec.displayAnswer(flashcard.answer),
                     style: AppTheme.headlineSmall,
                   ),
                 ],
