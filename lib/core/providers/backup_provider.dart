@@ -6,12 +6,25 @@ import '../repositories/backup_repository.dart';
 import '../services/restore_service.dart';
 import '../services/backup_service_enhanced.dart';
 
-// Database provider - This should be overridden with the actual database instance
-// The main app should provide this through a ProviderScope override
-final databaseProvider = Provider<AppDatabase>((ref) {
+/// Mutable holder for the active [AppDatabase] so the Riverpod [databaseProvider]
+/// can be swapped in place after a `.db` restore replaces the underlying file
+/// (without restarting the app).
+class DatabaseHolder {
+  AppDatabase database;
+  DatabaseHolder(this.database);
+}
+
+// Database holder provider - overridden in main.dart with the real DatabaseHolder.
+final databaseHolderProvider = Provider<DatabaseHolder>((ref) {
   throw UnimplementedError(
-    'Database provider must be provided via ProviderScope overrides in main.dart'
+    'DatabaseHolder must be provided via ProviderScope overrides in main.dart',
   );
+});
+
+// Database provider - reads the live database from the holder so it can be
+// invalidated & rebuilt after a restore.
+final databaseProvider = Provider<AppDatabase>((ref) {
+  return ref.watch(databaseHolderProvider).database;
 });
 
 // Backup repository provider
@@ -57,10 +70,22 @@ final backupFilesProvider = FutureProvider.family<List<BackupFileModel>, String?
   return await backupService.listBackupFiles(directoryPath);
 });
 
-// Custom backup path provider
+// Custom backup path provider (legacy filesystem path)
 final customBackupPathProvider = FutureProvider<String?>((ref) async {
   final backupService = ref.watch(backupServiceProvider);
   return await backupService.getCustomBackupPath();
+});
+
+// Custom backup SAF tree URI provider (modern custom folder)
+final customBackupTreeUriProvider = FutureProvider<String?>((ref) async {
+  final backupService = ref.watch(backupServiceProvider);
+  return await backupService.getCustomBackupTreeUri();
+});
+
+// Custom backup folder display name provider
+final customBackupFolderNameProvider = FutureProvider<String?>((ref) async {
+  final backupService = ref.watch(backupServiceProvider);
+  return await backupService.getCustomBackupFolderName();
 });
 
 // Default backup directory provider
@@ -197,10 +222,10 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
     RestoreOptions options,
   ) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
-    
+
     try {
       final result = await _repository.restoreBackup(backupData, options);
-      
+
       state = state.copyWith(
         isLoading: false,
         lastRestoreResult: result,
@@ -210,7 +235,7 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
       _ref.invalidate(backupHistoryProvider);
       _ref.invalidate(recentBackupsProvider);
       _ref.invalidate(backupScheduleProvider);
-      
+
       return result;
     } catch (e) {
       state = state.copyWith(
@@ -218,6 +243,68 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
         errorMessage: e.toString(),
       );
       return null;
+    }
+  }
+
+  /// Restore from a real `.db` file.
+  ///
+  /// Validates the SQLite header, checkpoints & closes the live database, and
+  /// copies the source file over the active database. Then reopens the database
+  /// connection by swapping the [DatabaseHolder] and invalidating the Riverpod
+  /// tree. Returns the new [AppDatabase] so the UI can adopt it on the Provider
+  /// package side via [DatabaseProvider.reopenDatabase].
+  Future<AppDatabase?> restoreFromDbFile(String sourcePath) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      // Cache SAF-backed files into a local path first.
+      String localPath = sourcePath;
+      final treeUri = await _repository.getCustomBackupTreeUri();
+      if (treeUri != null && sourcePath.startsWith(treeUri)) {
+        final fileName = sourcePath.substring(treeUri.length + 1);
+        localPath = await _repository.cacheSafFileForRestore(
+          treeUri: treeUri,
+          fileName: fileName,
+        );
+      }
+
+      // Validate, close current db, copy file.
+      await _repository.restoreFromDbFile(localPath);
+
+      // Reopen: create a fresh AppDatabase and swap the holder.
+      final newDb = AppDatabase(openConnection());
+      _ref.read(databaseHolderProvider).database = newDb;
+
+      // Invalidate the database provider so the whole backup Riverpod tree
+      // (repository, services, history, schedule) rebuilds with the new db.
+      _ref.invalidate(databaseProvider);
+      _ref.invalidate(backupHistoryProvider);
+      _ref.invalidate(recentBackupsProvider);
+      _ref.invalidate(backupScheduleProvider);
+      _ref.invalidate(backupFilesProvider);
+      _ref.invalidate(customBackupPathProvider);
+      _ref.invalidate(customBackupTreeUriProvider);
+      _ref.invalidate(customBackupFolderNameProvider);
+
+      state = state.copyWith(isLoading: false);
+
+      return newDb;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+      return null;
+    }
+  }
+
+  /// Validate that a file is a real SQLite database.
+  Future<bool> validateSqliteFile(String path) async {
+    try {
+      return await _repository.validateSqliteFile(path);
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+      return false;
     }
   }
 
@@ -335,10 +422,39 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
   Future<bool> setCustomBackupPath(String? path) async {
     try {
       await _repository.setCustomBackupPath(path);
-      
+
       // Refresh custom path
       _ref.invalidate(customBackupPathProvider);
-      
+
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+      return false;
+    }
+  }
+
+  /// Persist a SAF tree URI as the custom backup folder.
+  /// Returns the display name on success, null on failure.
+  Future<String?> persistCustomTreeUri(String uriString) async {
+    try {
+      final name = await _repository.persistCustomTreeUri(uriString);
+      _ref.invalidate(customBackupTreeUriProvider);
+      _ref.invalidate(customBackupFolderNameProvider);
+      _ref.invalidate(customBackupPathProvider);
+      return name;
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+      return null;
+    }
+  }
+
+  /// Clear the custom backup folder and revert to default app storage.
+  Future<bool> clearCustomBackupFolder() async {
+    try {
+      await _repository.clearCustomBackupFolder();
+      _ref.invalidate(customBackupTreeUriProvider);
+      _ref.invalidate(customBackupFolderNameProvider);
+      _ref.invalidate(customBackupPathProvider);
       return true;
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());

@@ -64,6 +64,30 @@ class DatabaseProvider extends ChangeNotifier {
   void refreshDecks() => notifyListeners();
   void refreshAnalytics() => notifyListeners();
 
+  /// Reopen the database after a `.db` restore replaces the underlying file.
+  ///
+  /// If [newDatabase] is supplied (recommended, so the Riverpod and Provider
+  /// trees share the same instance), it is adopted directly; otherwise a fresh
+  /// [AppDatabase] is created via [openConnection]. The previous connection is
+  /// closed and all repositories are rebuilt with the new instance.
+  Future<void> reopenDatabase({AppDatabase? newDatabase}) async {
+    final next = newDatabase ?? AppDatabase(openConnection());
+    try {
+      await _database?.close();
+    } catch (_) {
+      // Ignore errors closing the old (possibly already closed) connection.
+    }
+    _database = next;
+    _folderRepository = FolderRepository(_database!);
+    _deckRepository = DeckRepository(_database!);
+    _flashcardRepository = FlashcardRepository(_database!);
+    _tagRepository = TagRepository(_database!);
+    _studyRepository = StudyRepository(_database!);
+    _analyticsRepository = AnalyticsRepository(_database!);
+    _backupRepository = BackupRepository(_database!);
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _database?.close();

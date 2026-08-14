@@ -66,8 +66,10 @@ void main() async {
   runApp(
     ProviderScope(
       overrides: [
-        // Override the Riverpod database provider with the actual database instance
-        databaseProvider.overrideWithValue(database),
+        // Override the Riverpod database holder with the actual database
+        // instance. Using a mutable holder lets us swap the AppDatabase in
+        // place after a .db restore without restarting the app.
+        databaseHolderProvider.overrideWithValue(DatabaseHolder(database)),
       ],
       child: QuizSnapApp(
         prefs: prefs,

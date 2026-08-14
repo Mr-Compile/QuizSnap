@@ -31,13 +31,20 @@ class BackupFileModel {
   }
 
   String get displayName {
-    final nameWithoutExt = fileName.replaceAll('.quizsnap', '').replaceAll('.json', '');
+    final nameWithoutExt = fileName
+        .replaceAll('.db', '')
+        .replaceAll('.quizsnap', '')
+        .replaceAll('.json', '');
     return nameWithoutExt;
   }
 
   bool get isValidQuizSnapFile {
-    return fileName.endsWith('.quizsnap') || fileName.endsWith('.json');
+    return fileName.endsWith('.db') ||
+        fileName.endsWith('.quizsnap') ||
+        fileName.endsWith('.json');
   }
+
+  bool get isDbBackup => fileName.endsWith('.db');
 
   factory BackupFileModel.fromFile(File file, BackupMetadata metadata) {
     final stat = file.statSync();
@@ -48,6 +55,70 @@ class BackupFileModel {
       createdAt: stat.modified,
       modifiedAt: stat.modified,
       metadata: metadata,
+    );
+  }
+
+  /// Build a [BackupFileModel] for a real SQLite `.db` backup file when no JSON
+  /// metadata is available. Metadata counts are unknown for raw db files and
+  /// default to zero.
+  factory BackupFileModel.fromDbFile(File file) {
+    final stat = file.statSync();
+    final name = file.path.split(Platform.pathSeparator).last;
+    return BackupFileModel(
+      fileName: name,
+      filePath: file.path,
+      fileSizeBytes: stat.size,
+      createdAt: stat.modified,
+      modifiedAt: stat.modified,
+      metadata: BackupMetadata(
+        id: name,
+        type: BackupType.manual,
+        status: BackupStatus.completed,
+        name: name,
+        version: 2,
+        createdAt: stat.modified,
+        completedAt: stat.modified,
+        fileSizeBytes: stat.size,
+        deckCount: 0,
+        flashcardCount: 0,
+        folderCount: 0,
+        tagCount: 0,
+        filePath: file.path,
+      ),
+    );
+  }
+
+  /// Build a [BackupFileModel] from a SAF file listing entry (name/size/date).
+  factory BackupFileModel.fromSafEntry({
+    required String name,
+    required int size,
+    required int lastModified,
+    required String treeUri,
+  }) {
+    final modified = DateTime.fromMillisecondsSinceEpoch(lastModified);
+    return BackupFileModel(
+      fileName: name,
+      // For SAF files we store the treeUri as filePath; the service resolves
+      // the actual file via the native bridge when needed.
+      filePath: '$treeUri/$name',
+      fileSizeBytes: size,
+      createdAt: modified,
+      modifiedAt: modified,
+      metadata: BackupMetadata(
+        id: name,
+        type: BackupType.manual,
+        status: BackupStatus.completed,
+        name: name,
+        version: 2,
+        createdAt: modified,
+        completedAt: modified,
+        fileSizeBytes: size,
+        deckCount: 0,
+        flashcardCount: 0,
+        folderCount: 0,
+        tagCount: 0,
+        filePath: '$treeUri/$name',
+      ),
     );
   }
 }

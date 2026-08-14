@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:open_filex/open_filex.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -13,24 +12,30 @@ class ChangeBackupFolderScreen extends ConsumerStatefulWidget {
   const ChangeBackupFolderScreen({super.key});
 
   @override
-  ConsumerState<ChangeBackupFolderScreen> createState() => _ChangeBackupFolderScreenState();
+  ConsumerState<ChangeBackupFolderScreen> createState() =>
+      _ChangeBackupFolderScreenState();
 }
 
-class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScreen> {
-  String? _selectedPath;
+class _ChangeBackupFolderScreenState
+    extends ConsumerState<ChangeBackupFolderScreen> {
+  String? _selectedTreeUri;
+  String? _selectedFolderName;
   bool _isLoading = false;
+  bool _hasChanges = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentPath();
+    _loadCurrentFolder();
   }
 
-  Future<void> _loadCurrentPath() async {
-    final customPath = await ref.read(customBackupPathProvider.future);
+  Future<void> _loadCurrentFolder() async {
+    final treeUri = await ref.read(customBackupTreeUriProvider.future);
+    final name = await ref.read(customBackupFolderNameProvider.future);
     if (mounted) {
       setState(() {
-        _selectedPath = customPath;
+        _selectedTreeUri = treeUri;
+        _selectedFolderName = name;
       });
     }
   }
@@ -41,16 +46,21 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
       appBar: const CustomAppBar(
         title: 'Change Backup Folder',
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          _buildCurrentFolderCard(),
-          const SizedBox(height: 16),
-          _buildDefaultFolderCard(),
-          const SizedBox(height: 16),
-          _buildCustomFolderCard(),
-          const SizedBox(height: 24),
-          _buildActionButtons(),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildCurrentFolderCard(),
+                const SizedBox(height: 16),
+                _buildDefaultFolderCard(),
+                const SizedBox(height: 16),
+                _buildCustomFolderCard(),
+              ],
+            ),
+          ),
+          _buildFooterActions(),
         ],
       ),
     );
@@ -83,13 +93,32 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
-              _selectedPath ?? 'Using default location',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontFamily: 'monospace',
+            child: Row(
+              children: [
+                Icon(
+                  _selectedTreeUri != null
+                      ? Icons.create_new_folder
+                      : Icons.smartphone,
+                  size: 20,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _selectedTreeUri != null
+                        ? (_selectedFolderName ?? 'Custom folder')
+                        : 'Default app storage (QuizSnap/Backups)',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                        ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ],
@@ -98,6 +127,7 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
   }
 
   Widget _buildDefaultFolderCard() {
+    final isDefault = _selectedTreeUri == null && !_hasChanges;
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,16 +149,19 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
           ),
           const SizedBox(height: 12),
           Text(
-            'Use the app\'s default backup folder in internal storage.',
+            'Use the app\'s default backup folder in app-specific storage. No folder access permission is required.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
                 ),
           ),
           const SizedBox(height: 12),
           CustomButton(
             text: 'Use Default',
             isSecondary: true,
-            onPressed: _selectedPath == null ? null : _useDefaultLocation,
+            onPressed: isDefault ? null : _useDefaultLocation,
           ),
         ],
       ),
@@ -157,9 +190,12 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
           ),
           const SizedBox(height: 12),
           Text(
-            'Choose a custom folder for storing backups. Useful for syncing with cloud storage.',
+            'Choose a custom folder for storing backups. You\'ll be asked to grant access to the selected folder. Useful for syncing with cloud storage.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
                 ),
           ),
           const SizedBox(height: 12),
@@ -168,25 +204,18 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
             icon: Icons.folder,
             onPressed: _selectCustomFolder,
           ),
-          if (_selectedPath != null) ...[
+          if (_selectedTreeUri != null && _hasChanges) ...[
             const SizedBox(height: 12),
             Row(
               children: [
+                Icon(Icons.check_circle,
+                    size: 18, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: CustomButton(
-                    text: 'Test Write',
-                    icon: Icons.check_circle,
-                    isOutlined: true,
-                    onPressed: _testWrite,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: CustomButton(
-                    text: 'Open Folder',
-                    icon: Icons.open_in_new,
-                    isOutlined: true,
-                    onPressed: _openFolder,
+                  child: Text(
+                    _selectedFolderName ?? 'Custom folder',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -197,56 +226,111 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
     );
   }
 
-  Widget _buildActionButtons() {
-    return Column(
-      children: [
-        CustomButton(
-          text: 'Save Changes',
-          onPressed: _isLoading ? null : _saveChanges,
-          isLoading: _isLoading,
+  /// Footer with Cancel (outlined) and Save Changes (primary) in one row.
+  Widget _buildFooterActions() {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _isLoading ? null : () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text('Cancel'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: _isLoading || !_hasChanges ? null : _saveChanges,
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Save Changes'),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        CustomButton(
-          text: 'Cancel',
-          isSecondary: true,
-          onPressed: () => Navigator.pop(context),
-        ),
-      ],
+      ),
     );
   }
 
   Future<void> _useDefaultLocation() async {
     setState(() {
-      _selectedPath = null;
+      _selectedTreeUri = null;
+      _selectedFolderName = null;
+      _hasChanges = true;
     });
   }
 
   Future<void> _selectCustomFolder() async {
     try {
+      // On Android, getDirectoryPath() returns a SAF tree URI string
+      // (content://...). On desktop it returns a filesystem path.
       final directoryPath = await FilePicker.platform.getDirectoryPath();
 
-      if (directoryPath != null && mounted) {
+      if (directoryPath == null || !mounted) return;
+
+      // Persist the SAF tree URI (no-op on non-Android).
+      final name = await ref
+          .read(backupOperationProvider.notifier)
+          .persistCustomTreeUri(directoryPath);
+
+      if (name != null) {
         setState(() {
-          _selectedPath = directoryPath;
+          _selectedTreeUri = directoryPath;
+          _selectedFolderName = name;
+          _hasChanges = true;
+        });
+      } else if (mounted) {
+        // On desktop (no SAF), fall back to storing the filesystem path.
+        await ref
+            .read(backupOperationProvider.notifier)
+            .setCustomBackupPath(directoryPath);
+        setState(() {
+          _selectedTreeUri = directoryPath;
+          _selectedFolderName =
+              directoryPath.split(Platform.pathSeparator).last;
+          _hasChanges = true;
         });
       }
     } catch (e) {
       if (mounted) {
-        DialogService.showError(context, 'Failed to select folder: $e');
+        await DialogService.showError(context, 'Failed to select folder: $e');
       }
     }
   }
 
   Future<void> _saveChanges() async {
+    if (!_hasChanges) {
+      Navigator.pop(context, false);
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(backupOperationProvider.notifier).setCustomBackupPath(_selectedPath);
+      if (_selectedTreeUri == null) {
+        // Revert to default.
+        await ref.read(backupOperationProvider.notifier).clearCustomBackupFolder();
+      }
+      // The tree URI was already persisted during selection; nothing more to do.
 
       if (mounted) {
         setState(() => _isLoading = false);
-        await DialogService.showSuccess(context,
-          _selectedPath == null
+        await DialogService.showSuccess(
+          context,
+          _selectedTreeUri == null
               ? 'Reset to default backup location'
               : 'Custom backup location saved',
         );
@@ -258,44 +342,6 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
       if (mounted) {
         setState(() => _isLoading = false);
         await DialogService.showError(context, 'Failed to save changes: $e');
-      }
-    }
-  }
-
-  Future<void> _testWrite() async {
-    if (_selectedPath == null) return;
-    try {
-      final testFile = File('$_selectedPath/quizsnap_test.txt');
-      await testFile.writeAsString('QuizSnap test write successful');
-      await testFile.delete();
-      if (mounted) {
-        await DialogService.showSuccess(context, 'Write test passed');
-      }
-    } catch (e) {
-      if (mounted) {
-        await DialogService.showError(context, 'Write test failed: $e');
-      }
-    }
-  }
-
-  Future<void> _openFolder() async {
-    if (_selectedPath == null) return;
-    try {
-      final result = await OpenFilex.open(_selectedPath!);
-      if (result.type != ResultType.done && mounted) {
-        await DialogService.showInfo(
-          context,
-          'Your backup is saved in Android/data/com.quizsnap.quizsnap/files/QuizSnap/Backups. Use Share Backup to save it to Downloads, Google Drive, or another location.',
-          title: 'Cannot Open Folder',
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        await DialogService.showInfo(
-          context,
-          'Your backup is saved in Android/data/com.quizsnap.quizsnap/files/QuizSnap/Backups. Use Share Backup to save it to Downloads, Google Drive, or another location.',
-          title: 'Cannot Open Folder',
-        );
       }
     }
   }

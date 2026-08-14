@@ -1,111 +1,105 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/empty_state.dart';
-import '../../core/models/backup.dart';
-import '../../core/providers/export_provider.dart';
-import 'restore_confirmation_dialog.dart';
+import '../../core/models/backup_enhanced.dart';
+import '../../core/providers/backup_provider.dart';
+import '../../core/providers/database_provider.dart';
 import '../../core/services/dialog_service.dart';
 
-class BackupHistoryScreen extends StatefulWidget {
+class BackupHistoryScreen extends ConsumerStatefulWidget {
   const BackupHistoryScreen({super.key});
 
   @override
-  State<BackupHistoryScreen> createState() => _BackupHistoryScreenState();
+  ConsumerState<BackupHistoryScreen> createState() =>
+      _BackupHistoryScreenState();
 }
 
-class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
-  late ExportProvider _exportProvider;
-  List<BackupMetadata> _backups = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeServices();
-  }
-
-  Future<void> _initializeServices() async {
-    _exportProvider = context.read<ExportProvider>();
-    await _loadBackups();
-  }
-
-  Future<void> _loadBackups() async {
-    final backups = await _exportProvider.backupService.getBackupHistory();
-    if (mounted) {
-      setState(() {
-        _backups = backups;
-        _isLoading = false;
-      });
-    }
-  }
-
+class _BackupHistoryScreenState extends ConsumerState<BackupHistoryScreen> {
   @override
   Widget build(BuildContext context) {
+    // List actual .db backup files (newest first). The provider resolves the
+    // active folder (default or custom SAF tree) internally.
+    final backupsAsync = ref.watch(backupFilesProvider(null));
+
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Backup History',
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadBackups,
+            onPressed: () => ref.invalidate(backupFilesProvider(null)),
+            tooltip: 'Refresh',
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _backups.isEmpty
-              ? const EmptyState(
-                  icon: Icons.backup_outlined,
-                  title: 'No backups found',
-                  subtitle: 'Create a backup to see it here',
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _backups.length,
-                  itemBuilder: (context, index) {
-                    final backup = _backups[index];
-                    return _BackupCard(
-                      backup: backup,
-                      onRestore: () => _handleRestore(backup),
-                      onDelete: () => _handleDelete(backup),
-                      onTap: () => _showBackupDetails(backup),
-                    );
-                  },
-                ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(backupFilesProvider(null));
+        },
+        child: backupsAsync.when(
+          data: (backups) {
+            if (backups.isEmpty) {
+              return ListView(
+                children: const [
+                  SizedBox(height: 120),
+                  EmptyState(
+                    icon: Icons.backup_outlined,
+                    title: 'No backups found',
+                    subtitle: 'Create a backup to see it here',
+                  ),
+                ],
+              );
+            }
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: backups.length,
+              itemBuilder: (context, index) {
+                final backup = backups[index];
+                return _BackupFileCard(
+                  backup: backup,
+                  onRestore: () => _handleRestore(backup),
+                  onShare: () => _handleShare(backup),
+                  onDelete: () => _handleDelete(backup),
+                  onTap: () => _showBackupDetails(backup),
+                );
+              },
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => ListView(
+            children: [
+              const SizedBox(height: 120),
+              EmptyState(
+                icon: Icons.error_outline,
+                title: 'Could not load backups',
+                subtitle: 'Pull down to refresh. $e',
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  void _showBackupDetails(BackupMetadata backup) {
+  void _showBackupDetails(BackupFileModel backup) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(backup.name),
+        title: Text(backup.displayName),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _detailRow('Type', backup.typeDisplay),
-              _detailRow('Status', backup.statusDisplay),
+              _detailRow('File', backup.fileName),
               _detailRow('Size', backup.fileSizeDisplay),
               _detailRow('Created', _formatDateTime(backup.createdAt)),
-              if (backup.completedAt != null)
-                _detailRow('Completed', _formatDateTime(backup.completedAt!)),
-              _detailRow('Decks', '${backup.deckCount}'),
-              _detailRow('Flashcards', '${backup.flashcardCount}'),
-              _detailRow('Folders', '${backup.folderCount}'),
-              _detailRow('Tags', '${backup.tagCount}'),
-              if (backup.description != null) ...[
-                const SizedBox(height: 8),
-                const Text(
-                  'Description',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(backup.description!),
-              ],
+              _detailRow('Type',
+                  backup.isDbBackup ? 'SQLite database (.db)' : 'Legacy backup'),
             ],
           ),
         ),
@@ -125,47 +119,125 @@ class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          Text(value),
         ],
       ),
     );
   }
 
   String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    return DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
   }
 
-  Future<void> _handleRestore(BackupMetadata backup) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => RestoreConfirmationDialog(backup: backup),
-    );
+  Future<void> _handleRestore(BackupFileModel backup) async {
+    final filePath = backup.filePath;
 
-    if (confirmed == true && mounted) {
+    // SAF-backed files must be cached locally first.
+    String localPath = filePath;
+    final treeUri = await ref.read(customBackupTreeUriProvider.future);
+    if (treeUri != null && filePath.startsWith(treeUri)) {
       try {
-        await _exportProvider.restoreBackup(backup.id);
-        if (mounted) {
-          await DialogService.showSuccess(context, 'Backup restored successfully');
-          await _loadBackups();
-        }
+        localPath = await ref
+            .read(backupServiceProvider)
+            .cacheSafFileForRestore(treeUri: treeUri, fileName: backup.fileName);
       } catch (e) {
         if (mounted) {
-          await DialogService.showError(context, 'Failed to restore: $e');
+          await DialogService.showError(context, 'Failed to access backup: $e');
         }
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore Backup'),
+        content: Text(
+          'Restore from "${backup.fileName}"? This will replace your current database. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const _RestoringDialog(),
+    );
+
+    final newDb = await ref
+        .read(backupOperationProvider.notifier)
+        .restoreFromDbFile(localPath);
+
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+
+    if (newDb != null && mounted) {
+      // Adopt the new database on the Provider-package side too.
+      context.read<DatabaseProvider>().reopenDatabase(newDatabase: newDb);
+      context.read<DatabaseProvider>().refreshDecks();
+      context.read<DatabaseProvider>().refreshAnalytics();
+
+      ref.invalidate(backupFilesProvider(null));
+      ref.invalidate(backupHistoryProvider);
+
+      await DialogService.showSuccess(
+        context,
+        'Your data has been restored successfully.',
+        title: 'Restore Complete',
+      );
+    } else if (mounted) {
+      final err = ref.read(backupOperationProvider).errorMessage;
+      await DialogService.showError(
+        context,
+        err ?? 'The restore could not be completed. Please try again.',
+        title: 'Restore Failed',
+      );
+    }
+  }
+
+  Future<void> _handleShare(BackupFileModel backup) async {
+    try {
+      final success = await ref
+          .read(backupOperationProvider.notifier)
+          .shareBackup(backup.filePath);
+      if (!success && mounted) {
+        await DialogService.showError(context, 'Failed to open share dialog');
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogService.showError(context, 'Failed to share: $e');
       }
     }
   }
 
-  Future<void> _handleDelete(BackupMetadata backup) async {
+  Future<void> _handleDelete(BackupFileModel backup) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Backup'),
-        content: Text('Are you sure you want to delete "${backup.name}"?'),
+        content: Text('Are you sure you want to delete "${backup.fileName}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -173,6 +245,9 @@ class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -181,10 +256,12 @@ class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
 
     if (confirmed == true && mounted) {
       try {
-        await _exportProvider.deleteBackup(backup.id);
+        await ref
+            .read(backupOperationProvider.notifier)
+            .deleteBackupFile(backup.filePath);
         if (mounted) {
+          ref.invalidate(backupFilesProvider(null));
           await DialogService.showSuccess(context, 'Backup deleted');
-          await _loadBackups();
         }
       } catch (e) {
         if (mounted) {
@@ -195,15 +272,17 @@ class _BackupHistoryScreenState extends State<BackupHistoryScreen> {
   }
 }
 
-class _BackupCard extends StatelessWidget {
-  final BackupMetadata backup;
+class _BackupFileCard extends StatelessWidget {
+  final BackupFileModel backup;
   final VoidCallback onRestore;
+  final VoidCallback onShare;
   final VoidCallback onDelete;
   final VoidCallback onTap;
 
-  const _BackupCard({
+  const _BackupFileCard({
     required this.backup,
     required this.onRestore,
+    required this.onShare,
     required this.onDelete,
     required this.onTap,
   });
@@ -218,12 +297,15 @@ class _BackupCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: _getStatusColor(context).withValues(alpha: 0.1),
+              color: Theme.of(context)
+                  .colorScheme
+                  .primary
+                  .withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              _getStatusIcon(),
-              color: _getStatusColor(context),
+              Icons.storage,
+              color: Theme.of(context).colorScheme.primary,
               size: 24,
             ),
           ),
@@ -233,37 +315,40 @@ class _BackupCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  backup.name,
+                  backup.fileName,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    _buildChip(context, backup.typeDisplay),
+                    _buildChip(context, backup.fileSizeDisplay),
                     const SizedBox(width: 8),
-                    _buildChip(context, backup.statusDisplay),
-                    const SizedBox(width: 8),
-                    Text(
-                      backup.fileSizeDisplay,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
+                    Flexible(
+                      child: Text(
+                        _formatDateTime(backup.createdAt),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
+                            ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Created: ${_formatDateTime(backup.createdAt)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: onShare,
+            tooltip: 'Share',
+          ),
           IconButton(
             icon: const Icon(Icons.restore),
             onPressed: onRestore,
@@ -277,34 +362,6 @@ class _BackupCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Color _getStatusColor(BuildContext context) {
-    switch (backup.status) {
-      case BackupStatus.completed:
-        return Theme.of(context).colorScheme.primary;
-      case BackupStatus.failed:
-        return Theme.of(context).colorScheme.error;
-      case BackupStatus.creating:
-      case BackupStatus.restoring:
-        return Theme.of(context).colorScheme.tertiary;
-      default:
-        return Theme.of(context).colorScheme.onSurfaceVariant;
-    }
-  }
-
-  IconData _getStatusIcon() {
-    switch (backup.status) {
-      case BackupStatus.completed:
-        return Icons.check_circle;
-      case BackupStatus.failed:
-        return Icons.error;
-      case BackupStatus.creating:
-      case BackupStatus.restoring:
-        return Icons.cloud_upload;
-      default:
-        return Icons.schedule;
-    }
   }
 
   Widget _buildChip(BuildContext context, String label) {
@@ -325,6 +382,31 @@ class _BackupCard extends StatelessWidget {
   }
 
   String _formatDateTime(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    return DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+  }
+}
+
+class _RestoringDialog extends StatelessWidget {
+  const _RestoringDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Text(
+                'Restoring backup…',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

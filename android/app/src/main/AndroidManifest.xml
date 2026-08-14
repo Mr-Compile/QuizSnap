@@ -67,5 +67,18 @@
             <category android:name="android.intent.category.BROWSABLE"/>
             <data android:mimeType="*/*"/>
         </intent>
+        <!-- Directory browsing intents (Open Folder) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="vnd.android.document/directory"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="resource/folder"/>
+        </intent>
+        <!-- SAF document tree picker (custom backup folder) -->
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT_TREE"/>
+        </intent>
     </queries>
 </manifest>

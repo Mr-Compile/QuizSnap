@@ -33,6 +33,8 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     final backupScheduleAsync = ref.watch(backupScheduleProvider);
     final recentBackupsAsync = ref.watch(recentBackupsProvider);
     final customPathAsync = ref.watch(customBackupPathProvider);
+    final treeUriAsync = ref.watch(customBackupTreeUriProvider);
+    final folderNameAsync = ref.watch(customBackupFolderNameProvider);
     final backupHistoryAsync = ref.watch(backupHistoryProvider);
 
     return Scaffold(
@@ -52,7 +54,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
           const SizedBox(height: 24),
           _buildRecentBackups(recentBackupsAsync),
           const SizedBox(height: 24),
-          _buildCurrentBackupFolder(customPathAsync),
+          _buildCurrentBackupFolder(customPathAsync, treeUriAsync, folderNameAsync),
         ],
       ),
     );
@@ -168,7 +170,21 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     );
   }
 
-  Widget _buildCurrentBackupFolder(AsyncValue<String?> customPathAsync) {
+  Widget _buildCurrentBackupFolder(
+    AsyncValue<String?> customPathAsync,
+    AsyncValue<String?> treeUriAsync,
+    AsyncValue<String?> folderNameAsync,
+  ) {
+    // Prefer the SAF tree URI folder name; fall back to the legacy path.
+    final treeUri = treeUriAsync.valueOrNull;
+    final folderName = folderNameAsync.valueOrNull;
+    final legacyPath = customPathAsync.valueOrNull;
+
+    final displayLabel = (treeUri != null)
+        ? (folderName ?? 'Custom folder')
+        : (legacyPath ?? 'Default app storage (QuizSnap/Backups)');
+    final isCustom = treeUri != null || legacyPath != null;
+
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,11 +210,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
             ],
           ),
           const SizedBox(height: 12),
-          customPathAsync.when(
-            data: (path) => _buildPathDisplay(path),
-            loading: () => const CircularProgressIndicator(),
-            error: (_, _) => const Text('Error loading path'),
-          ),
+          _buildPathDisplay(displayLabel, isCustom),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -224,7 +236,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     );
   }
 
-  Widget _buildPathDisplay(String? path) {
+  Widget _buildPathDisplay(String label, bool isCustom) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -234,14 +246,14 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
       child: Row(
         children: [
           Icon(
-            path == null ? Icons.smartphone : Icons.create_new_folder,
+            isCustom ? Icons.create_new_folder : Icons.smartphone,
             size: 20,
             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              path ?? 'Using default app storage',
+              label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     fontFamily: 'monospace',
                   ),
@@ -418,7 +430,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
           ),
           const SizedBox(height: 12),
           Text(
-            'Select a .quizsnap or .json backup file from any location on your device.',
+            'Select a .db backup file from any location on your device.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
@@ -466,6 +478,9 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
   }
 
   Future<void> _showBackupSuccessDialog(BackupFileModel result) async {
+    final folderName = await _resolveBackupFolderName();
+    if (!mounted) return;
+
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -488,23 +503,22 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
               const SizedBox(height: 16),
               _detailRow('File', result.fileName),
               const SizedBox(height: 8),
-              _detailRow('Location', result.filePath),
+              _detailRow('Folder', folderName),
               const SizedBox(height: 8),
               _detailRow('Size', result.fileSizeDisplay),
             ],
           ),
         ),
         actions: [
-          OverflowBar(
-            spacing: 8,
-            overflowSpacing: 8,
-            overflowAlignment: OverflowBarAlignment.end,
-            overflowDirection: VerticalDirection.down,
+          // Close as a low-emphasis text action.
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          // Open Folder + Share in one horizontal row.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
               OutlinedButton.icon(
                 icon: const Icon(Icons.folder_open, size: 18),
                 label: const Text('Open Folder'),
@@ -513,6 +527,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
                   _handleOpenFolder();
                 },
               ),
+              const SizedBox(width: 8),
               FilledButton.icon(
                 icon: const Icon(Icons.share, size: 18),
                 label: const Text('Share'),
@@ -526,6 +541,20 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
         ],
       ),
     );
+  }
+
+  Future<String> _resolveBackupFolderName() async {
+    try {
+      final treeUri = await ref.read(customBackupTreeUriProvider.future);
+      if (treeUri != null) {
+        final name = await ref.read(customBackupFolderNameProvider.future);
+        return name ?? 'Custom folder';
+      }
+      final dir = await ref.read(backupServiceProvider).getDefaultBackupDirectory();
+      return dir.path.split(Platform.pathSeparator).where((s) => s.isNotEmpty).last;
+    } catch (_) {
+      return 'QuizSnap Backups';
+    }
   }
 
   Future<void> _shareBackup(String filePath) async {
@@ -549,8 +578,8 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['quizsnap', 'json'],
-        dialogTitle: 'Select Backup File',
+        allowedExtensions: ['db'],
+        dialogTitle: 'Select .db Backup File',
         lockParentWindow: true,
         withData: false,
       );
@@ -567,20 +596,117 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
           return;
         }
 
-        // Navigate to import preview
-        if (mounted) {
-          Navigator.push(
+        // Validate SQLite header before proceeding.
+        final isValid = await ref
+            .read(backupOperationProvider.notifier)
+            .validateSqliteFile(filePath);
+        if (!isValid && mounted) {
+          await DialogService.showError(
             context,
-            MaterialPageRoute(
-              builder: (context) => ImportPreviewScreen(filePath: filePath),
-            ),
+            'The selected file is not a valid QuizSnap .db backup.',
+            title: 'Invalid Backup File',
           );
+          return;
+        }
+
+        // Go straight to the restore confirmation flow for .db files.
+        if (mounted) {
+          await _confirmAndRestoreDbFile(filePath);
         }
       }
     } catch (e) {
       if (mounted) {
         await DialogService.showError(context, 'Failed to select file: $e');
       }
+    }
+  }
+
+  Future<void> _confirmAndRestoreDbFile(String filePath) async {
+    final fileName = filePath.split(Platform.pathSeparator).last;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore Backup'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Restore from "$fileName"?'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Theme.of(context).colorScheme.tertiary),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning,
+                      color: Theme.of(context).colorScheme.tertiary),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'This will replace your current database with the backup. This action cannot be undone.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    // Show a progress dialog while restoring.
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const _RestoringProgressDialog(),
+    );
+
+    final newDb = await ref
+        .read(backupOperationProvider.notifier)
+        .restoreFromDbFile(filePath);
+
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop(); // dismiss progress
+    }
+
+    if (newDb != null && mounted) {
+      // Adopt the new database on the Provider-package side too so all
+      // deck/flashcard/analytics screens refresh immediately.
+      context.read<DatabaseProvider>().reopenDatabase(newDatabase: newDb);
+      context.read<DatabaseProvider>().refreshDecks();
+      context.read<DatabaseProvider>().refreshAnalytics();
+
+      await DialogService.showSuccess(
+        context,
+        'Your data has been restored successfully.',
+        title: 'Restore Complete',
+      );
+    } else if (mounted) {
+      final err = ref.read(backupOperationProvider).errorMessage;
+      await DialogService.showError(
+        context,
+        err ?? 'The restore could not be completed. Please try again.',
+        title: 'Restore Failed',
+      );
     }
   }
 
@@ -598,29 +724,49 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
   }
 
   Future<void> _handleOpenFolder() async {
-    final customPath = await ref.read(customBackupPathProvider.future);
+    final treeUri = await ref.read(customBackupTreeUriProvider.future);
     final backupService = ref.read(backupServiceProvider);
-    final directory = customPath != null 
+
+    // Custom SAF folder: open the persisted tree URI.
+    if (treeUri != null) {
+      try {
+        final success = await ref
+            .read(backupOperationProvider.notifier)
+            .openBackupFolder(treeUri);
+        if (!success && mounted) {
+          await _showOpenFolderFallbackDialog();
+        }
+      } catch (_) {
+        if (mounted) await _showOpenFolderFallbackDialog();
+      }
+      return;
+    }
+
+    // Default app-specific folder: open via FileProvider content URI.
+    final customPath = await ref.read(customBackupPathProvider.future);
+    final directory = customPath != null
         ? Directory(customPath)
         : await backupService.getDefaultBackupDirectory();
 
     try {
-      final success = await ref.read(backupOperationProvider.notifier).openBackupFolder(directory.path);
+      final success = await ref
+          .read(backupOperationProvider.notifier)
+          .openBackupFolder(directory.path);
       if (!success && mounted) {
-        await _showOpenFolderFallbackDialog(directory.path);
+        await _showOpenFolderFallbackDialog();
       }
     } catch (e) {
       if (mounted) {
-        await _showOpenFolderFallbackDialog(directory.path);
+        await _showOpenFolderFallbackDialog();
       }
     }
   }
 
-  Future<void> _showOpenFolderFallbackDialog(String folderPath) async {
+  Future<void> _showOpenFolderFallbackDialog() async {
     await DialogService.showInfo(
       context,
       Platform.isAndroid
-          ? 'Your backup is saved in Android/data/${'com.quizsnap.quizsnap'}/files/QuizSnap/Backups. Use Share Backup to save it to Downloads, Google Drive, or another location.'
+          ? 'No compatible file manager was found. Your backup is saved inside QuizSnap. Use Share Backup to save a copy to Downloads, Google Drive, or another location.'
           : 'Your backup is saved in the app\'s Documents folder. You can access it through the Files app or by sharing it.',
       title: 'Backup Location',
     );
@@ -701,8 +847,14 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
       return;
     }
 
+    // .db backups go through the direct restore flow.
+    if (backup.filePath!.toLowerCase().endsWith('.db')) {
+      await _confirmAndRestoreDbFile(backup.filePath!);
+      return;
+    }
+
+    // Legacy .quizsnap / .json backups use the import preview screen.
     try {
-      // Navigate to import preview for validation and restore
       if (mounted) {
         final result = await Navigator.push<bool>(
           context,
@@ -761,11 +913,14 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     ref.invalidate(backupHistoryProvider);
     ref.invalidate(recentBackupsProvider);
     ref.invalidate(backupScheduleProvider);
+    ref.invalidate(backupFilesProvider);
 
-    // Refresh Provider-based providers for deck/flashcard/analytics
+    // Refresh Provider-based providers for deck/flashcard/analytics/settings.
+    // notifyListeners() rebuilds every screen listening to DatabaseProvider.
     if (mounted) {
-      context.read<DatabaseProvider>().refreshDecks();
-      context.read<DatabaseProvider>().refreshAnalytics();
+      final dbProvider = context.read<DatabaseProvider>();
+      dbProvider.refreshDecks();
+      dbProvider.refreshAnalytics();
     }
   }
 
@@ -893,5 +1048,30 @@ class _BackupListItem extends StatelessWidget {
       default:
         return Icons.schedule;
     }
+  }
+}
+
+class _RestoringProgressDialog extends StatelessWidget {
+  const _RestoringProgressDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Text(
+                'Restoring backup…',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
