@@ -48,6 +48,20 @@ class Flashcards extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();
+  // Manual Flashcard Question Type system (schema v5).
+  // Allowed values: 'identification', 'enumeration', 'multiple_choice'.
+  TextColumn get questionType => text().withDefault(const Constant('identification'))();
+  // Multiple-choice options (nullable; only set for multiple_choice).
+  TextColumn get optionA => text().nullable()();
+  TextColumn get optionB => text().nullable()();
+  TextColumn get optionC => text().nullable()();
+  TextColumn get optionD => text().nullable()();
+  // The correct option letter: 'A', 'B', 'C', or 'D'.
+  TextColumn get correctOption => text().nullable()();
+  // JSON-encoded array of enumeration items, e.g. '["item one","item two"]'.
+  TextColumn get enumerationItems => text().nullable()();
+  // Optional explanation shown after reveal / in exam review.
+  TextColumn get explanation => text().nullable()();
 }
 
 class Tags extends Table {
@@ -118,7 +132,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -142,6 +156,25 @@ class AppDatabase extends _$AppDatabase {
           // Add AI usage and document extraction tables
           await m.createTable(aiUsage);
           await m.createTable(extractedDocuments);
+        }
+        if (from < 5 && to >= 5) {
+          // Add Manual Flashcard Question Type columns.
+          await m.addColumn(flashcards, flashcards.questionType);
+          await m.addColumn(flashcards, flashcards.optionA);
+          await m.addColumn(flashcards, flashcards.optionB);
+          await m.addColumn(flashcards, flashcards.optionC);
+          await m.addColumn(flashcards, flashcards.optionD);
+          await m.addColumn(flashcards, flashcards.correctOption);
+          await m.addColumn(flashcards, flashcards.enumerationItems);
+          await m.addColumn(flashcards, flashcards.explanation);
+          // Existing rows default to 'identification'.  Any row whose
+          // answer contains the legacy MCQ encoding delimiter (|||) is
+          // upgraded to 'multiple_choice' so the stored type matches the
+          // encoded data.
+          await customStatement(
+            "UPDATE flashcards SET question_type = 'multiple_choice' "
+            "WHERE answer LIKE '%|||%' AND deleted_at IS NULL",
+          );
         }
       },
     );

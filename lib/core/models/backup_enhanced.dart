@@ -566,3 +566,83 @@ enum RestoreMode {
   merge,
   replace,
 }
+
+/// Aggregated, dynamic information about the active backup folder.
+///
+/// Built by [BackupServiceEnhanced.getBackupFolderInfo] and exposed to the UI
+/// through [backupSettingsProvider] so the Backup & Restore screen reacts
+/// immediately when the folder changes or files are added/removed.
+class BackupFolderInfo {
+  /// Full folder path (filesystem path or SAF tree URI).
+  final String folderPath;
+
+  /// Human-readable folder name (last path segment or SAF display name).
+  final String folderName;
+
+  /// `true` when using the default app-specific backup folder.
+  final bool isUsingDefaultFolder;
+
+  /// `true` when the folder is reachable and listable.
+  final bool exists;
+
+  /// `.db` backup files inside the folder, newest first.
+  final List<BackupFileModel> backupFiles;
+
+  /// Sum of all backup file sizes in bytes.
+  final int totalSizeBytes;
+
+  /// Set when listing failed for a reason other than the folder being missing.
+  final String? readError;
+
+  const BackupFolderInfo({
+    required this.folderPath,
+    required this.folderName,
+    required this.isUsingDefaultFolder,
+    required this.exists,
+    required this.backupFiles,
+    required this.totalSizeBytes,
+    this.readError,
+  });
+
+  int get backupCount => backupFiles.length;
+
+  BackupFileModel? get newestBackup =>
+      backupFiles.isEmpty ? null : backupFiles.first;
+
+  DateTime? get lastBackupDate => newestBackup?.createdAt;
+
+  String get totalSizeDisplay => _formatBytes(totalSizeBytes);
+
+  String get storageTypeLabel =>
+      isUsingDefaultFolder ? 'Default' : 'Custom';
+}
+
+/// Live counts of the user's protected data, read from the database.
+class DataProtectedSummary {
+  final int deckCount;
+  final int flashcardCount;
+  final int bookmarkCount;
+  final int studySessionCount;
+  final int quizResultCount;
+
+  const DataProtectedSummary({
+    this.deckCount = 0,
+    this.flashcardCount = 0,
+    this.bookmarkCount = 0,
+    this.studySessionCount = 0,
+    this.quizResultCount = 0,
+  });
+
+  int get analyticsCount => studySessionCount + quizResultCount;
+}
+
+String _formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+  if (bytes < 1024 * 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+}

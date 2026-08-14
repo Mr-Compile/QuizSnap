@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
 import '../../core/providers/database_provider.dart';
@@ -6,6 +7,7 @@ import '../../core/services/dialog_service.dart';
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
+import '../../core/navigation/app_routes.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 
@@ -191,9 +193,9 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
     }
 
     final dbProvider = context.read<DatabaseProvider>();
-    
+
     try {
-      await dbProvider.deckRepository.createDeck(
+      final deckId = await dbProvider.deckRepository.createDeck(
         DecksCompanion(
           name: drift.Value(_nameController.text.trim()),
           description: _descriptionController.text.trim().isEmpty
@@ -204,14 +206,17 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
         ),
       );
 
-      // Trigger dependent consumers (e.g. DeckListScreen) to rebuild.
-      dbProvider.refreshDecks();
+      // Trigger dependent consumers (e.g. LibraryScreen) to rebuild.
+      dbProvider.refreshAll();
 
       if (mounted) {
         await DialogService.showSuccess(context, 'Deck created successfully');
       }
       if (mounted) {
-        Navigator.of(context).pop();
+        // Replace this create screen with the new deck's details screen so
+        // the user lands on the deck they just created (back returns to the
+        // Library rather than the create form).
+        GoRouter.of(context).pushReplacement('${AppRoutes.decks}/$deckId');
       }
     } catch (e) {
       if (mounted) {

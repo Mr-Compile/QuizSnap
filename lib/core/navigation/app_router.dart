@@ -58,6 +58,7 @@ import '../../features/settings/set_pin_screen.dart';
 import '../../features/settings/reminder_settings_screen.dart';
 import '../../features/settings/database_maintenance_screen.dart';
 import '../../features/settings/trash_settings_screen.dart';
+import '../../features/user_manual/user_manual_home_screen.dart';
 import '../../features/folders/folder_list_screen.dart';
 import '../../features/folders/create_folder_screen.dart';
 import '../../features/folders/folder_details_screen.dart';
@@ -69,6 +70,7 @@ import '../../core/navigation/app_routes.dart';
 import '../../core/navigation/error_screens/not_found_screen.dart';
 import '../../core/navigation/error_screens/database_error_screen.dart';
 import '../../core/navigation/error_screens/network_error_screen.dart';
+import '../../core/navigation/error_screens/invalid_id_screen.dart';
 
 /// Application router configuration using GoRouter
 /// 
@@ -136,52 +138,89 @@ class AppRouter {
       ),
 
       // Deck / Library routes
+      //
+      // IMPORTANT: the static `create` route is declared BEFORE the
+      // parameterised `:deckId` route.  GoRouter matches routes in
+      // declaration order, so a `create` segment must not be captured by
+      // `:deckId` (which would previously cause
+      // `FormatException: Invalid radix-10 number` when `int.parse` ran on
+      // the string "create").
       GoRoute(
         path: AppRoutes.decks,
         builder: (context, state) => const LibraryScreen(),
         routes: [
           GoRoute(
+            path: 'create',
+            builder: (context, state) => const CreateDeckScreen(),
+          ),
+          GoRoute(
             path: ':deckId',
             builder: (context, state) {
-              final deckId = int.parse(state.pathParameters['deckId']!);
+              final deckId = int.tryParse(state.pathParameters['deckId'] ?? '');
+              if (deckId == null) {
+                return InvalidIdScreen(
+                  paramName: 'deckId',
+                  invalidValue: state.pathParameters['deckId'] ?? '',
+                );
+              }
               return DeckDetailsScreen(deckId: deckId);
             },
             routes: [
               GoRoute(
                 path: 'edit',
                 builder: (context, state) {
-                  final deckId = int.parse(state.pathParameters['deckId']!);
+                  final deckId = int.tryParse(state.pathParameters['deckId'] ?? '');
+                  if (deckId == null) {
+                    return InvalidIdScreen(
+                      paramName: 'deckId',
+                      invalidValue: state.pathParameters['deckId'] ?? '',
+                    );
+                  }
                   return EditDeckScreen(deckId: deckId);
                 },
               ),
               GoRoute(
                 path: 'flashcards',
                 builder: (context, state) {
-                  final deckId = int.parse(state.pathParameters['deckId']!);
+                  final deckId = int.tryParse(state.pathParameters['deckId'] ?? '');
+                  if (deckId == null) {
+                    return InvalidIdScreen(
+                      paramName: 'deckId',
+                      invalidValue: state.pathParameters['deckId'] ?? '',
+                    );
+                  }
                   return FlashcardListScreen(deckId: deckId);
                 },
                 routes: [
                   GoRoute(
                     path: 'add',
                     builder: (context, state) {
-                      final deckId = int.parse(state.pathParameters['deckId']!);
+                      final deckId = int.tryParse(state.pathParameters['deckId'] ?? '');
+                      if (deckId == null) {
+                        return InvalidIdScreen(
+                          paramName: 'deckId',
+                          invalidValue: state.pathParameters['deckId'] ?? '',
+                        );
+                      }
                       return CreateFlashcardScreen(deckId: deckId);
                     },
                   ),
                   GoRoute(
                     path: ':flashcardId/edit',
                     builder: (context, state) {
-                      final flashcardId = int.parse(state.pathParameters['flashcardId']!);
+                      final flashcardId = int.tryParse(state.pathParameters['flashcardId'] ?? '');
+                      if (flashcardId == null) {
+                        return InvalidIdScreen(
+                          paramName: 'flashcardId',
+                          invalidValue: state.pathParameters['flashcardId'] ?? '',
+                        );
+                      }
                       return EditFlashcardScreen(flashcardId: flashcardId);
                     },
                   ),
                 ],
               ),
             ],
-          ),
-          GoRoute(
-            path: 'create',
-            builder: (context, state) => const CreateDeckScreen(),
           ),
         ],
       ),
@@ -280,7 +319,13 @@ class AppRouter {
       GoRoute(
         path: '/exam/:deckId/setup',
         builder: (context, state) {
-          final deckId = int.parse(state.pathParameters['deckId']!);
+          final deckId = int.tryParse(state.pathParameters['deckId'] ?? '');
+          if (deckId == null) {
+            return InvalidIdScreen(
+              paramName: 'deckId',
+              invalidValue: state.pathParameters['deckId'] ?? '',
+            );
+          }
           final deckName = state.uri.queryParameters['deckName'] ?? 'Unknown Deck';
           return ExamSetupScreen(
             deckId: deckId,
@@ -462,6 +507,10 @@ class AppRouter {
             path: 'trash',
             builder: (context, state) => const TrashSettingsScreen(),
           ),
+          GoRoute(
+            path: 'user-manual',
+            builder: (context, state) => const UserManualHomeScreen(),
+          ),
         ],
       ),
 
@@ -477,7 +526,13 @@ class AppRouter {
           GoRoute(
             path: ':folderId',
             builder: (context, state) {
-              final folderId = int.parse(state.pathParameters['folderId']!);
+              final folderId = int.tryParse(state.pathParameters['folderId'] ?? '');
+              if (folderId == null) {
+                return InvalidIdScreen(
+                  paramName: 'folderId',
+                  invalidValue: state.pathParameters['folderId'] ?? '',
+                );
+              }
               return FolderDetailsScreen(folderId: folderId);
             },
           ),
@@ -537,6 +592,18 @@ extension AppRouterNavigation on BuildContext {
 
   void navigateToCreateDeck() {
     go('${AppRoutes.decks}/create');
+  }
+
+  void navigateToCreateFolder() {
+    go('${AppRoutes.folders}/create');
+  }
+
+  void navigateToFolderDetails(int folderId) {
+    go('${AppRoutes.folders}/$folderId');
+  }
+
+  void navigateToFolders() {
+    go(AppRoutes.folders);
   }
 
   void navigateToEditDeck(int deckId) {

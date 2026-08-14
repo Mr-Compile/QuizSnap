@@ -262,6 +262,14 @@ class RestoreService {
           createdAt: Value(flashcard.createdAt),
           updatedAt: Value(flashcard.updatedAt),
           deletedAt: Value(flashcard.deletedAt),
+          questionType: Value(flashcard.questionType),
+          optionA: Value(flashcard.optionA),
+          optionB: Value(flashcard.optionB),
+          optionC: Value(flashcard.optionC),
+          optionD: Value(flashcard.optionD),
+          correctOption: Value(flashcard.correctOption),
+          enumerationItems: Value(flashcard.enumerationItems),
+          explanation: Value(flashcard.explanation),
         ));
         flashcardIdMap[flashcard.id] = newId;
         stats.restoredFlashcards++;

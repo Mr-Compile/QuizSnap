@@ -27,25 +27,37 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
     super.initState();
     _secureStorage = SecureStorageService();
     _loadAuthStatus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showAuthenticationDialog();
-    });
   }
 
   Future<void> _loadAuthStatus() async {
-    // Authorization is always enabled with constant password
-    final isEnabled = true;
+    // Read the actual stored enabled state — this is the single source of
+    // truth. The previous code hardcoded `true`, which caused the toggle
+    // to have no effect.
+    final isEnabled = await _secureStorage.isQuotaAuthEnabled();
     if (!mounted) return;
-    
+
     final quotaProvider = context.read<AiQuotaProvider>();
     final lastMod = await quotaProvider.service.getLastModificationTime();
-    
+
     if (!mounted) return;
-    
+
     setState(() {
       _isAuthEnabled = isEnabled;
       _lastModificationTime = lastMod;
     });
+
+    // Only show the authentication dialog if authorization is actually
+    // enabled. When disabled, skip the password prompt entirely.
+    if (isEnabled && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showAuthenticationDialog();
+      });
+    } else {
+      // Auth disabled — no password required to view the screen.
+      setState(() {
+        _isAuthenticated = true;
+      });
+    }
   }
 
   Future<void> _showAuthenticationDialog() async {
@@ -116,8 +128,28 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
   }
 
   Future<void> _showPasswordDialog(String action, Future<bool> Function() actionCallback) async {
-    // Authorization is always enabled with constant password
-    // Auto-authorize using the constant secret key
+    // When authorization is disabled, skip the password prompt entirely
+    // and execute the action directly.
+    if (!_isAuthEnabled) {
+      final success = await actionCallback();
+      if (mounted) {
+        if (success) {
+          await DialogService.showSuccess(context, 'Action completed successfully');
+        } else {
+          await DialogService.showError(context, 'Action failed');
+        }
+        if (!mounted) return;
+        context.read<AiQuotaProvider>().refreshQuota();
+        final quotaProvider = context.read<AiQuotaProvider>();
+        final lastMod = await quotaProvider.service.getLastModificationTime();
+        setState(() {
+          _lastModificationTime = lastMod;
+        });
+      }
+      return;
+    }
+
+    // Authorization enabled — auto-authorize using the constant secret key.
     final success = await actionCallback();
     if (mounted) {
       if (success) {
@@ -137,7 +169,66 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
     }
   }
 
-  Future<void> _setPassword() async {
+  /// Enables authorization: shows the password setup dialog and persists
+  /// the enabled state. If the user cancels the dialog, the toggle reverts.
+  Future<void> _enableAuthorization() async {
+    final confirmed = await _setPasswordDialog();
+    if (confirmed == true && mounted) {
+      // Password was already stored inside the dialog; just flip the flag.
+      await _secureStorage.setQuotaAuthEnabled(true);
+      if (!mounted) return;
+      setState(() {
+        _isAuthEnabled = true;
+      });
+      await DialogService.showSuccess(context, 'Authorization enabled');
+    } else if (mounted) {
+      // User cancelled — revert the toggle visually.
+      setState(() {
+        _isAuthEnabled = false;
+      });
+    }
+  }
+
+  /// Disables authorization: persists the disabled state immediately so
+  /// the toggle is the single source of truth. No password is required
+  /// to disable.
+  Future<void> _disableAuthorization() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Disable Authorization'),
+        content: const Text('Are you sure you want to disable quota authorization? Anyone will be able to modify quota settings.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+            child: const Text('Disable'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      // Persist the disabled state immediately — this is the single source
+      // of truth that survives app restart, navigation, theme change, and
+      // rotation.
+      await _secureStorage.clearQuotaAuthPassword();
+      await _secureStorage.setQuotaAuthEnabled(false);
+      if (!mounted) return;
+      setState(() {
+        _isAuthEnabled = false;
+      });
+      await DialogService.showInfo(context, 'Authorization disabled');
+    }
+  }
+
+  /// Shows the password setup dialog and stores the password if confirmed.
+  /// Returns true if the user confirmed, false if cancelled.
+  Future<bool?> _setPasswordDialog() async {
     final passwordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
     final formKey = GlobalKey<FormState>();
@@ -208,45 +299,8 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
 
     if (confirmed == true && mounted) {
       await _secureStorage.storeQuotaAuthPassword(passwordController.text.trim());
-      await _secureStorage.setQuotaAuthEnabled(true);
-      if (!mounted) return;
-      setState(() {
-        _isAuthEnabled = true;
-      });
-      if (!mounted) return;
-      await DialogService.showSuccess(context, 'Authorization password set successfully');
     }
-  }
-
-  Future<void> _disableAuthorization() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Disable Authorization'),
-        content: const Text('Are you sure you want to disable quota authorization? Anyone will be able to modify quota settings.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
-            child: const Text('Disable'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      await _secureStorage.clearQuotaAuthPassword();
-      await _secureStorage.setQuotaAuthEnabled(false);
-      if (!mounted) return;
-      setState(() {
-        _isAuthEnabled = false;
-      });
-      await DialogService.showInfo(context, 'Authorization disabled');
-    }
+    return confirmed;
   }
 
   @override
@@ -306,11 +360,8 @@ class _AuthorizedQuotaScreenState extends State<AuthorizedQuotaScreen> {
                         Switch(
                           value: _isAuthEnabled,
                           onChanged: (value) {
-                            setState(() {
-                              _isAuthEnabled = value;
-                            });
                             if (value) {
-                              _setPassword();
+                              _enableAuthorization();
                             } else {
                               _disableAuthorization();
                             }

@@ -15,13 +15,13 @@ import '../../../core/theme/app_theme.dart';
 class InactivityWarningDialog extends StatelessWidget {
   final int countdown;
   final VoidCallback onStillHere;
-  final VoidCallback onLockNow;
+  final VoidCallback? onLockNow;
 
   const InactivityWarningDialog({
     super.key,
     required this.countdown,
     required this.onStillHere,
-    required this.onLockNow,
+    this.onLockNow,
   });
 
   @override
@@ -65,7 +65,9 @@ class InactivityWarningDialog extends StatelessWidget {
               ),
               const SizedBox(height: AppTheme.spacing3),
               Text(
-                "You've been inactive for a while. The app will lock in $countdown seconds.",
+                onLockNow != null
+                    ? "You've been inactive for a while. The app will lock in $countdown seconds."
+                    : "You've been inactive for a while. Tap below to continue.",
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.8),
                 ),
@@ -107,11 +109,16 @@ class InactivityWarningDialog extends StatelessWidget {
 
   Widget _buildActions(
       BuildContext context, bool isTablet, ColorScheme colorScheme) {
-    final actions = [
-      OutlinedButton(
-        onPressed: onLockNow,
-        child: const Text('Lock Now'),
-      ),
+    final actions = <Widget>[];
+    if (onLockNow != null) {
+      actions.add(
+        OutlinedButton(
+          onPressed: onLockNow,
+          child: const Text('Lock Now'),
+        ),
+      );
+    }
+    actions.add(
       ElevatedButton(
         onPressed: onStillHere,
         style: ElevatedButton.styleFrom(
@@ -120,7 +127,7 @@ class InactivityWarningDialog extends StatelessWidget {
         ),
         child: const Text("I'm Still Here"),
       ),
-    ];
+    );
 
     if (isTablet) {
       return Row(

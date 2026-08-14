@@ -15,6 +15,17 @@ class SecurityProvider with ChangeNotifier {
   DateTime? _lastActivityTime;
   String? _errorMessage;
 
+  // Brute-force protection state
+  int _failedAttempts = 0;
+  DateTime? _lockoutEndTime;
+  bool _isInLockout = false;
+
+  /// Maximum failed PIN attempts before lockout.
+  static const int maxFailedAttempts = 5;
+
+  /// Lockout duration after exceeding max failed attempts.
+  static const Duration lockoutDuration = Duration(seconds: 30);
+
   /// Grace period after unlock during which lifecycle-triggered
   /// lock requests are ignored (prevents relock loop).
   static const _unlockGracePeriod = Duration(seconds: 3);
@@ -35,6 +46,18 @@ class SecurityProvider with ChangeNotifier {
   DateTime? get lastActivityTime => _lastActivityTime;
   String? get errorMessage => _errorMessage;
   String? get routeBeforeLock => _routeBeforeLock;
+
+  // Brute-force protection getters
+  int get failedAttempts => _failedAttempts;
+  DateTime? get lockoutEndTime => _lockoutEndTime;
+  bool get isInLockout => _isInLockout && _lockoutEndTime != null && DateTime.now().isBefore(_lockoutEndTime!);
+
+  /// Remaining seconds in the lockout (0 if not locked or expired).
+  int get lockoutRemainingSeconds {
+    if (!isInLockout || _lockoutEndTime == null) return 0;
+    final remaining = _lockoutEndTime!.difference(DateTime.now()).inSeconds;
+    return remaining > 0 ? remaining : 0;
+  }
 
   /// Returns true if we are within the unlock grace period.
   bool get _isInUnlockGracePeriod {
@@ -79,9 +102,22 @@ class SecurityProvider with ChangeNotifier {
       _isPinEnabled = await _secureStorage.isPinEnabled();
       _isAppLocked = _isPinEnabled;
       _lastActivityTime = DateTime.now();
+
+      // Load persisted brute-force protection state so lockout survives
+      // app pause/resume during the countdown.
+      _failedAttempts = await _secureStorage.getPinFailedAttempts();
+      _lockoutEndTime = await _secureStorage.getPinLockoutEndTime();
+      _isInLockout = _lockoutEndTime != null && DateTime.now().isBefore(_lockoutEndTime!);
+      // If the lockout has already expired, clear the stale state.
+      if (_lockoutEndTime != null && !_isInLockout) {
+        await _secureStorage.clearPinLockout();
+        _failedAttempts = 0;
+        _lockoutEndTime = null;
+      }
+
       _isLoading = false;
       _isInitialized = true;
-      debugPrint('[SecurityProvider] initialize() done — pinEnabled: $_isPinEnabled, appLocked: $_isAppLocked');
+      debugPrint('[SecurityProvider] initialize() done — pinEnabled: $_isPinEnabled, appLocked: $_isAppLocked, failedAttempts: $_failedAttempts, inLockout: $_isInLockout');
       notifyListeners();
     } catch (e) {
       debugPrint('[SecurityProvider] initialize() error: $e');
@@ -123,6 +159,16 @@ class SecurityProvider with ChangeNotifier {
 
   Future<bool> verifyPin(String pin) async {
     debugPrint('[SecurityProvider] verifyPin() started');
+
+    // Block all PIN verification during lockout — even the correct PIN
+    // must not unlock the app while the countdown is active.
+    if (isInLockout) {
+      debugPrint('[SecurityProvider] verifyPin() blocked — in lockout (${lockoutRemainingSeconds}s remaining)');
+      _errorMessage = 'Too many attempts. Try again in ${lockoutRemainingSeconds}s.';
+      notifyListeners();
+      return false;
+    }
+
     _isUnlocking = true;
     _isLoading = true;
     _errorMessage = null;
@@ -137,11 +183,16 @@ class SecurityProvider with ChangeNotifier {
         // 1. Clear both lock flags
         // 2. Record lastUnlockTime (for grace period)
         // 3. Record lastActivityTime (reset inactivity)
-        // 4. Notify listeners so GoRouter redirect re-evaluates
+        // 4. Reset failed attempts + clear lockout
+        // 5. Notify listeners so GoRouter redirect re-evaluates
         _isAppLocked = false;
         _isSessionLocked = false;
         _lastUnlockTime = DateTime.now();
         _lastActivityTime = DateTime.now();
+        _failedAttempts = 0;
+        _isInLockout = false;
+        _lockoutEndTime = null;
+        await _secureStorage.clearPinLockout();
         _isLoading = false;
         _isUnlocking = false;
         notifyListeners();
@@ -151,6 +202,8 @@ class SecurityProvider with ChangeNotifier {
         _errorMessage = 'Incorrect PIN';
         _isLoading = false;
         _isUnlocking = false;
+        // Record the failed attempt for brute-force protection.
+        await recordFailedAttempt();
         notifyListeners();
         return false;
       }
@@ -162,6 +215,41 @@ class SecurityProvider with ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  /// Records a failed PIN attempt and triggers lockout if the threshold
+  /// (5 attempts) is reached. Persists state so it survives app restart.
+  Future<void> recordFailedAttempt() async {
+    _failedAttempts++;
+    debugPrint('[SecurityProvider] failed attempt #$_failedAttempts');
+
+    if (_failedAttempts >= maxFailedAttempts) {
+      _lockoutEndTime = DateTime.now().add(lockoutDuration);
+      _isInLockout = true;
+      debugPrint('[SecurityProvider] lockout triggered until $_lockoutEndTime');
+      await _secureStorage.setPinFailedAttempts(_failedAttempts);
+      await _secureStorage.setPinLockoutEndTime(_lockoutEndTime);
+    } else {
+      await _secureStorage.setPinFailedAttempts(_failedAttempts);
+    }
+  }
+
+  /// Clears the lockout state (called when the countdown expires or on
+  /// successful unlock). Does NOT reset failed attempts — those are only
+  /// reset on a successful unlock.
+  Future<void> clearLockout() async {
+    _isInLockout = false;
+    _lockoutEndTime = null;
+    await _secureStorage.setPinLockoutEndTime(null);
+    notifyListeners();
+  }
+
+  /// Resets failed attempts to zero (called on successful unlock).
+  Future<void> resetFailedAttempts() async {
+    _failedAttempts = 0;
+    _isInLockout = false;
+    _lockoutEndTime = null;
+    await _secureStorage.clearPinLockout();
   }
 
   Future<bool> changePin(String oldPin, String newPin) async {
@@ -206,10 +294,14 @@ class SecurityProvider with ChangeNotifier {
     try {
       await _secureStorage.clearPin();
       await _secureStorage.setPinEnabled(false);
+      await _secureStorage.clearPinLockout();
       _isPinEnabled = false;
       _isAppLocked = false;
       _isSessionLocked = false;
       _isInitialized = true;
+      _failedAttempts = 0;
+      _isInLockout = false;
+      _lockoutEndTime = null;
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -331,6 +423,9 @@ class SecurityProvider with ChangeNotifier {
       _isAppLocked = false;
       _isSessionLocked = false;
       _isInitialized = true;
+      _failedAttempts = 0;
+      _isInLockout = false;
+      _lockoutEndTime = null;
       _isLoading = false;
       notifyListeners();
     } catch (e) {

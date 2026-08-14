@@ -8,8 +8,9 @@ import '../../core/providers/trash_provider.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../core/database/database.dart';
-import '../../core/utils/flashcard_answer_codec.dart';
+import '../../core/utils/question_type_helper.dart';
 import '../../shared/widgets/formatted_study_text.dart';
+import '../../shared/widgets/question_type_chip.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -125,11 +126,17 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Question',
-                    style: AppTheme.labelLarge.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Question',
+                        style: AppTheme.labelLarge.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      QuestionTypeChip(questionType: card.questionType),
+                    ],
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   FormattedStudyText(
@@ -152,9 +159,26 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   FormattedStudyText(
-                    text: FlashcardAnswerCodec.displayAnswer(card.answer),
+                    text: QuestionTypeHelper.displayAnswer(card),
                     style: AppTheme.bodyMedium,
                   ),
+                  if (card.explanation != null &&
+                      card.explanation!.trim().isNotEmpty) ...[
+                    const SizedBox(height: AppTheme.spacingMd),
+                    const Divider(),
+                    const SizedBox(height: AppTheme.spacingSm),
+                    Text(
+                      'Explanation',
+                      style: AppTheme.labelLarge.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacingSm),
+                    FormattedStudyText(
+                      text: card.explanation!,
+                      style: AppTheme.bodyMedium,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -226,9 +250,17 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
       await db.flashcardRepository.createFlashcard(
         FlashcardsCompanion(
           question: drift.Value('${card.question} (Copy)'),
-          answer: drift.Value(FlashcardAnswerCodec.displayAnswer(card.answer)),
+          answer: drift.Value(QuestionTypeHelper.displayAnswer(card)),
           deckId: drift.Value(card.deckId),
           order: drift.Value(card.order + 1),
+          questionType: drift.Value(card.questionType),
+          optionA: drift.Value(card.optionA),
+          optionB: drift.Value(card.optionB),
+          optionC: drift.Value(card.optionC),
+          optionD: drift.Value(card.optionD),
+          correctOption: drift.Value(card.correctOption),
+          enumerationItems: drift.Value(card.enumerationItems),
+          explanation: drift.Value(card.explanation),
         ),
       );
       await db.deckRepository.updateDeckCardCount(card.deckId);
@@ -243,7 +275,7 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
   }
 
   void _shareCard(Flashcard card) {
-    final text = 'Question:\n${card.question}\n\nAnswer:\n${FlashcardAnswerCodec.displayAnswer(card.answer)}';
+    final text = 'Question:\n${card.question}\n\nAnswer:\n${QuestionTypeHelper.displayAnswer(card)}';
     Share.share(text, subject: 'QuizSnap Flashcard');
   }
 

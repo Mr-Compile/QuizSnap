@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../../core/database/database.dart';
 import '../../core/providers/flashcard_selection_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/question_type_helper.dart';
 import 'custom_card.dart';
+import 'question_type_chip.dart';
 
 /// A reusable flashcard tile that supports multi-select.
 ///
@@ -61,13 +63,24 @@ class SelectableFlashcardTile extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          flashcard.question,
-                          style: AppTheme.labelLarge,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                flashcard.question,
+                                style: AppTheme.labelLarge,
+                              ),
+                            ),
+                            const SizedBox(width: AppTheme.spacingSm),
+                            QuestionTypeChip(
+                              questionType: flashcard.questionType,
+                              compact: true,
+                            ),
+                          ],
                         ),
                         const SizedBox(height: AppTheme.spacingXs),
                         Text(
-                          flashcard.answer,
+                          QuestionTypeHelper.displayAnswer(flashcard),
                           style: AppTheme.bodyMedium.copyWith(
                             color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),

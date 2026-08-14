@@ -203,6 +203,68 @@ class AnalyticsRepository {
     );
   }
 
+  // ── Question-type analytics ────────────────────────────────────────────
+
+  /// Returns per-type counts and review statistics derived from the
+  /// `questionType` column on the flashcards table.
+  Future<List<QuestionTypeStats>> getQuestionTypeStats() async {
+    final db = _database;
+    final rows = await (db.selectOnly(db.flashcards)
+          ..addColumns([
+            db.flashcards.questionType,
+            db.flashcards.id.count(),
+            db.flashcards.reviewCount.sum(),
+            db.flashcards.correctCount.sum(),
+          ])
+          ..where(db.flashcards.deletedAt.isNull())
+          ..groupBy([db.flashcards.questionType]))
+        .get();
+
+    final stats = <QuestionTypeStats>[];
+    for (final row in rows) {
+      final type = row.read(db.flashcards.questionType) ??
+          'identification';
+      final totalCount = row.read(db.flashcards.id.count()) ?? 0;
+      final totalReviews = row.read(db.flashcards.reviewCount.sum()) ?? 0;
+      final totalCorrect = row.read(db.flashcards.correctCount.sum()) ?? 0;
+      final accuracy = totalReviews > 0
+          ? (totalCorrect / totalReviews) * 100.0
+          : 0.0;
+      stats.add(QuestionTypeStats(
+        questionType: type,
+        totalCount: totalCount,
+        totalReviews: totalReviews,
+        totalCorrect: totalCorrect,
+        accuracy: accuracy,
+      ));
+    }
+
+    // Ensure all three types are present even when zero.
+    for (final type in ['identification', 'enumeration', 'multiple_choice']) {
+      if (!stats.any((s) => s.questionType == type)) {
+        stats.add(QuestionTypeStats(
+          questionType: type,
+          totalCount: 0,
+          totalReviews: 0,
+          totalCorrect: 0,
+          accuracy: 0.0,
+        ));
+      }
+    }
+
+    return stats;
+  }
+
+  /// Returns the question type with the lowest accuracy (most-missed).
+  Future<String?> getMostMissedQuestionType() async {
+    final stats = await getQuestionTypeStats();
+    final withReviews =
+        stats.where((s) => s.totalReviews > 0).toList();
+    if (withReviews.isEmpty) return null;
+    withReviews.sort((a, b) => a.accuracy.compareTo(b.accuracy));
+    return withReviews.first.questionType;
+  }
+
   // Get improvement trends
   Future<ImprovementTrends> getImprovementTrends() async {
     final now = DateTime.now();
@@ -265,6 +327,23 @@ class AnalyticsRepository {
       trend: trend,
     );
   }
+
+  /// Returns the distribution of flashcards by question type across all
+  /// active (non-deleted) flashcards.  Keys are the stored question-type
+  /// strings (see [QuestionTypeHelper]); values are counts.
+  Future<Map<String, int>> getQuestionTypeDistribution() async {
+    final flashcards = await _database.getActiveFlashcards();
+    final distribution = <String, int>{
+      'identification': 0,
+      'enumeration': 0,
+      'multiple_choice': 0,
+    };
+    for (final f in flashcards) {
+      final type = f.questionType;
+      distribution[type] = (distribution[type] ?? 0) + 1;
+    }
+    return distribution;
+  }
 }
 
 // Analytics data models
@@ -323,5 +402,22 @@ class ImprovementTrends {
     required this.averageCardsPerSession,
     required this.totalStudyTimeSeconds,
     required this.trend,
+  });
+}
+
+/// Per-question-type analytics derived from the flashcards table.
+class QuestionTypeStats {
+  final String questionType;
+  final int totalCount;
+  final int totalReviews;
+  final int totalCorrect;
+  final double accuracy;
+
+  QuestionTypeStats({
+    required this.questionType,
+    required this.totalCount,
+    required this.totalReviews,
+    required this.totalCorrect,
+    required this.accuracy,
   });
 }

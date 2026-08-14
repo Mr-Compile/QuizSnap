@@ -255,6 +255,9 @@ class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerM
         ),
       );
 
+      // Trigger dependent consumers (e.g. LibraryScreen) to rebuild.
+      dbProvider.refreshAll();
+
       if (mounted) {
         await DialogService.showSuccess(context, 'Deck updated successfully');
         if (!mounted) return;

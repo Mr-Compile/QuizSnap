@@ -197,6 +197,14 @@ class BackupService {
           createdAt: Value(flashcard.createdAt),
           updatedAt: Value(flashcard.updatedAt),
           deletedAt: Value(flashcard.deletedAt),
+          questionType: Value(flashcard.questionType),
+          optionA: Value(flashcard.optionA),
+          optionB: Value(flashcard.optionB),
+          optionC: Value(flashcard.optionC),
+          optionD: Value(flashcard.optionD),
+          correctOption: Value(flashcard.correctOption),
+          enumerationItems: Value(flashcard.enumerationItems),
+          explanation: Value(flashcard.explanation),
         ));
         flashcardIdMap[flashcard.id] = newId;
       }
@@ -420,6 +428,15 @@ class BackupService {
       'createdAt': flashcard.createdAt.toIso8601String(),
       'updatedAt': flashcard.updatedAt.toIso8601String(),
       'deletedAt': flashcard.deletedAt?.toIso8601String(),
+      // Question type system (schema v5).
+      'questionType': flashcard.questionType,
+      'optionA': flashcard.optionA,
+      'optionB': flashcard.optionB,
+      'optionC': flashcard.optionC,
+      'optionD': flashcard.optionD,
+      'correctOption': flashcard.correctOption,
+      'enumerationItems': flashcard.enumerationItems,
+      'explanation': flashcard.explanation,
     };
   }
 

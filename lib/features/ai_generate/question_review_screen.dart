@@ -14,7 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
 import 'package:go_router/go_router.dart';
 import '../../core/services/question_validation_service.dart';
-import '../../core/utils/flashcard_answer_codec.dart';
+import '../../core/utils/question_type_helper.dart';
 import '../../shared/widgets/formatted_study_text.dart';
 import 'regeneration_options_bottom_sheet.dart';
 import 'text_preview_screen.dart';
@@ -380,24 +380,49 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
 
       // Save each question as a flashcard
       for (final question in _selectedQuestions) {
-        final answerText = switch (_getQuestionType(question)) {
-          QuestionType.multipleChoice => question.options.isNotEmpty && question.correctAnswerIndex >= 0
-              ? FlashcardAnswerCodec.encodeMcq(
-                  correctAnswer: question.options[question.correctAnswerIndex],
-                  options: question.options,
-                  correctAnswerIndex: question.correctAnswerIndex,
-                )
-              : (question.answer ?? ''),
-          QuestionType.enumeration => EnumerationFormatter.format(question.answer ?? ''),
-          _ => question.answer ?? '',
-        };
-        
+        final resolvedType = _getQuestionType(question);
+        final storedType = QuestionTypeHelper.fromExamQuestionType(resolvedType);
+
+        String answerText;
+        String? optionA, optionB, optionC, optionD, correctOption;
+        String? enumerationItemsJson;
+
+        switch (resolvedType) {
+          case QuestionType.multipleChoice:
+            final options = question.options;
+            final idx = question.correctAnswerIndex.clamp(0, options.length - 1);
+            optionA = options.isNotEmpty ? options[0] : null;
+            optionB = options.length > 1 ? options[1] : null;
+            optionC = options.length > 2 ? options[2] : null;
+            optionD = options.length > 3 ? options[3] : null;
+            correctOption = QuestionTypeHelper.indexToLetter(idx);
+            answerText = options.isNotEmpty ? options[idx] : (question.answer ?? '');
+            break;
+          case QuestionType.enumeration:
+            final items = EnumerationFormatter.splitItems(question.answer ?? '');
+            enumerationItemsJson = QuestionTypeHelper.encodeEnumerationItems(items);
+            answerText = items.join(', ');
+            break;
+          case QuestionType.identification:
+          case QuestionType.mixedFormat:
+            answerText = question.answer ?? '';
+            break;
+        }
+
         await dbProvider.flashcardRepository.createFlashcard(
           FlashcardsCompanion(
             question: drift.Value(question.question),
             answer: drift.Value(answerText),
             deckId: drift.Value(_selectedDeckId!),
             order: drift.Value(_selectedQuestions.indexOf(question)),
+            questionType: drift.Value(storedType),
+            optionA: drift.Value(optionA),
+            optionB: drift.Value(optionB),
+            optionC: drift.Value(optionC),
+            optionD: drift.Value(optionD),
+            correctOption: drift.Value(correctOption),
+            enumerationItems: drift.Value(enumerationItemsJson),
+            explanation: drift.Value(question.explanation),
           ),
         );
       }

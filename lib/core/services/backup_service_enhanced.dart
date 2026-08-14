@@ -433,6 +433,150 @@ class BackupServiceEnhanced {
   }
 
   // ─────────────────────────────────────────────────────────────────────
+  //  Folder info / validation / data summary (dynamic UI support)
+  // ─────────────────────────────────────────────────────────────────────
+
+  /// Aggregated information about the currently configured backup folder.
+  ///
+  /// Resolves the active folder (custom SAF tree URI, legacy filesystem path,
+  /// or the default app-specific directory), verifies it is still reachable,
+  /// lists the `.db` backup files inside it, and computes the total size.
+  Future<BackupFolderInfo> getBackupFolderInfo() async {
+    final treeUri = await getCustomBackupTreeUri();
+    final legacyPath = await getCustomBackupPath();
+
+    // Custom SAF folder.
+    if (treeUri != null) {
+      final persisted = await _storage.isTreeUriPersisted(treeUri);
+      final name = await getCustomBackupFolderName() ?? 'Custom folder';
+      if (!persisted) {
+        return BackupFolderInfo(
+          folderPath: treeUri,
+          folderName: name,
+          isUsingDefaultFolder: false,
+          exists: false,
+          backupFiles: const [],
+          totalSizeBytes: 0,
+        );
+      }
+      try {
+        final entries = await _storage.listFilesInTreeUri(treeUri);
+        final files = entries
+            .map((e) => BackupFileModel.fromSafEntry(
+                  name: e['name'] as String,
+                  size: (e['size'] as num).toInt(),
+                  lastModified: (e['lastModified'] as num).toInt(),
+                  treeUri: treeUri,
+                ))
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        final totalSize = files.fold<int>(0, (sum, f) => sum + f.fileSizeBytes);
+        return BackupFolderInfo(
+          folderPath: treeUri,
+          folderName: name,
+          isUsingDefaultFolder: false,
+          exists: true,
+          backupFiles: files,
+          totalSizeBytes: totalSize,
+        );
+      } catch (e) {
+        debugPrint('[BackupService] getBackupFolderInfo (SAF) failed: $e');
+        return BackupFolderInfo(
+          folderPath: treeUri,
+          folderName: name,
+          isUsingDefaultFolder: false,
+          exists: false,
+          backupFiles: const [],
+          totalSizeBytes: 0,
+          readError: e.toString(),
+        );
+      }
+    }
+
+    // Legacy custom filesystem path.
+    if (legacyPath != null) {
+      final dir = Directory(legacyPath);
+      final exists = await dir.exists();
+      if (!exists) {
+        return BackupFolderInfo(
+          folderPath: legacyPath,
+          folderName: legacyPath.split(Platform.pathSeparator).where((s) => s.isNotEmpty).last,
+          isUsingDefaultFolder: false,
+          exists: false,
+          backupFiles: const [],
+          totalSizeBytes: 0,
+        );
+      }
+      return _buildFolderInfoFromDirectory(dir, legacyPath, false);
+    }
+
+    // Default app-specific folder.
+    final defaultDir = await getDefaultBackupDirectory();
+    return _buildFolderInfoFromDirectory(defaultDir, defaultDir.path, true);
+  }
+
+  Future<BackupFolderInfo> _buildFolderInfoFromDirectory(
+    Directory dir, String path, bool isDefault,
+  ) async {
+    try {
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      final files = dir
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.toLowerCase().endsWith('.db'))
+          .map((f) => BackupFileModel.fromDbFile(f))
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final totalSize = files.fold<int>(0, (sum, f) => sum + f.fileSizeBytes);
+      final name = path.split(Platform.pathSeparator).where((s) => s.isNotEmpty).last;
+      return BackupFolderInfo(
+        folderPath: path,
+        folderName: name,
+        isUsingDefaultFolder: isDefault,
+        exists: true,
+        backupFiles: files,
+        totalSizeBytes: totalSize,
+      );
+    } catch (e) {
+      debugPrint('[BackupService] getBackupFolderInfo (fs) failed: $e');
+      final name = path.split(Platform.pathSeparator).where((s) => s.isNotEmpty).last;
+      return BackupFolderInfo(
+        folderPath: path,
+        folderName: name,
+        isUsingDefaultFolder: isDefault,
+        exists: false,
+        backupFiles: const [],
+        totalSizeBytes: 0,
+        readError: e.toString(),
+      );
+    }
+  }
+
+  /// Aggregated counts of the user's protected data, read live from the
+  /// database. Used by the dynamic "Data Protected" statistic.
+  Future<DataProtectedSummary> getDataProtectedSummary() async {
+    try {
+      final decks = await _database.getTotalDecks();
+      final flashcards = await _database.getTotalFlashcards();
+      final bookmarks = await _database.getFavoriteFlashcards();
+      final studySessions = await (_database.select(_database.studySessions)).get();
+      final quizResults = await _database.getAllQuizResults();
+      return DataProtectedSummary(
+        deckCount: decks,
+        flashcardCount: flashcards,
+        bookmarkCount: bookmarks.length,
+        studySessionCount: studySessions.length,
+        quizResultCount: quizResults.length,
+      );
+    } catch (e) {
+      debugPrint('[BackupService] getDataProtectedSummary failed: $e');
+      return const DataProtectedSummary();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
   //  Default backup directory
   // ─────────────────────────────────────────────────────────────────────
 

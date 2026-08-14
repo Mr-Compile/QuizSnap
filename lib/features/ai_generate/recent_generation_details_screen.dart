@@ -9,7 +9,7 @@ import '../../core/services/dialog_service.dart';
 import '../../core/repositories/recent_generation_repository.dart';
 import '../../core/services/question_generation_service.dart';
 import '../../core/services/question_validation_service.dart';
-import '../../core/utils/flashcard_answer_codec.dart';
+import '../../core/utils/question_type_helper.dart';
 import '../../core/models/exam.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -154,23 +154,45 @@ class RecentGenerationDetailsScreen extends StatelessWidget {
           options: q.options,
           answer: q.answer,
         );
-        final answer = switch (qType) {
-          QuestionType.multipleChoice => q.options.isNotEmpty && q.correctAnswerIndex >= 0
-              ? FlashcardAnswerCodec.encodeMcq(
-                  correctAnswer: q.options[q.correctAnswerIndex],
-                  options: q.options,
-                  correctAnswerIndex: q.correctAnswerIndex,
-                )
-              : (q.answer ?? ''),
-          QuestionType.enumeration => EnumerationFormatter.format(q.answer ?? ''),
-          _ => q.answer ?? '',
-        };
+        final storedType = QuestionTypeHelper.fromExamQuestionType(qType);
+        String answer;
+        String? optionA, optionB, optionC, optionD, correctOption;
+        String? enumerationItemsJson;
+        switch (qType) {
+          case QuestionType.multipleChoice:
+            final options = q.options;
+            final idx = q.correctAnswerIndex.clamp(0, options.length - 1);
+            optionA = options.isNotEmpty ? options[0] : null;
+            optionB = options.length > 1 ? options[1] : null;
+            optionC = options.length > 2 ? options[2] : null;
+            optionD = options.length > 3 ? options[3] : null;
+            correctOption = QuestionTypeHelper.indexToLetter(idx);
+            answer = options.isNotEmpty ? options[idx] : (q.answer ?? '');
+            break;
+          case QuestionType.enumeration:
+            final items = EnumerationFormatter.splitItems(q.answer ?? '');
+            enumerationItemsJson = QuestionTypeHelper.encodeEnumerationItems(items);
+            answer = items.join(', ');
+            break;
+          case QuestionType.identification:
+          case QuestionType.mixedFormat:
+            answer = q.answer ?? '';
+            break;
+        }
         await db.flashcardRepository.createFlashcard(
           FlashcardsCompanion(
             question: drift.Value(q.question),
             answer: drift.Value(answer),
             deckId: drift.Value(selectedDeckId),
             order: drift.Value(i),
+            questionType: drift.Value(storedType),
+            optionA: drift.Value(optionA),
+            optionB: drift.Value(optionB),
+            optionC: drift.Value(optionC),
+            optionD: drift.Value(optionD),
+            correctOption: drift.Value(correctOption),
+            enumerationItems: drift.Value(enumerationItemsJson),
+            explanation: drift.Value(q.explanation),
           ),
         );
       }

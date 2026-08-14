@@ -1,5 +1,6 @@
 import 'dart:math';
 import '../utils/flashcard_answer_codec.dart';
+import '../utils/question_type_helper.dart';
 import '../database/database.dart';
 import '../models/exam.dart';
 import '../repositories/flashcard_repository.dart';
@@ -70,44 +71,94 @@ class ExamService {
       final flashcard = entry.value;
       final rawAnswer = flashcard.answer.trim();
 
-      // Check if this flashcard has encoded MCQ options.
-      final mcqData = FlashcardAnswerCodec.decodeMcq(rawAnswer);
-      if (mcqData != null && mcqData.options.length >= 2) {
+      // Use the stored questionType column (schema v5) rather than guessing.
+      final questionType =
+          QuestionTypeHelper.toExamQuestionType(flashcard.questionType);
+
+      // ── Multiple Choice ──────────────────────────────────────────────
+      if (questionType == QuestionType.multipleChoice) {
+        // Use ONLY the stored options A–D from the flashcard.
+        // Do NOT generate choices from other flashcards or show placeholders.
+        List<String> options;
+        int correctIndex;
+
+        if (flashcard.optionA != null && flashcard.optionA!.isNotEmpty) {
+          // Dedicated option columns — validate all 4 are non-empty.
+          options = QuestionTypeHelper.optionsFromFlashcard(flashcard);
+          correctIndex = QuestionTypeHelper.correctOptionIndex(flashcard);
+          if (correctIndex < 0) correctIndex = 0;
+
+          // If any option is empty, the MCQ is incomplete — downgrade to
+          // identification so the answer is not revealed.
+          if (options.any((o) => o.trim().isEmpty)) {
+            return ExamQuestion(
+              id: 'q_${flashcard.id}_$index',
+              question: flashcard.question,
+              type: QuestionType.identification,
+              correctAnswer: FlashcardAnswerCodec.displayAnswer(rawAnswer),
+              explanation: flashcard.explanation,
+              flashcardId: flashcard.id,
+            );
+          }
+        } else {
+          // No dedicated columns — try legacy ||| encoding.
+          final mcqData = FlashcardAnswerCodec.decodeMcq(rawAnswer);
+          if (mcqData != null && mcqData.options.length >= 2) {
+            options = mcqData.options;
+            correctIndex = mcqData.correctAnswerIndex;
+          } else {
+            // No valid options at all — downgrade to identification.
+            // Do NOT create a single-option MCQ that reveals the answer.
+            return ExamQuestion(
+              id: 'q_${flashcard.id}_$index',
+              question: flashcard.question,
+              type: QuestionType.identification,
+              correctAnswer: FlashcardAnswerCodec.displayAnswer(rawAnswer),
+              explanation: flashcard.explanation,
+              flashcardId: flashcard.id,
+            );
+          }
+        }
         return ExamQuestion(
           id: 'q_${flashcard.id}_$index',
           question: flashcard.question,
           type: QuestionType.multipleChoice,
-          options: mcqData.options,
-          correctAnswerIndex: mcqData.correctAnswerIndex.clamp(0, mcqData.options.length - 1),
+          options: options,
+          correctAnswerIndex:
+              correctIndex.clamp(0, options.length - 1),
+          explanation: flashcard.explanation,
           flashcardId: flashcard.id,
         );
       }
 
-      // Use the display answer (strip any encoding) for ID/Enum.
-      final answer = FlashcardAnswerCodec.displayAnswer(rawAnswer);
-
-      String? correctAnswer;
-      List<String>? correctAnswersList;
-
-      if (answer.isNotEmpty) {
-        final items = EnumerationFormatter.splitItems(answer);
-        if (items.length > 1) {
-          correctAnswersList = items;
-        } else {
-          correctAnswer = answer;
-        }
+      // ── Enumeration ──────────────────────────────────────────────────
+      if (questionType == QuestionType.enumeration) {
+        final items = QuestionTypeHelper.decodeEnumerationItems(
+          flashcard.enumerationItems,
+        );
+        // Fall back to legacy comma-separated answer.
+        final correctAnswersList = items.isNotEmpty
+            ? items
+            : EnumerationFormatter.splitItems(
+                FlashcardAnswerCodec.displayAnswer(rawAnswer),
+              );
+        return ExamQuestion(
+          id: 'q_${flashcard.id}_$index',
+          question: flashcard.question,
+          type: QuestionType.enumeration,
+          correctAnswers: correctAnswersList,
+          explanation: flashcard.explanation,
+          flashcardId: flashcard.id,
+        );
       }
 
-      final questionType = correctAnswersList != null && correctAnswersList.length > 1
-          ? QuestionType.enumeration
-          : QuestionType.identification;
-
+      // ── Identification (default) ─────────────────────────────────────
       return ExamQuestion(
         id: 'q_${flashcard.id}_$index',
         question: flashcard.question,
-        type: questionType,
-        correctAnswer: correctAnswer,
-        correctAnswers: correctAnswersList,
+        type: QuestionType.identification,
+        correctAnswer: FlashcardAnswerCodec.displayAnswer(rawAnswer),
+        explanation: flashcard.explanation,
         flashcardId: flashcard.id,
       );
     }).toList();

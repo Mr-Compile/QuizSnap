@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift hide Column;
 import '../../core/providers/database_provider.dart';
 import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
+import '../../core/navigation/app_routes.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../core/services/dialog_service.dart';
@@ -144,9 +146,9 @@ class _CreateFolderScreenState extends State<CreateFolderScreen> with BackButton
     setState(() => _isLoading = true);
 
     final dbProvider = context.read<DatabaseProvider>();
-    
+
     try {
-      await dbProvider.folderRepository.createFolder(
+      final folderId = await dbProvider.folderRepository.createFolder(
         FoldersCompanion(
           name: drift.Value(_nameController.text.trim()),
           description: _descriptionController.text.trim().isEmpty
@@ -156,10 +158,15 @@ class _CreateFolderScreenState extends State<CreateFolderScreen> with BackButton
         ),
       );
 
+      // Trigger dependent consumers (e.g. LibraryScreen) to rebuild.
+      dbProvider.refreshAll();
+
       if (mounted) {
         await DialogService.showSuccess(context, 'Folder created successfully');
         if (!mounted) return;
-        Navigator.of(context).pop();
+        // Replace this create screen with the new folder's details screen so
+        // the user lands on the folder they just created.
+        GoRouter.of(context).pushReplacement('${AppRoutes.folders}/$folderId');
       }
     } catch (e) {
       if (mounted) {

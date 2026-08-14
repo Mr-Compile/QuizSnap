@@ -5,6 +5,7 @@ import '../../core/providers/ai_quota_provider.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/models/recent_generation.dart';
 import '../../core/repositories/recent_generation_repository.dart';
+import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import 'file_picker_bottom_sheet.dart';
@@ -31,29 +32,32 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<GroqProvider>(
-      builder: (context, groqProvider, _) {
-        // Show loading state during auto-initialization
-        if (groqProvider.isAutoInitializing) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Initializing AI service...'),
-              ],
-            ),
-          );
-        }
+    return Scaffold(
+      appBar: const CustomAppBar(title: 'AI Generate'),
+      body: Consumer<GroqProvider>(
+        builder: (context, groqProvider, _) {
+          // Show loading state during auto-initialization
+          if (groqProvider.isAutoInitializing) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Initializing AI service...'),
+                ],
+              ),
+            );
+          }
 
-        // Show API key setup if not initialized
-        if (!groqProvider.isInitialized) {
-          return _buildApiKeySetup(context, groqProvider);
-        }
+          // Show API key setup if not initialized
+          if (!groqProvider.isInitialized) {
+            return _buildApiKeySetup(context, groqProvider);
+          }
 
-        return _buildImportOptions(context, groqProvider);
-      },
+          return _buildImportOptions(context, groqProvider);
+        },
+      ),
     );
   }
 
@@ -185,49 +189,55 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            children: [
-              _buildImportCard(
-                context,
-                title: 'PDF',
-                icon: Icons.picture_as_pdf,
-                color: const Color(0xFFEF4444), // Red
-                onTap: () => _showFilePicker(context, 'pdf'),
-              ),
-              _buildImportCard(
-                context,
-                title: 'TXT',
-                icon: Icons.text_snippet,
-                color: const Color(0xFF64748B), // Slate
-                onTap: () => _showFilePicker(context, 'txt'),
-              ),
-              _buildImportCard(
-                context,
-                title: 'DOCX',
-                icon: Icons.description,
-                color: const Color(0xFF3B82F6), // Blue
-                onTap: () => _showFilePicker(context, 'docx'),
-              ),
-              _buildImportCard(
-                context,
-                title: 'Cached Documents',
-                icon: Icons.folder_open,
-                color: Theme.of(context).colorScheme.tertiary,
-                onTap: () => _showCachedDocuments(context),
-              ),
-              _buildImportCard(
-                context,
-                title: 'Camera OCR',
-                icon: Icons.camera_alt,
-                color: const Color(0xFF22C55E), // Green
-                onTap: () => _navigateToCameraOCR(context),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = constraints.maxWidth >= 600 ? 3 : 2;
+              return GridView.count(
+                crossAxisCount: crossAxisCount,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 1.0,
+                children: [
+                  _buildImportCard(
+                    context,
+                    title: 'PDF',
+                    icon: Icons.picture_as_pdf,
+                    color: const Color(0xFFEF4444), // Red
+                    onTap: () => _showFilePicker(context, 'pdf'),
+                  ),
+                  _buildImportCard(
+                    context,
+                    title: 'TXT',
+                    icon: Icons.text_snippet,
+                    color: const Color(0xFF64748B), // Slate
+                    onTap: () => _showFilePicker(context, 'txt'),
+                  ),
+                  _buildImportCard(
+                    context,
+                    title: 'DOCX',
+                    icon: Icons.description,
+                    color: const Color(0xFF3B82F6), // Blue
+                    onTap: () => _showFilePicker(context, 'docx'),
+                  ),
+                  _buildImportCard(
+                    context,
+                    title: 'Cached Documents',
+                    icon: Icons.folder_open,
+                    color: Theme.of(context).colorScheme.tertiary,
+                    onTap: () => _showCachedDocuments(context),
+                  ),
+                  _buildImportCard(
+                    context,
+                    title: 'Camera OCR',
+                    icon: Icons.camera_alt,
+                    color: const Color(0xFF22C55E), // Green
+                    onTap: () => _navigateToCameraOCR(context),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 24),
           const RecentDocumentsSection(),

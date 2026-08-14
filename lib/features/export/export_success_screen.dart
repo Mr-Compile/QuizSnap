@@ -39,13 +39,6 @@ class ExportSuccessScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'Export Completed!',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
               'Your file has been generated successfully',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),

@@ -27,6 +27,7 @@ class _LibraryData {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   late Future<_LibraryData> _dataFuture;
+  DatabaseProvider? _dbProvider;
 
   // 0 = All Decks panel, a positive id = folder, null = all collapsed.
   int? _selectedPanelValue = 0;
@@ -35,6 +36,27 @@ class _LibraryScreenState extends State<LibraryScreen> {
   void initState() {
     super.initState();
     _dataFuture = _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final dbProvider = context.read<DatabaseProvider>();
+    if (_dbProvider != dbProvider) {
+      _dbProvider?.removeListener(_onProviderChanged);
+      _dbProvider = dbProvider;
+      _dbProvider?.addListener(_onProviderChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _dbProvider?.removeListener(_onProviderChanged);
+    super.dispose();
+  }
+
+  void _onProviderChanged() {
+    if (mounted) _refresh();
   }
 
   Future<_LibraryData> _loadData() async {
@@ -90,8 +112,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
               title: 'No decks yet',
               subtitle: 'Create your first deck or folder to start studying',
               action: ElevatedButton(
-                onPressed: () => _navigateToCreateDeck(context),
-                child: const Text('Create Deck'),
+                onPressed: () => _showCreateOptions(context),
+                child: const Text('Create'),
               ),
             );
           }
@@ -120,9 +142,68 @@ class _LibraryScreenState extends State<LibraryScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToCreateDeck(context),
+        onPressed: () => _showCreateOptions(context),
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  /// Shows a Material 3 bottom sheet with the two primary create actions:
+  /// Create Deck and Create Folder.  Replaces the previous behaviour where
+  /// the FAB pushed directly to Create Deck (and there was no in-context way
+  /// to create a folder from the Library tab).
+  void _showCreateOptions(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacingLg,
+              vertical: AppTheme.spacingSm,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Create New',
+                  style: AppTheme.headlineSmall,
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                ListTile(
+                  leading: const Icon(Icons.style_outlined),
+                  title: const Text('Create Deck'),
+                  subtitle: const Text('A new set of flashcards'),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _navigateToCreateDeck(context);
+                  },
+                ),
+                const SizedBox(height: AppTheme.spacingXs),
+                ListTile(
+                  leading: const Icon(Icons.create_new_folder_outlined),
+                  title: const Text('Create Folder'),
+                  subtitle: const Text('Organize your decks'),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _navigateToCreateFolder(context);
+                  },
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -303,6 +384,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   void _navigateToCreateDeck(BuildContext context) {
     GoRouter.of(context).push(AppRoutes.createDeck);
+  }
+
+  void _navigateToCreateFolder(BuildContext context) {
+    GoRouter.of(context).push(AppRoutes.createFolder);
   }
 
   void _navigateToDeckDetails(BuildContext context, Deck deck) {

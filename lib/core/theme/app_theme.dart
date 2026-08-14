@@ -158,6 +158,51 @@ class AppTheme {
   static const Color darkSurfaceVariant = Color(0xFF1E293B);
   static const Color lightSurfaceVariant = Color(0xFFF1F5F9);
 
+  // ── Semantic color tokens (Phase 8) ───────────────────────────────
+  // Single source of truth for status colors. Use these instead of
+  // raw palette shades so dark/light parity is consistent.
+  static const Color semanticPrimary = bambooGreen600;
+  static const Color semanticPrimaryDark = bambooGreen500;
+  static const Color semanticSecondary = slate600;
+  static const Color semanticSecondaryDark = slate400;
+  static const Color semanticSuccess = emerald500;
+  static const Color semanticSuccessDark = emerald400;
+  static const Color semanticWarning = amber500;
+  static const Color semanticWarningDark = amber400;
+  static const Color semanticError = red500;
+  static const Color semanticErrorDark = red400;
+  static const Color semanticInfo = blue500;
+  static const Color semanticInfoDark = blue400;
+
+  // ── Chart color palette (Phase 8) ─────────────────────────────────
+  // AA-contrast-safe colors for charts in both light and dark themes.
+  static const List<Color> chartPalette = [
+    bambooGreen600,
+    blue600,
+    purple600,
+    amber600,
+    red600,
+    teal600,
+    indigo600,
+    orange500,
+  ];
+
+  static const List<Color> chartPaletteDark = [
+    bambooGreen400,
+    blue400,
+    purple400,
+    amber400,
+    red400,
+    teal400,
+    indigo400,
+    orange400,
+  ];
+
+  /// Returns the appropriate chart palette for the current brightness.
+  static List<Color> chartColorsFor(Brightness brightness) {
+    return brightness == Brightness.dark ? chartPaletteDark : chartPalette;
+  }
+
   // PinoyPOS Warm Theme Colors - Replaced warm orange with white/neutral
   static const Color cream50 = Color(0xFFFEFCF5);
   static const Color cream100 = Color(0xFFFEF9E7);
@@ -514,7 +559,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(roundedLg),
+          borderRadius: BorderRadius.circular(roundedXl),
         ),
         color: Colors.white,
         shadowColor: Colors.black.withValues(alpha: 0.05),
@@ -656,6 +701,15 @@ class AppTheme {
         thickness: 1,
         space: spacing4,
       ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: bambooGreen600,
+        unselectedItemColor: slate400,
+        selectedLabelStyle: TextStyle(fontSize: textXs, fontWeight: fontSemiBold),
+        unselectedLabelStyle: TextStyle(fontSize: textXs, fontWeight: fontNormal),
+        elevation: 8,
+        backgroundColor: Colors.white,
+      ),
     );
   }
 
@@ -684,10 +738,12 @@ class AppTheme {
         onErrorContainer: red100,
         surface: slate900,
         onSurface: slate100,
+        // Use slate800 for surfaceContainerHighest to create clearer
+        // separation from the slate900 card/surface color.
         surfaceContainerHighest: slate800,
-        onSurfaceVariant: slate400,
-        outline: slate700,
-        outlineVariant: slate800,
+        onSurfaceVariant: slate300,
+        outline: slate600,
+        outlineVariant: slate700,
         inverseSurface: slate100,
         onInverseSurface: slate900,
         inversePrimary: bambooGreen600,
@@ -698,7 +754,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(roundedLg),
+          borderRadius: BorderRadius.circular(roundedXl),
         ),
         color: slate900,
         shadowColor: Colors.black.withValues(alpha: 0.3),
@@ -839,6 +895,15 @@ class AppTheme {
         color: slate800,
         thickness: 1,
         space: spacing4,
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: bambooGreen400,
+        unselectedItemColor: slate500,
+        selectedLabelStyle: TextStyle(fontSize: textXs, fontWeight: fontSemiBold),
+        unselectedLabelStyle: TextStyle(fontSize: textXs, fontWeight: fontNormal),
+        elevation: 8,
+        backgroundColor: slate900,
       ),
     );
   }

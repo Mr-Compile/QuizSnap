@@ -15,6 +15,8 @@ class SecureStorageService {
   static const String _pinEnabledKey = 'pin_enabled';
   static const String _quotaAuthPasswordKey = 'quota_auth_password';
   static const String _quotaAuthEnabledKey = 'quota_auth_enabled';
+  static const String _pinFailedAttemptsKey = 'pin_failed_attempts';
+  static const String _pinLockoutEndTimeKey = 'pin_lockout_end_time';
 
   // Groq API Key Storage
   Future<void> storeGroqApiKey(String apiKey) async {
@@ -91,6 +93,7 @@ class SecureStorageService {
     await setPinEnabled(false);
     await clearQuotaAuthPassword();
     await setQuotaAuthEnabled(false);
+    await clearPinLockout();
   }
 
   // Quota Authorization Password Storage (hashed)
@@ -128,5 +131,36 @@ class SecureStorageService {
   Future<bool> isQuotaAuthEnabled() async {
     final value = await _storage.read(key: _quotaAuthEnabledKey);
     return value == 'true';
+  }
+
+  // PIN Lockout State (brute-force protection)
+  Future<void> setPinFailedAttempts(int count) async {
+    await _storage.write(key: _pinFailedAttemptsKey, value: count.toString());
+  }
+
+  Future<int> getPinFailedAttempts() async {
+    final value = await _storage.read(key: _pinFailedAttemptsKey);
+    if (value == null) return 0;
+    return int.tryParse(value) ?? 0;
+  }
+
+  /// Stores the lockout end time as ISO-8601. Pass null to clear.
+  Future<void> setPinLockoutEndTime(DateTime? endTime) async {
+    if (endTime == null) {
+      await _storage.delete(key: _pinLockoutEndTimeKey);
+    } else {
+      await _storage.write(key: _pinLockoutEndTimeKey, value: endTime.toIso8601String());
+    }
+  }
+
+  Future<DateTime?> getPinLockoutEndTime() async {
+    final value = await _storage.read(key: _pinLockoutEndTimeKey);
+    if (value == null) return null;
+    return DateTime.tryParse(value);
+  }
+
+  Future<void> clearPinLockout() async {
+    await _storage.delete(key: _pinFailedAttemptsKey);
+    await _storage.delete(key: _pinLockoutEndTimeKey);
   }
 }

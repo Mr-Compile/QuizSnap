@@ -114,7 +114,7 @@ class SessionInactivityService with ChangeNotifier {
   void _tick() {
     if (_isPaused) return;
     if (isFocusMode) return;
-    if (!_securityProvider.isPinEnabled) return;
+    // Don't run while the app is already locked or unlocking.
     if (_securityProvider.isLocked) return;
     if (_securityProvider.isUnlocking) return;
     if (_lastActivityTime == null) return;
@@ -122,9 +122,15 @@ class SessionInactivityService with ChangeNotifier {
     final elapsed = DateTime.now().difference(_lastActivityTime!);
 
     if (elapsed >= SessionTimerConfig.sessionTimeout) {
-      // Session timeout reached — lock the session.
+      // Session timeout reached.
       _cancelWarning();
-      _securityProvider.lockSession();
+      if (_securityProvider.isPinEnabled) {
+        // Only actually lock if a PIN is configured — otherwise just
+        // reset the timer so the user isn't locked out with no way back.
+        _securityProvider.lockSession();
+      } else {
+        _lastActivityTime = DateTime.now();
+      }
       return;
     }
 
@@ -134,7 +140,11 @@ class SessionInactivityService with ChangeNotifier {
           SessionTimerConfig.sessionTimeout.inSeconds - elapsed.inSeconds;
       if (newCountdown <= 0) {
         _cancelWarning();
-        _securityProvider.lockSession();
+        if (_securityProvider.isPinEnabled) {
+          _securityProvider.lockSession();
+        } else {
+          _lastActivityTime = DateTime.now();
+        }
         return;
       }
       if (!_isWarningPhase || _countdown != newCountdown) {

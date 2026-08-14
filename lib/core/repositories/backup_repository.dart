@@ -150,6 +150,16 @@ class BackupRepository {
     return await _backupService.getDefaultBackupDirectory();
   }
 
+  // Dynamic backup folder info (path, name, exists, files, total size).
+  Future<BackupFolderInfo> getBackupFolderInfo() async {
+    return await _backupService.getBackupFolderInfo();
+  }
+
+  // Live counts of the user's protected data.
+  Future<DataProtectedSummary> getDataProtectedSummary() async {
+    return await _backupService.getDataProtectedSummary();
+  }
+
   Future<void> rollbackToSafetyBackup(String safetyBackupId) async {
     await _restoreService.rollbackToSafetyBackup(safetyBackupId);
   }

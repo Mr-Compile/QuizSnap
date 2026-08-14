@@ -50,6 +50,16 @@ extension FlashcardJson on Flashcard {
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       deletedAt: json['deletedAt'] != null ? DateTime.parse(json['deletedAt'] as String) : null,
+      // Question type system (schema v5).  Old backups may omit these
+      // fields, so they default to 'identification' / null.
+      questionType: json['questionType'] as String? ?? 'identification',
+      optionA: json['optionA'] as String?,
+      optionB: json['optionB'] as String?,
+      optionC: json['optionC'] as String?,
+      optionD: json['optionD'] as String?,
+      correctOption: json['correctOption'] as String?,
+      enumerationItems: json['enumerationItems'] as String?,
+      explanation: json['explanation'] as String?,
     );
   }
 }

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../../shared/widgets/bottom_navigation.dart';
 import '../../core/navigation/back_button_handler.dart';
-import '../../core/navigation/app_routes.dart';
 import '../library/library_screen.dart';
 import '../settings/settings_screen.dart';
 import '../study/study_home_screen.dart';
@@ -23,6 +21,11 @@ class _MainScreenState extends State<MainScreen> {
   // AppRouter.  This screen must NOT show its own PinLockScreen or call
   // SecurityProvider.initialize() — doing so caused a relock loop where
   // initialize() re-set _isLocked = _isPinEnabled after every unlock.
+  //
+  // Each tab screen renders its own AppBar (with its title and contextual
+  // actions).  MainScreen intentionally does NOT add an AppBar so that the
+  // active tab's title is shown exactly once (previously the Library tab
+  // displayed a duplicate "Library" title).
 
   @override
   Widget build(BuildContext context) {
@@ -30,21 +33,6 @@ class _MainScreenState extends State<MainScreen> {
       context: context,
       message: 'Press back again to exit QuizSnap',
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            _getAppBarTitle(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {
-                GoRouter.of(context).push(AppRoutes.settings);
-              },
-            ),
-          ],
-        ),
         body: SafeArea(
           child: _buildCurrentScreen(),
         ),
@@ -60,7 +48,7 @@ class _MainScreenState extends State<MainScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth >= 1200 ? 1200.0 : double.infinity;
-        
+
         return ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),
           child: _getScreenForIndex(_currentIndex),
@@ -72,34 +60,17 @@ class _MainScreenState extends State<MainScreen> {
   Widget _getScreenForIndex(int index) {
     switch (index) {
       case 0:
-        return const LibraryScreen();
+        return const AnalyticsDashboardScreen();
       case 1:
-        return const AiGenerateHomeScreen();
+        return const LibraryScreen();
       case 2:
         return const StudyHomeScreen();
       case 3:
-        return const AnalyticsDashboardScreen();
+        return const AiGenerateHomeScreen();
       case 4:
         return const SettingsScreen();
       default:
-        return const LibraryScreen();
-    }
-  }
-
-  String _getAppBarTitle() {
-    switch (_currentIndex) {
-      case 0:
-        return 'Library';
-      case 1:
-        return 'AI Generate';
-      case 2:
-        return 'Study';
-      case 3:
-        return 'Progress';
-      case 4:
-        return 'Settings';
-      default:
-        return 'QuizSnap';
+        return const AnalyticsDashboardScreen();
     }
   }
 }

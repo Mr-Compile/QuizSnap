@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
-import 'create_folder_screen.dart';
 import 'rename_folder_dialog.dart';
 import '../../core/services/dialog_service.dart';
 
@@ -74,11 +74,7 @@ class _FolderListScreenState extends State<FolderListScreen> {
   }
 
   void _navigateToCreateFolder(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const CreateFolderScreen(),
-      ),
-    ).then((_) => setState(() {}));
+    GoRouter.of(context).push(AppRoutes.createFolder);
   }
 
   void _navigateToFolderDetails(BuildContext context, dynamic folder) {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/focus_mode_provider.dart';
-import '../../core/utils/flashcard_answer_codec.dart';
+import '../../core/utils/question_type_helper.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -222,7 +222,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
                   ),
                   const SizedBox(height: AppTheme.spacingMd),
                   Text(
-                    FlashcardAnswerCodec.displayAnswer(flashcard.answer),
+                    QuestionTypeHelper.displayAnswer(flashcard),
                     style: AppTheme.headlineSmall,
                   ),
                 ],

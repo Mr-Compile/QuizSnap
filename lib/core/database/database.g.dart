@@ -1205,6 +1205,95 @@ class $FlashcardsTable extends Flashcards
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _questionTypeMeta = const VerificationMeta(
+    'questionType',
+  );
+  @override
+  late final GeneratedColumn<String> questionType = GeneratedColumn<String>(
+    'question_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('identification'),
+  );
+  static const VerificationMeta _optionAMeta = const VerificationMeta(
+    'optionA',
+  );
+  @override
+  late final GeneratedColumn<String> optionA = GeneratedColumn<String>(
+    'option_a',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _optionBMeta = const VerificationMeta(
+    'optionB',
+  );
+  @override
+  late final GeneratedColumn<String> optionB = GeneratedColumn<String>(
+    'option_b',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _optionCMeta = const VerificationMeta(
+    'optionC',
+  );
+  @override
+  late final GeneratedColumn<String> optionC = GeneratedColumn<String>(
+    'option_c',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _optionDMeta = const VerificationMeta(
+    'optionD',
+  );
+  @override
+  late final GeneratedColumn<String> optionD = GeneratedColumn<String>(
+    'option_d',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _correctOptionMeta = const VerificationMeta(
+    'correctOption',
+  );
+  @override
+  late final GeneratedColumn<String> correctOption = GeneratedColumn<String>(
+    'correct_option',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _enumerationItemsMeta = const VerificationMeta(
+    'enumerationItems',
+  );
+  @override
+  late final GeneratedColumn<String> enumerationItems = GeneratedColumn<String>(
+    'enumeration_items',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _explanationMeta = const VerificationMeta(
+    'explanation',
+  );
+  @override
+  late final GeneratedColumn<String> explanation = GeneratedColumn<String>(
+    'explanation',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1223,6 +1312,14 @@ class $FlashcardsTable extends Flashcards
     createdAt,
     updatedAt,
     deletedAt,
+    questionType,
+    optionA,
+    optionB,
+    optionC,
+    optionD,
+    correctOption,
+    enumerationItems,
+    explanation,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1350,6 +1447,66 @@ class $FlashcardsTable extends Flashcards
         deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
       );
     }
+    if (data.containsKey('question_type')) {
+      context.handle(
+        _questionTypeMeta,
+        questionType.isAcceptableOrUnknown(
+          data['question_type']!,
+          _questionTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('option_a')) {
+      context.handle(
+        _optionAMeta,
+        optionA.isAcceptableOrUnknown(data['option_a']!, _optionAMeta),
+      );
+    }
+    if (data.containsKey('option_b')) {
+      context.handle(
+        _optionBMeta,
+        optionB.isAcceptableOrUnknown(data['option_b']!, _optionBMeta),
+      );
+    }
+    if (data.containsKey('option_c')) {
+      context.handle(
+        _optionCMeta,
+        optionC.isAcceptableOrUnknown(data['option_c']!, _optionCMeta),
+      );
+    }
+    if (data.containsKey('option_d')) {
+      context.handle(
+        _optionDMeta,
+        optionD.isAcceptableOrUnknown(data['option_d']!, _optionDMeta),
+      );
+    }
+    if (data.containsKey('correct_option')) {
+      context.handle(
+        _correctOptionMeta,
+        correctOption.isAcceptableOrUnknown(
+          data['correct_option']!,
+          _correctOptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enumeration_items')) {
+      context.handle(
+        _enumerationItemsMeta,
+        enumerationItems.isAcceptableOrUnknown(
+          data['enumeration_items']!,
+          _enumerationItemsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('explanation')) {
+      context.handle(
+        _explanationMeta,
+        explanation.isAcceptableOrUnknown(
+          data['explanation']!,
+          _explanationMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1423,6 +1580,38 @@ class $FlashcardsTable extends Flashcards
         DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at'],
       ),
+      questionType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_type'],
+      )!,
+      optionA: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}option_a'],
+      ),
+      optionB: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}option_b'],
+      ),
+      optionC: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}option_c'],
+      ),
+      optionD: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}option_d'],
+      ),
+      correctOption: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}correct_option'],
+      ),
+      enumerationItems: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}enumeration_items'],
+      ),
+      explanation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}explanation'],
+      ),
     );
   }
 
@@ -1449,6 +1638,14 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
+  final String questionType;
+  final String? optionA;
+  final String? optionB;
+  final String? optionC;
+  final String? optionD;
+  final String? correctOption;
+  final String? enumerationItems;
+  final String? explanation;
   const Flashcard({
     required this.id,
     required this.question,
@@ -1466,6 +1663,14 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
+    required this.questionType,
+    this.optionA,
+    this.optionB,
+    this.optionC,
+    this.optionD,
+    this.correctOption,
+    this.enumerationItems,
+    this.explanation,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1491,6 +1696,28 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['question_type'] = Variable<String>(questionType);
+    if (!nullToAbsent || optionA != null) {
+      map['option_a'] = Variable<String>(optionA);
+    }
+    if (!nullToAbsent || optionB != null) {
+      map['option_b'] = Variable<String>(optionB);
+    }
+    if (!nullToAbsent || optionC != null) {
+      map['option_c'] = Variable<String>(optionC);
+    }
+    if (!nullToAbsent || optionD != null) {
+      map['option_d'] = Variable<String>(optionD);
+    }
+    if (!nullToAbsent || correctOption != null) {
+      map['correct_option'] = Variable<String>(correctOption);
+    }
+    if (!nullToAbsent || enumerationItems != null) {
+      map['enumeration_items'] = Variable<String>(enumerationItems);
+    }
+    if (!nullToAbsent || explanation != null) {
+      map['explanation'] = Variable<String>(explanation);
     }
     return map;
   }
@@ -1519,6 +1746,28 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
+      questionType: Value(questionType),
+      optionA: optionA == null && nullToAbsent
+          ? const Value.absent()
+          : Value(optionA),
+      optionB: optionB == null && nullToAbsent
+          ? const Value.absent()
+          : Value(optionB),
+      optionC: optionC == null && nullToAbsent
+          ? const Value.absent()
+          : Value(optionC),
+      optionD: optionD == null && nullToAbsent
+          ? const Value.absent()
+          : Value(optionD),
+      correctOption: correctOption == null && nullToAbsent
+          ? const Value.absent()
+          : Value(correctOption),
+      enumerationItems: enumerationItems == null && nullToAbsent
+          ? const Value.absent()
+          : Value(enumerationItems),
+      explanation: explanation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(explanation),
     );
   }
 
@@ -1544,6 +1793,14 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      questionType: serializer.fromJson<String>(json['questionType']),
+      optionA: serializer.fromJson<String?>(json['optionA']),
+      optionB: serializer.fromJson<String?>(json['optionB']),
+      optionC: serializer.fromJson<String?>(json['optionC']),
+      optionD: serializer.fromJson<String?>(json['optionD']),
+      correctOption: serializer.fromJson<String?>(json['correctOption']),
+      enumerationItems: serializer.fromJson<String?>(json['enumerationItems']),
+      explanation: serializer.fromJson<String?>(json['explanation']),
     );
   }
   @override
@@ -1566,6 +1823,14 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'questionType': serializer.toJson<String>(questionType),
+      'optionA': serializer.toJson<String?>(optionA),
+      'optionB': serializer.toJson<String?>(optionB),
+      'optionC': serializer.toJson<String?>(optionC),
+      'optionD': serializer.toJson<String?>(optionD),
+      'correctOption': serializer.toJson<String?>(correctOption),
+      'enumerationItems': serializer.toJson<String?>(enumerationItems),
+      'explanation': serializer.toJson<String?>(explanation),
     };
   }
 
@@ -1586,6 +1851,14 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
+    String? questionType,
+    Value<String?> optionA = const Value.absent(),
+    Value<String?> optionB = const Value.absent(),
+    Value<String?> optionC = const Value.absent(),
+    Value<String?> optionD = const Value.absent(),
+    Value<String?> correctOption = const Value.absent(),
+    Value<String?> enumerationItems = const Value.absent(),
+    Value<String?> explanation = const Value.absent(),
   }) => Flashcard(
     id: id ?? this.id,
     question: question ?? this.question,
@@ -1605,6 +1878,18 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    questionType: questionType ?? this.questionType,
+    optionA: optionA.present ? optionA.value : this.optionA,
+    optionB: optionB.present ? optionB.value : this.optionB,
+    optionC: optionC.present ? optionC.value : this.optionC,
+    optionD: optionD.present ? optionD.value : this.optionD,
+    correctOption: correctOption.present
+        ? correctOption.value
+        : this.correctOption,
+    enumerationItems: enumerationItems.present
+        ? enumerationItems.value
+        : this.enumerationItems,
+    explanation: explanation.present ? explanation.value : this.explanation,
   );
   Flashcard copyWithCompanion(FlashcardsCompanion data) {
     return Flashcard(
@@ -1638,6 +1923,22 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      questionType: data.questionType.present
+          ? data.questionType.value
+          : this.questionType,
+      optionA: data.optionA.present ? data.optionA.value : this.optionA,
+      optionB: data.optionB.present ? data.optionB.value : this.optionB,
+      optionC: data.optionC.present ? data.optionC.value : this.optionC,
+      optionD: data.optionD.present ? data.optionD.value : this.optionD,
+      correctOption: data.correctOption.present
+          ? data.correctOption.value
+          : this.correctOption,
+      enumerationItems: data.enumerationItems.present
+          ? data.enumerationItems.value
+          : this.enumerationItems,
+      explanation: data.explanation.present
+          ? data.explanation.value
+          : this.explanation,
     );
   }
 
@@ -1659,13 +1960,21 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
           ..write('repetitions: $repetitions, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('deletedAt: $deletedAt')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('questionType: $questionType, ')
+          ..write('optionA: $optionA, ')
+          ..write('optionB: $optionB, ')
+          ..write('optionC: $optionC, ')
+          ..write('optionD: $optionD, ')
+          ..write('correctOption: $correctOption, ')
+          ..write('enumerationItems: $enumerationItems, ')
+          ..write('explanation: $explanation')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     question,
     answer,
@@ -1682,7 +1991,15 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
     createdAt,
     updatedAt,
     deletedAt,
-  );
+    questionType,
+    optionA,
+    optionB,
+    optionC,
+    optionD,
+    correctOption,
+    enumerationItems,
+    explanation,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1702,7 +2019,15 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
           other.repetitions == this.repetitions &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.deletedAt == this.deletedAt);
+          other.deletedAt == this.deletedAt &&
+          other.questionType == this.questionType &&
+          other.optionA == this.optionA &&
+          other.optionB == this.optionB &&
+          other.optionC == this.optionC &&
+          other.optionD == this.optionD &&
+          other.correctOption == this.correctOption &&
+          other.enumerationItems == this.enumerationItems &&
+          other.explanation == this.explanation);
 }
 
 class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
@@ -1722,6 +2047,14 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
+  final Value<String> questionType;
+  final Value<String?> optionA;
+  final Value<String?> optionB;
+  final Value<String?> optionC;
+  final Value<String?> optionD;
+  final Value<String?> correctOption;
+  final Value<String?> enumerationItems;
+  final Value<String?> explanation;
   const FlashcardsCompanion({
     this.id = const Value.absent(),
     this.question = const Value.absent(),
@@ -1739,6 +2072,14 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.questionType = const Value.absent(),
+    this.optionA = const Value.absent(),
+    this.optionB = const Value.absent(),
+    this.optionC = const Value.absent(),
+    this.optionD = const Value.absent(),
+    this.correctOption = const Value.absent(),
+    this.enumerationItems = const Value.absent(),
+    this.explanation = const Value.absent(),
   });
   FlashcardsCompanion.insert({
     this.id = const Value.absent(),
@@ -1757,6 +2098,14 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.questionType = const Value.absent(),
+    this.optionA = const Value.absent(),
+    this.optionB = const Value.absent(),
+    this.optionC = const Value.absent(),
+    this.optionD = const Value.absent(),
+    this.correctOption = const Value.absent(),
+    this.enumerationItems = const Value.absent(),
+    this.explanation = const Value.absent(),
   }) : question = Value(question),
        answer = Value(answer),
        deckId = Value(deckId);
@@ -1777,6 +2126,14 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
+    Expression<String>? questionType,
+    Expression<String>? optionA,
+    Expression<String>? optionB,
+    Expression<String>? optionC,
+    Expression<String>? optionD,
+    Expression<String>? correctOption,
+    Expression<String>? enumerationItems,
+    Expression<String>? explanation,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1795,6 +2152,14 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (questionType != null) 'question_type': questionType,
+      if (optionA != null) 'option_a': optionA,
+      if (optionB != null) 'option_b': optionB,
+      if (optionC != null) 'option_c': optionC,
+      if (optionD != null) 'option_d': optionD,
+      if (correctOption != null) 'correct_option': correctOption,
+      if (enumerationItems != null) 'enumeration_items': enumerationItems,
+      if (explanation != null) 'explanation': explanation,
     });
   }
 
@@ -1815,6 +2180,14 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
+    Value<String>? questionType,
+    Value<String?>? optionA,
+    Value<String?>? optionB,
+    Value<String?>? optionC,
+    Value<String?>? optionD,
+    Value<String?>? correctOption,
+    Value<String?>? enumerationItems,
+    Value<String?>? explanation,
   }) {
     return FlashcardsCompanion(
       id: id ?? this.id,
@@ -1833,6 +2206,14 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
+      questionType: questionType ?? this.questionType,
+      optionA: optionA ?? this.optionA,
+      optionB: optionB ?? this.optionB,
+      optionC: optionC ?? this.optionC,
+      optionD: optionD ?? this.optionD,
+      correctOption: correctOption ?? this.correctOption,
+      enumerationItems: enumerationItems ?? this.enumerationItems,
+      explanation: explanation ?? this.explanation,
     );
   }
 
@@ -1887,6 +2268,30 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
     }
+    if (questionType.present) {
+      map['question_type'] = Variable<String>(questionType.value);
+    }
+    if (optionA.present) {
+      map['option_a'] = Variable<String>(optionA.value);
+    }
+    if (optionB.present) {
+      map['option_b'] = Variable<String>(optionB.value);
+    }
+    if (optionC.present) {
+      map['option_c'] = Variable<String>(optionC.value);
+    }
+    if (optionD.present) {
+      map['option_d'] = Variable<String>(optionD.value);
+    }
+    if (correctOption.present) {
+      map['correct_option'] = Variable<String>(correctOption.value);
+    }
+    if (enumerationItems.present) {
+      map['enumeration_items'] = Variable<String>(enumerationItems.value);
+    }
+    if (explanation.present) {
+      map['explanation'] = Variable<String>(explanation.value);
+    }
     return map;
   }
 
@@ -1908,7 +2313,15 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
           ..write('repetitions: $repetitions, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('deletedAt: $deletedAt')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('questionType: $questionType, ')
+          ..write('optionA: $optionA, ')
+          ..write('optionB: $optionB, ')
+          ..write('optionC: $optionC, ')
+          ..write('optionD: $optionD, ')
+          ..write('correctOption: $correctOption, ')
+          ..write('enumerationItems: $enumerationItems, ')
+          ..write('explanation: $explanation')
           ..write(')'))
         .toString();
   }
@@ -5716,6 +6129,14 @@ typedef $$FlashcardsTableCreateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
+      Value<String> questionType,
+      Value<String?> optionA,
+      Value<String?> optionB,
+      Value<String?> optionC,
+      Value<String?> optionD,
+      Value<String?> correctOption,
+      Value<String?> enumerationItems,
+      Value<String?> explanation,
     });
 typedef $$FlashcardsTableUpdateCompanionBuilder =
     FlashcardsCompanion Function({
@@ -5735,6 +6156,14 @@ typedef $$FlashcardsTableUpdateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
+      Value<String> questionType,
+      Value<String?> optionA,
+      Value<String?> optionB,
+      Value<String?> optionC,
+      Value<String?> optionD,
+      Value<String?> correctOption,
+      Value<String?> enumerationItems,
+      Value<String?> explanation,
     });
 
 final class $$FlashcardsTableReferences
@@ -5858,6 +6287,46 @@ class $$FlashcardsTableFilterComposer
 
   ColumnFilters<DateTime> get deletedAt => $composableBuilder(
     column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get questionType => $composableBuilder(
+    column: $table.questionType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get optionA => $composableBuilder(
+    column: $table.optionA,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get optionB => $composableBuilder(
+    column: $table.optionB,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get optionC => $composableBuilder(
+    column: $table.optionC,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get optionD => $composableBuilder(
+    column: $table.optionD,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get correctOption => $composableBuilder(
+    column: $table.correctOption,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get enumerationItems => $composableBuilder(
+    column: $table.enumerationItems,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get explanation => $composableBuilder(
+    column: $table.explanation,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5994,6 +6463,46 @@ class $$FlashcardsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get questionType => $composableBuilder(
+    column: $table.questionType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get optionA => $composableBuilder(
+    column: $table.optionA,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get optionB => $composableBuilder(
+    column: $table.optionB,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get optionC => $composableBuilder(
+    column: $table.optionC,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get optionD => $composableBuilder(
+    column: $table.optionD,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get correctOption => $composableBuilder(
+    column: $table.correctOption,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get enumerationItems => $composableBuilder(
+    column: $table.enumerationItems,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get explanation => $composableBuilder(
+    column: $table.explanation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$DecksTableOrderingComposer get deckId {
     final $$DecksTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6085,6 +6594,38 @@ class $$FlashcardsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get questionType => $composableBuilder(
+    column: $table.questionType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get optionA =>
+      $composableBuilder(column: $table.optionA, builder: (column) => column);
+
+  GeneratedColumn<String> get optionB =>
+      $composableBuilder(column: $table.optionB, builder: (column) => column);
+
+  GeneratedColumn<String> get optionC =>
+      $composableBuilder(column: $table.optionC, builder: (column) => column);
+
+  GeneratedColumn<String> get optionD =>
+      $composableBuilder(column: $table.optionD, builder: (column) => column);
+
+  GeneratedColumn<String> get correctOption => $composableBuilder(
+    column: $table.correctOption,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get enumerationItems => $composableBuilder(
+    column: $table.enumerationItems,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get explanation => $composableBuilder(
+    column: $table.explanation,
+    builder: (column) => column,
+  );
 
   $$DecksTableAnnotationComposer get deckId {
     final $$DecksTableAnnotationComposer composer = $composerBuilder(
@@ -6179,6 +6720,14 @@ class $$FlashcardsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> questionType = const Value.absent(),
+                Value<String?> optionA = const Value.absent(),
+                Value<String?> optionB = const Value.absent(),
+                Value<String?> optionC = const Value.absent(),
+                Value<String?> optionD = const Value.absent(),
+                Value<String?> correctOption = const Value.absent(),
+                Value<String?> enumerationItems = const Value.absent(),
+                Value<String?> explanation = const Value.absent(),
               }) => FlashcardsCompanion(
                 id: id,
                 question: question,
@@ -6196,6 +6745,14 @@ class $$FlashcardsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
+                questionType: questionType,
+                optionA: optionA,
+                optionB: optionB,
+                optionC: optionC,
+                optionD: optionD,
+                correctOption: correctOption,
+                enumerationItems: enumerationItems,
+                explanation: explanation,
               ),
           createCompanionCallback:
               ({
@@ -6215,6 +6772,14 @@ class $$FlashcardsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> questionType = const Value.absent(),
+                Value<String?> optionA = const Value.absent(),
+                Value<String?> optionB = const Value.absent(),
+                Value<String?> optionC = const Value.absent(),
+                Value<String?> optionD = const Value.absent(),
+                Value<String?> correctOption = const Value.absent(),
+                Value<String?> enumerationItems = const Value.absent(),
+                Value<String?> explanation = const Value.absent(),
               }) => FlashcardsCompanion.insert(
                 id: id,
                 question: question,
@@ -6232,6 +6797,14 @@ class $$FlashcardsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
+                questionType: questionType,
+                optionA: optionA,
+                optionB: optionB,
+                optionC: optionC,
+                optionD: optionD,
+                correctOption: correctOption,
+                enumerationItems: enumerationItems,
+                explanation: explanation,
               ),
           withReferenceMapper: (p0) => p0
               .map(

@@ -275,12 +275,14 @@ class _SessionWarningHandler extends StatefulWidget {
 
 class _SessionWarningHandlerState extends State<_SessionWarningHandler> {
   SessionInactivityService? _service;
+  SecurityProvider? _securityProvider;
   bool _dialogShown = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _service ??= context.read<SessionInactivityService>();
+    _securityProvider ??= context.read<SecurityProvider>();
   }
 
   @override
@@ -342,7 +344,9 @@ class _SessionWarningHandlerState extends State<_SessionWarningHandler> {
             return InactivityWarningDialog(
               countdown: service.countdown,
               onStillHere: () => service.dismissWarning(),
-              onLockNow: () => service.lockNow(),
+              onLockNow: (_securityProvider?.isPinEnabled ?? false)
+                  ? () => service.lockNow()
+                  : null,
             );
           },
         );

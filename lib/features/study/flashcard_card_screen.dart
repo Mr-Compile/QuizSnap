@@ -6,7 +6,9 @@ import '../../core/providers/database_provider.dart';
 import '../../core/providers/flashcard_reveal_provider.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/services/question_generation_service.dart';
+import '../../core/services/question_validation_service.dart';
 import '../../core/utils/flashcard_answer_codec.dart';
+import '../../core/utils/question_type_helper.dart';
 import '../../core/database/database.dart';
 import 'rate_card_bottom_sheet.dart';
 
@@ -88,7 +90,7 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Card header with bookmark
+                    // Card header with bookmark + type chip
                     Padding(
                       padding: const EdgeInsets.all(AppTheme.spacingMd),
                       child: Row(
@@ -100,15 +102,21 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                               color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
-                          IconButton(
-                            icon: Icon(
-                              flashcard.isFavorite ? Icons.bookmark : Icons.bookmark_border,
-                              color: flashcard.isFavorite
-                                  ? AppTheme.amber500
-                                  : Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                            onPressed: () => _toggleBookmark(flashcard),
-                            tooltip: flashcard.isFavorite ? 'Remove bookmark' : 'Bookmark',
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildTypeChip(context, flashcard),
+                              IconButton(
+                                icon: Icon(
+                                  flashcard.isFavorite ? Icons.bookmark : Icons.bookmark_border,
+                                  color: flashcard.isFavorite
+                                      ? AppTheme.amber500
+                                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                onPressed: () => _toggleBookmark(flashcard),
+                                tooltip: flashcard.isFavorite ? 'Remove bookmark' : 'Bookmark',
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -160,24 +168,7 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
                           padding: const EdgeInsets.all(AppTheme.spacingLg),
                           child: Center(
                             child: SingleChildScrollView(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Answer',
-                                    style: AppTheme.labelMedium.copyWith(
-                                      color: Theme.of(context).colorScheme.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppTheme.spacingMd),
-                                  Text(
-                                    QuestionGenerationService.sanitizeText(FlashcardAnswerCodec.displayAnswer(flashcard.answer)),
-                                    style: AppTheme.headlineSmall,
-                                    textAlign: TextAlign.center,
-                                    softWrap: true,
-                                  ),
-                                ],
-                              ),
+                              child: _buildRevealContent(context, flashcard),
                             ),
                           ),
                         ),
@@ -206,6 +197,241 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
         ],
       ),
     );
+  }
+
+  /// Builds the type-specific reveal content shown after the user taps
+  /// "Show Answer".  No answers or options are visible before reveal.
+  Widget _buildRevealContent(BuildContext context, Flashcard flashcard) {
+    final type = flashcard.questionType;
+
+    switch (type) {
+      case QuestionTypeHelper.multipleChoice:
+        return _buildMultipleChoiceReveal(context, flashcard);
+      case QuestionTypeHelper.enumeration:
+        return _buildEnumerationReveal(context, flashcard);
+      case QuestionTypeHelper.identification:
+      default:
+        return _buildIdentificationReveal(context, flashcard);
+    }
+  }
+
+  Widget _buildIdentificationReveal(BuildContext context, Flashcard flashcard) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'Answer',
+          style: AppTheme.labelMedium.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingMd),
+        Text(
+          QuestionGenerationService.sanitizeText(
+            QuestionTypeHelper.displayAnswer(flashcard),
+          ),
+          style: AppTheme.headlineSmall,
+          textAlign: TextAlign.center,
+          softWrap: true,
+        ),
+        if (flashcard.explanation != null &&
+            flashcard.explanation!.trim().isNotEmpty) ...[
+          const SizedBox(height: AppTheme.spacingLg),
+          Container(
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Explanation',
+                  style: AppTheme.labelSmall.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingXs),
+                Text(
+                  flashcard.explanation!,
+                  style: AppTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Enumeration reveal: numbered list with proper spacing and semantics.
+  Widget _buildEnumerationReveal(BuildContext context, Flashcard flashcard) {
+    final items = QuestionTypeHelper.decodeEnumerationItems(
+      flashcard.enumerationItems,
+    );
+    // Fall back to legacy comma-separated answer if no JSON items.
+    final displayItems = items.isNotEmpty
+        ? items
+        : EnumerationFormatter.splitItems(
+            FlashcardAnswerCodec.displayAnswer(flashcard.answer),
+          );
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Answer List',
+          style: AppTheme.labelMedium.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingMd),
+        Semantics(
+          container: true,
+          label: 'Answer list with ${displayItems.length} items',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: displayItems.asMap().entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${entry.key + 1}.',
+                      style: AppTheme.titleMedium.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacingSm),
+                    Expanded(
+                      child: Text(
+                        QuestionGenerationService.sanitizeText(entry.value),
+                        style: AppTheme.bodyLarge,
+                        softWrap: true,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMultipleChoiceReveal(BuildContext context, Flashcard flashcard) {
+    // Prefer dedicated columns; fall back to legacy encoded answer.
+    List<String> options;
+    int correctIndex;
+    if (flashcard.optionA != null) {
+      options = QuestionTypeHelper.optionsFromFlashcard(flashcard);
+      correctIndex = QuestionTypeHelper.correctOptionIndex(flashcard);
+    } else {
+      final mcqData = FlashcardAnswerCodec.decodeMcq(flashcard.answer);
+      options = mcqData?.options ??
+          [FlashcardAnswerCodec.displayAnswer(flashcard.answer)];
+      correctIndex = mcqData?.correctAnswerIndex ?? 0;
+    }
+    final letters = ['A', 'B', 'C', 'D'];
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Options',
+          style: AppTheme.labelMedium.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingMd),
+        ...options.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final isCorrect = idx == correctIndex;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppTheme.spacingMd),
+              decoration: BoxDecoration(
+                color: isCorrect
+                    ? Theme.of(context).colorScheme.primaryContainer
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                border: Border.all(
+                  color: isCorrect
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '${letters[idx]}.',
+                    style: AppTheme.labelLarge.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isCorrect
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacingSm),
+                  Expanded(
+                    child: Text(
+                      QuestionGenerationService.sanitizeText(entry.value),
+                      style: AppTheme.bodyLarge,
+                    ),
+                  ),
+                  if (isCorrect)
+                    Icon(
+                      Icons.check_circle,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildTypeChip(BuildContext context, Flashcard flashcard) {
+    final (color, _) = _typeColors(flashcard.questionType);
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingSm,
+        vertical: AppTheme.spacingXs,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppTheme.radiusXs),
+      ),
+      child: Text(
+        QuestionTypeHelper.shortLabel(flashcard.questionType),
+        style: AppTheme.labelSmall.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  (Color, Color) _typeColors(String type) {
+    switch (type) {
+      case QuestionTypeHelper.multipleChoice:
+        return (AppTheme.purple600, AppTheme.purple100);
+      case QuestionTypeHelper.enumeration:
+        return (AppTheme.orange600, AppTheme.orange100);
+      default:
+        return (AppTheme.blue600, AppTheme.blue100);
+    }
   }
 
   void _handleSwipe(

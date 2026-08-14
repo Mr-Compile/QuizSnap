@@ -19,23 +19,28 @@ class MainBottomNavigation extends StatelessWidget {
       elevation: 8,
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.library_books),
+          icon: Icon(Icons.dashboard_outlined),
+          activeIcon: Icon(Icons.dashboard),
+          label: 'Dashboard',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.library_books_outlined),
+          activeIcon: Icon(Icons.library_books),
           label: 'Library',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.auto_awesome),
-          label: 'AI Generate',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.school),
+          icon: Icon(Icons.school_outlined),
+          activeIcon: Icon(Icons.school),
           label: 'Study',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.analytics),
-          label: 'Analytics',
+          icon: Icon(Icons.auto_awesome_outlined),
+          activeIcon: Icon(Icons.auto_awesome),
+          label: 'AI Generate',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.settings),
+          icon: Icon(Icons.settings_outlined),
+          activeIcon: Icon(Icons.settings),
           label: 'Settings',
         ),
       ],

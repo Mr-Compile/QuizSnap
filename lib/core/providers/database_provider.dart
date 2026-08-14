@@ -64,6 +64,11 @@ class DatabaseProvider extends ChangeNotifier {
   void refreshDecks() => notifyListeners();
   void refreshAnalytics() => notifyListeners();
 
+  /// Generic refresh signal used after any create/edit/delete operation
+  /// (decks, folders, flashcards) so that all listening screens — including
+  /// the Library tab — rebuild with fresh data.
+  void refreshAll() => notifyListeners();
+
   /// Reopen the database after a `.db` restore replaces the underlying file.
   ///
   /// If [newDatabase] is supplied (recommended, so the Riverpod and Provider

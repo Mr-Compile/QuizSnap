@@ -94,6 +94,78 @@ final defaultBackupDirectoryProvider = FutureProvider<Directory>((ref) async {
   return await backupService.getDefaultBackupDirectory();
 });
 
+// ─────────────────────────────────────────────────────────────────────
+//  Dynamic Backup Settings (Phase 1)
+// ─────────────────────────────────────────────────────────────────────
+//
+// A single, reactive source of truth for the active backup folder. Watches
+// the underlying custom-folder providers so it refreshes automatically when
+// the user selects a new folder, reverts to default, or restores a backup
+// (which swaps the database and rebuilds the service tree).
+
+final backupSettingsProvider =
+    FutureProvider<BackupFolderInfo>((ref) async {
+  // Watch the custom-folder providers so a change triggers a refresh.
+  ref.watch(customBackupTreeUriProvider);
+  ref.watch(customBackupFolderNameProvider);
+  ref.watch(customBackupPathProvider);
+
+  final backupService = ref.watch(backupServiceProvider);
+  return await backupService.getBackupFolderInfo();
+});
+
+// ─────────────────────────────────────────────────────────────────────
+//  Dynamic Backup Statistics (Phase 7)
+// ─────────────────────────────────────────────────────────────────────
+//
+// Computed live from the actual backup files and database contents. Watches
+// [backupSettingsProvider] so statistics refresh whenever the folder or its
+// files change.
+
+final backupStatisticsProvider =
+    FutureProvider<BackupStatistics>((ref) async {
+  final folderInfo = await ref.watch(backupSettingsProvider.future);
+  final backupService = ref.watch(backupServiceProvider);
+  final dataSummary = await backupService.getDataProtectedSummary();
+
+  return BackupStatistics(
+    totalBackups: folderInfo.backupCount,
+    lastBackupDate: folderInfo.lastBackupDate,
+    totalBackupSizeBytes: folderInfo.totalSizeBytes,
+    dataProtected: dataSummary,
+    folderInfo: folderInfo,
+  );
+});
+
+/// Aggregated, UI-facing backup statistics computed from real data.
+class BackupStatistics {
+  final int totalBackups;
+  final DateTime? lastBackupDate;
+  final int totalBackupSizeBytes;
+  final DataProtectedSummary dataProtected;
+  final BackupFolderInfo folderInfo;
+
+  const BackupStatistics({
+    required this.totalBackups,
+    required this.lastBackupDate,
+    required this.totalBackupSizeBytes,
+    required this.dataProtected,
+    required this.folderInfo,
+  });
+
+  String get totalBackupSizeDisplay {
+    final bytes = totalBackupSizeBytes;
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
+}
+
 // Backup operation state provider
 class BackupOperationState {
   final bool isLoading;
@@ -150,6 +222,17 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
 
   BackupOperationNotifier(this._repository, this._ref) : super(BackupOperationState());
 
+  /// Invalidate every backup-related Riverpod provider so the Backup & Restore
+  /// UI (folder info, statistics, history, file listing, schedule) refreshes
+  /// immediately after any mutating operation.
+  void _refreshBackupProviders() {
+    _ref.invalidate(backupHistoryProvider);
+    _ref.invalidate(recentBackupsProvider);
+    _ref.invalidate(backupFilesProvider);
+    _ref.invalidate(backupSettingsProvider);
+    _ref.invalidate(backupStatisticsProvider);
+  }
+
   // Export backup
   Future<BackupFileModel?> exportBackup({
     String? name,
@@ -169,10 +252,9 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
         isLoading: false,
         lastExportedBackup: backup,
       );
-      
-      // Refresh backup history
-      _ref.invalidate(backupHistoryProvider);
-      _ref.invalidate(recentBackupsProvider);
+
+      // Refresh backup history, file listing, and dynamic settings/stats.
+      _refreshBackupProviders();
       
       return backup;
     } catch (e) {
@@ -231,9 +313,8 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
         lastRestoreResult: result,
       );
 
-      // Refresh backup history and schedule
-      _ref.invalidate(backupHistoryProvider);
-      _ref.invalidate(recentBackupsProvider);
+      // Refresh backup history, file listing, schedule, and dynamic stats.
+      _refreshBackupProviders();
       _ref.invalidate(backupScheduleProvider);
 
       return result;
@@ -282,6 +363,8 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
       _ref.invalidate(recentBackupsProvider);
       _ref.invalidate(backupScheduleProvider);
       _ref.invalidate(backupFilesProvider);
+      _ref.invalidate(backupSettingsProvider);
+      _ref.invalidate(backupStatisticsProvider);
       _ref.invalidate(customBackupPathProvider);
       _ref.invalidate(customBackupTreeUriProvider);
       _ref.invalidate(customBackupFolderNameProvider);
@@ -316,12 +399,10 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
       await _repository.deleteBackupFile(filePath);
       
       state = state.copyWith(isLoading: false);
-      
-      // Refresh backup files
-      _ref.invalidate(backupFilesProvider);
-      _ref.invalidate(backupHistoryProvider);
-      _ref.invalidate(recentBackupsProvider);
-      
+
+      // Refresh backup files, history, and dynamic settings/stats.
+      _refreshBackupProviders();
+
       return true;
     } catch (e) {
       state = state.copyWith(
@@ -403,11 +484,10 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
         lastExportedBackup: backup,
       );
       
-      // Refresh backup history and schedule
-      _ref.invalidate(backupHistoryProvider);
-      _ref.invalidate(recentBackupsProvider);
+      // Refresh backup history, schedule, file listing, and dynamic stats.
+      _refreshBackupProviders();
       _ref.invalidate(backupScheduleProvider);
-      
+
       return backup;
     } catch (e) {
       state = state.copyWith(
@@ -423,8 +503,11 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
     try {
       await _repository.setCustomBackupPath(path);
 
-      // Refresh custom path
+      // Refresh custom path + dynamic folder/settings/stats/file listing.
       _ref.invalidate(customBackupPathProvider);
+      _ref.invalidate(backupFilesProvider);
+      _ref.invalidate(backupSettingsProvider);
+      _ref.invalidate(backupStatisticsProvider);
 
       return true;
     } catch (e) {
@@ -441,6 +524,9 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
       _ref.invalidate(customBackupTreeUriProvider);
       _ref.invalidate(customBackupFolderNameProvider);
       _ref.invalidate(customBackupPathProvider);
+      _ref.invalidate(backupFilesProvider);
+      _ref.invalidate(backupSettingsProvider);
+      _ref.invalidate(backupStatisticsProvider);
       return name;
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
@@ -455,6 +541,9 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
       _ref.invalidate(customBackupTreeUriProvider);
       _ref.invalidate(customBackupFolderNameProvider);
       _ref.invalidate(customBackupPathProvider);
+      _ref.invalidate(backupFilesProvider);
+      _ref.invalidate(backupSettingsProvider);
+      _ref.invalidate(backupStatisticsProvider);
       return true;
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
@@ -480,11 +569,10 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
       await _repository.rollbackToSafetyBackup(safetyBackupId);
       
       state = state.copyWith(isLoading: false);
-      
-      // Refresh backup history
-      _ref.invalidate(backupHistoryProvider);
-      _ref.invalidate(recentBackupsProvider);
-      
+
+      // Refresh backup history, file listing, and dynamic stats.
+      _refreshBackupProviders();
+
       return true;
     } catch (e) {
       state = state.copyWith(

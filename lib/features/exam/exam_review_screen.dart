@@ -7,6 +7,8 @@ import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/custom_card.dart';
 import 'package:intl/intl.dart';
+import '../../core/utils/question_type_helper.dart';
+import '../../shared/widgets/question_type_chip.dart';
 import 'answer_explanation_bottom_sheet.dart';
 
 class ExamReviewScreen extends StatefulWidget {
@@ -255,9 +257,21 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
               ),
               const SizedBox(width: AppTheme.spacingMd),
               Expanded(
-                child: Text(
-                  question.question,
-                  style: AppTheme.labelLarge,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      question.question,
+                      style: AppTheme.labelLarge,
+                    ),
+                    const SizedBox(height: AppTheme.spacingXs),
+                    QuestionTypeChip(
+                      questionType: QuestionTypeHelper.fromExamQuestionType(
+                        question.type,
+                      ),
+                      compact: true,
+                    ),
+                  ],
                 ),
               ),
               Icon(

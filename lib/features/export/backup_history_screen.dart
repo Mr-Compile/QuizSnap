@@ -24,6 +24,9 @@ class _BackupHistoryScreenState extends ConsumerState<BackupHistoryScreen> {
     // List actual .db backup files (newest first). The provider resolves the
     // active folder (default or custom SAF tree) internally.
     final backupsAsync = ref.watch(backupFilesProvider(null));
+    // Watch the dynamic folder info so the location badge + empty-state copy
+    // stay in sync with the active folder.
+    final settingsAsync = ref.watch(backupSettingsProvider);
 
     return Scaffold(
       appBar: CustomAppBar(
@@ -31,28 +34,17 @@ class _BackupHistoryScreenState extends ConsumerState<BackupHistoryScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(backupFilesProvider(null)),
+            onPressed: _handleRefresh,
             tooltip: 'Refresh',
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(backupFilesProvider(null));
-        },
+        onRefresh: _handleRefresh,
         child: backupsAsync.when(
           data: (backups) {
             if (backups.isEmpty) {
-              return ListView(
-                children: const [
-                  SizedBox(height: 120),
-                  EmptyState(
-                    icon: Icons.backup_outlined,
-                    title: 'No backups found',
-                    subtitle: 'Create a backup to see it here',
-                  ),
-                ],
-              );
+              return _buildEmptyState(settingsAsync);
             }
             return ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -61,6 +53,7 @@ class _BackupHistoryScreenState extends ConsumerState<BackupHistoryScreen> {
                 final backup = backups[index];
                 return _BackupFileCard(
                   backup: backup,
+                  isCustomFolder: settingsAsync.valueOrNull?.isUsingDefaultFolder == false,
                   onRestore: () => _handleRestore(backup),
                   onShare: () => _handleShare(backup),
                   onDelete: () => _handleDelete(backup),
@@ -82,6 +75,32 @@ class _BackupHistoryScreenState extends ConsumerState<BackupHistoryScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _handleRefresh() async {
+    ref.invalidate(backupFilesProvider);
+    ref.invalidate(backupSettingsProvider);
+    ref.invalidate(backupStatisticsProvider);
+    ref.invalidate(backupHistoryProvider);
+  }
+
+  Widget _buildEmptyState(AsyncValue<BackupFolderInfo> settingsAsync) {
+    final info = settingsAsync.valueOrNull;
+    final folderMissing = info != null && !info.exists;
+    return ListView(
+      children: [
+        const SizedBox(height: 120),
+        EmptyState(
+          icon: folderMissing ? Icons.folder_off_outlined : Icons.backup_outlined,
+          title: folderMissing
+              ? 'Selected folder is no longer available.'
+              : 'No backups found in this folder.',
+          subtitle: folderMissing
+              ? 'Choose a different folder or use the default location.'
+              : 'Create a backup to see it here.',
+        ),
+      ],
     );
   }
 
@@ -199,8 +218,10 @@ class _BackupHistoryScreenState extends ConsumerState<BackupHistoryScreen> {
       context.read<DatabaseProvider>().refreshDecks();
       context.read<DatabaseProvider>().refreshAnalytics();
 
-      ref.invalidate(backupFilesProvider(null));
+      ref.invalidate(backupFilesProvider);
       ref.invalidate(backupHistoryProvider);
+      ref.invalidate(backupSettingsProvider);
+      ref.invalidate(backupStatisticsProvider);
 
       await DialogService.showSuccess(
         context,
@@ -260,7 +281,9 @@ class _BackupHistoryScreenState extends ConsumerState<BackupHistoryScreen> {
             .read(backupOperationProvider.notifier)
             .deleteBackupFile(backup.filePath);
         if (mounted) {
-          ref.invalidate(backupFilesProvider(null));
+          ref.invalidate(backupFilesProvider);
+          ref.invalidate(backupSettingsProvider);
+          ref.invalidate(backupStatisticsProvider);
           await DialogService.showSuccess(context, 'Backup deleted');
         }
       } catch (e) {
@@ -274,6 +297,7 @@ class _BackupHistoryScreenState extends ConsumerState<BackupHistoryScreen> {
 
 class _BackupFileCard extends StatelessWidget {
   final BackupFileModel backup;
+  final bool isCustomFolder;
   final VoidCallback onRestore;
   final VoidCallback onShare;
   final VoidCallback onDelete;
@@ -281,6 +305,7 @@ class _BackupFileCard extends StatelessWidget {
 
   const _BackupFileCard({
     required this.backup,
+    required this.isCustomFolder,
     required this.onRestore,
     required this.onShare,
     required this.onDelete,
@@ -326,6 +351,8 @@ class _BackupFileCard extends StatelessWidget {
                 Row(
                   children: [
                     _buildChip(context, backup.fileSizeDisplay),
+                    const SizedBox(width: 8),
+                    _buildLocationBadge(context),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
@@ -377,6 +404,42 @@ class _BackupFileCard extends StatelessWidget {
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w500,
             ),
+      ),
+    );
+  }
+
+  /// Backup location badge (Phase 5): shows where the file is stored.
+  Widget _buildLocationBadge(BuildContext context) {
+    final isCustom = isCustomFolder;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isCustom
+            ? Theme.of(context).colorScheme.primaryContainer
+            : Theme.of(context).colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isCustom ? Icons.create_new_folder : Icons.smartphone,
+            size: 12,
+            color: isCustom
+                ? Theme.of(context).colorScheme.onPrimaryContainer
+                : Theme.of(context).colorScheme.onSecondaryContainer,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isCustom ? 'Custom' : 'Default',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: isCustom
+                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                      : Theme.of(context).colorScheme.onSecondaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
       ),
     );
   }
