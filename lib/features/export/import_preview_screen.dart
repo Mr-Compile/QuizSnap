@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../core/models/backup_enhanced.dart';
 import '../../core/providers/backup_provider.dart';
+import '../../core/providers/database_provider.dart';
 import 'restore_options_dialog.dart';
 import '../../core/services/dialog_service.dart';
 
@@ -426,13 +428,28 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
 
       if (mounted) {
         if (result != null && result.success) {
+          // Refresh all providers so UI updates immediately
+          ref.invalidate(backupHistoryProvider);
+          ref.invalidate(recentBackupsProvider);
+          ref.invalidate(backupScheduleProvider);
+          context.read<DatabaseProvider>().refreshDecks();
+          context.read<DatabaseProvider>().refreshAnalytics();
+
           Navigator.pop(context, true);
           if (mounted) {
-            await DialogService.showSuccess(context, 'Restore completed successfully');
+            await DialogService.showSuccess(
+              context,
+              'Your data has been restored successfully.',
+              title: 'Restore Complete',
+            );
           }
         } else {
           setState(() => _isLoading = false);
-          await DialogService.showError(context, 'Restore failed');
+          await DialogService.showError(
+            context,
+            'The restore could not be completed. Please try again.',
+            title: 'Restore Failed',
+          );
         }
       }
     } catch (e) {

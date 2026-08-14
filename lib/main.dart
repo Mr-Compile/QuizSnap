@@ -27,6 +27,8 @@ import 'core/providers/flashcard_selection_provider.dart';
 import 'core/services/cleanup_scheduler.dart';
 import 'core/services/trash_service.dart';
 import 'core/services/session_inactivity_service.dart';
+import 'core/database/database.dart';
+import 'core/services/backup_service_enhanced.dart';
 import 'core/providers/focus_mode_provider.dart';
 import 'core/navigation/app_router.dart';
 import 'shared/widgets/activity_detector.dart';
@@ -57,6 +59,9 @@ void main() async {
 
   // Schedule a one-time trash cleanup in the background; the scheduler starts the daily timer disabled by default.
   unawaited(CleanupScheduler(database: database, prefs: prefs).runNow());
+
+  // Check if automatic backup is due and perform it in the background.
+  unawaited(_checkAndPerformAutoBackup(database));
 
   runApp(
     ProviderScope(
@@ -347,4 +352,22 @@ class _SessionWarningHandlerState extends State<_SessionWarningHandler> {
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+/// Checks if an automatic backup is due on app launch and performs it
+/// silently in the background.  The schedule is stored in SharedPreferences
+/// by [BackupServiceEnhanced].  This runs after the database is initialized
+/// and does not block the UI.
+Future<void> _checkAndPerformAutoBackup(AppDatabase database) async {
+  try {
+    final backupService = BackupServiceEnhanced(database);
+    final isDue = await backupService.isAutomaticBackupDue();
+    if (isDue) {
+      debugPrint('[AutoBackup] Backup is due — performing automatic backup');
+      await backupService.performAutomaticBackup();
+      debugPrint('[AutoBackup] Automatic backup completed');
+    }
+  } catch (e) {
+    debugPrint('[AutoBackup] Failed to perform automatic backup: $e');
+  }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
@@ -7,13 +9,12 @@ import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/empty_state.dart';
-import '../../shared/widgets/file_path_card.dart';
 import '../../core/models/backup_enhanced.dart';
 import '../../core/providers/backup_provider.dart';
+import '../../core/providers/database_provider.dart';
+import '../../core/navigation/app_routes.dart';
 import 'import_preview_screen.dart';
 import 'change_backup_folder_screen.dart';
-import 'permission_explanation_dialog.dart';
-import 'export_success_screen_backup.dart';
 import 'schedule_settings_dialog.dart';
 import '../../core/services/dialog_service.dart';
 
@@ -25,11 +26,14 @@ class BackupRestoreScreenEnhanced extends ConsumerStatefulWidget {
 }
 
 class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScreenEnhanced> {
+  bool _isCreatingBackup = false;
+
   @override
   Widget build(BuildContext context) {
     final backupScheduleAsync = ref.watch(backupScheduleProvider);
     final recentBackupsAsync = ref.watch(recentBackupsProvider);
     final customPathAsync = ref.watch(customBackupPathProvider);
+    final backupHistoryAsync = ref.watch(backupHistoryProvider);
 
     return Scaffold(
       appBar: const CustomAppBar(
@@ -38,17 +42,100 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _buildBackupStatus(backupHistoryAsync),
+          const SizedBox(height: 24),
           _buildQuickActions(),
           const SizedBox(height: 24),
-          _buildCurrentBackupFolder(customPathAsync),
+          _buildImportSection(),
           const SizedBox(height: 24),
           _buildAutomaticBackupSection(backupScheduleAsync),
           const SizedBox(height: 24),
           _buildRecentBackups(recentBackupsAsync),
           const SizedBox(height: 24),
-          _buildImportSection(),
+          _buildCurrentBackupFolder(customPathAsync),
         ],
       ),
+    );
+  }
+
+  Widget _buildBackupStatus(AsyncValue<List<BackupMetadata>> historyAsync) {
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.assessment_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Backup Status',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          historyAsync.when(
+            data: (history) {
+              final completed = history.where((b) => b.status == BackupStatus.completed).toList();
+              final lastBackup = completed.isNotEmpty ? completed.last : null;
+              final totalDecks = completed.fold<int>(0, (sum, b) => sum + b.deckCount);
+              final totalFlashcards = completed.fold<int>(0, (sum, b) => sum + b.flashcardCount);
+
+              return Column(
+                children: [
+                  _buildStatusRow(
+                    'Total Backups',
+                    '${completed.length}',
+                    Icons.backup_outlined,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildStatusRow(
+                    'Last Backup',
+                    lastBackup != null ? _formatDateTime(lastBackup.createdAt) : 'Never',
+                    Icons.schedule,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildStatusRow(
+                    'Data Protected',
+                    '$totalDecks decks, $totalFlashcards flashcards',
+                    Icons.shield_outlined,
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, _) => const Text('Error loading backup status'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+          ),
+        ),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+        ),
+      ],
     );
   }
 
@@ -58,31 +145,23 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Quick Actions',
+            'Create Backup',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
           ),
+          const SizedBox(height: 4),
+          Text(
+            'Backups are stored safely inside QuizSnap on your device. Use Share Backup if you want to save a copy to Downloads, Files, or cloud storage.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+          ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: CustomButton(
-                  text: 'Create Backup',
-                  icon: Icons.backup,
-                  onPressed: _handleCreateBackup,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CustomButton(
-                  text: 'Import Backup',
-                  icon: Icons.restore,
-                  isSecondary: true,
-                  onPressed: _handleImportBackup,
-                ),
-              ),
-            ],
+          CustomButton(
+            text: _isCreatingBackup ? 'Creating...' : 'Create Backup Now',
+            icon: Icons.backup,
+            onPressed: _isCreatingBackup ? null : _handleCreateBackup,
           ),
         ],
       ),
@@ -105,7 +184,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Current Backup Folder',
+                    'Storage Location',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -339,7 +418,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
           ),
           const SizedBox(height: 12),
           Text(
-            'Import a backup file from any location on your device.',
+            'Select a .quizsnap or .json backup file from any location on your device.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
@@ -357,76 +436,101 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
   }
 
   Future<void> _handleCreateBackup() async {
-    // Check permission first
-    final hasPermission = await ref.read(backupOperationProvider.notifier).requestStoragePermission();
-    if (!hasPermission) {
-      if (mounted) {
-        final permissionGranted = await PermissionExplanationDialog.showStoragePermissionDialog(
-          context,
-          onOpenSettings: () => PermanentlyDeniedDialog.show(context),
-        );
-        
-        // If permission was granted, proceed with backup
-        if (permissionGranted == true) {
-          // Permission granted, proceed with backup creation
-          await _proceedWithBackupCreation();
-        }
-      }
-      return;
-    }
-
     await _proceedWithBackupCreation();
   }
 
   Future<void> _proceedWithBackupCreation() async {
+    setState(() => _isCreatingBackup = true);
+
     final result = await ref.read(backupOperationProvider.notifier).exportBackup(
-          name: 'Backup_${DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now())}',
+          name: 'quizsnap_backup_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}',
           description: 'Manual backup',
         );
 
-    if (result != null && mounted) {
-      // Show file path card
-      FilePathSnackBar.show(
-        context,
-        filePath: result.filePath,
-        fileName: result.fileName,
-        fileSize: result.fileSizeDisplay,
-        createdAt: result.createdAt,
-        onOpenFolder: () => ref.read(backupOperationProvider.notifier).openBackupLocation(result.filePath),
-        onCopyPath: () => _copyPath(result.filePath),
-        onShare: () => ref.read(backupOperationProvider.notifier).shareBackup(result.filePath),
-      );
+    if (mounted) {
+      setState(() => _isCreatingBackup = false);
+    }
 
-      // Navigate to success screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ExportSuccessScreenBackup(backupFile: result),
-        ),
-      );
+    if (result != null && mounted) {
+      await _showBackupSuccessDialog(result);
     } else if (mounted) {
-      await DialogService.showError(context, 'Failed to create backup');
+      await DialogService.showError(
+        context,
+        'The backup could not be created. Please check available storage.',
+        title: 'Backup Failed',
+      );
+    }
+  }
+
+  Future<void> _showBackupSuccessDialog(BackupFileModel result) async {
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.check_circle,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            const Text('Backup Created'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Your backup was saved successfully.'),
+              const SizedBox(height: 16),
+              _detailRow('File', result.fileName),
+              const SizedBox(height: 8),
+              _detailRow('Location', result.filePath),
+              const SizedBox(height: 8),
+              _detailRow('Size', result.fileSizeDisplay),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.folder_open, size: 18),
+            label: const Text('Open Folder'),
+            onPressed: () {
+              Navigator.pop(context);
+              _handleOpenFolder();
+            },
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.share, size: 18),
+            label: const Text('Share'),
+            onPressed: () {
+              Navigator.pop(context);
+              _shareBackup(result.filePath);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _shareBackup(String filePath) async {
+    try {
+      final success = await ref.read(backupOperationProvider.notifier).shareBackup(filePath);
+      if (!success && mounted) {
+        await DialogService.showError(context, 'Failed to open share dialog');
+      }
+    } catch (e) {
+      if (mounted) {
+        await DialogService.showError(context, 'Failed to share: $e');
+      }
     }
   }
 
   Future<void> _handleImportBackup() async {
-    // Check permission first
-    final hasPermission = await ref.read(backupOperationProvider.notifier).requestStoragePermission();
-    if (!hasPermission) {
-      if (mounted) {
-        final permissionGranted = await PermissionExplanationDialog.showStoragePermissionDialog(
-          context,
-          onOpenSettings: () => PermanentlyDeniedDialog.show(context),
-        );
-        
-        // If permission was granted, proceed with file selection
-        if (permissionGranted == true) {
-          await _proceedWithFileSelection();
-        }
-      }
-      return;
-    }
-
     await _proceedWithFileSelection();
   }
 
@@ -490,12 +594,25 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
         : await backupService.getDefaultBackupDirectory();
 
     try {
-      await ref.read(backupOperationProvider.notifier).openBackupFolder(directory.path);
+      final success = await ref.read(backupOperationProvider.notifier).openBackupFolder(directory.path);
+      if (!success && mounted) {
+        await _showOpenFolderFallbackDialog(directory.path);
+      }
     } catch (e) {
       if (mounted) {
-        await DialogService.showError(context, 'Failed to open folder: $e');
+        await _showOpenFolderFallbackDialog(directory.path);
       }
     }
+  }
+
+  Future<void> _showOpenFolderFallbackDialog(String folderPath) async {
+    await DialogService.showInfo(
+      context,
+      Platform.isAndroid
+          ? 'Your backup is saved in Android/data/${'com.quizsnap.quizsnap'}/files/QuizSnap/Backups. Use Share Backup to save it to Downloads, Google Drive, or another location.'
+          : 'Your backup is saved in the app\'s Documents folder. You can access it through the Files app or by sharing it.',
+      title: 'Backup Location',
+    );
   }
 
   Future<void> _handleToggleAutoBackup(bool enabled, BackupSchedule currentSchedule) async {
@@ -524,8 +641,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
   }
 
   void _handleViewAllBackups() {
-    // Navigate to backup history screen
-    Navigator.pushNamed(context, '/export/backups');
+    GoRouter.of(context).push(AppRoutes.backupHistory);
   }
 
   void _showBackupDetails(BackupMetadata backup) {
@@ -575,16 +691,18 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     }
 
     try {
-      // Validate backup file by attempting to import it
-      await ref.read(backupServiceProvider).importBackup(backup.filePath!);
-      
+      // Navigate to import preview for validation and restore
       if (mounted) {
-        Navigator.push(
+        final result = await Navigator.push<bool>(
           context,
           MaterialPageRoute(
             builder: (context) => ImportPreviewScreen(filePath: backup.filePath!),
           ),
         );
+
+        if (result == true && mounted) {
+          _refreshAllProviders();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -626,9 +744,17 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     }
   }
 
-  Future<void> _copyPath(String path) async {
-    // This would need clipboard package
-    await DialogService.showInfo(context, 'Path: $path');
+  void _refreshAllProviders() {
+    // Invalidate Riverpod backup-related providers
+    ref.invalidate(backupHistoryProvider);
+    ref.invalidate(recentBackupsProvider);
+    ref.invalidate(backupScheduleProvider);
+
+    // Refresh Provider-based providers for deck/flashcard/analytics
+    if (mounted) {
+      context.read<DatabaseProvider>().refreshDecks();
+      context.read<DatabaseProvider>().refreshAnalytics();
+    }
   }
 
   Widget _detailRow(String label, String value) {

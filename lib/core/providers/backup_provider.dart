@@ -205,10 +205,11 @@ class BackupOperationNotifier extends StateNotifier<BackupOperationState> {
         isLoading: false,
         lastRestoreResult: result,
       );
-      
-      // Refresh backup history
+
+      // Refresh backup history and schedule
       _ref.invalidate(backupHistoryProvider);
       _ref.invalidate(recentBackupsProvider);
+      _ref.invalidate(backupScheduleProvider);
       
       return result;
     } catch (e) {

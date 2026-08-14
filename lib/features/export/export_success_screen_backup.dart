@@ -250,12 +250,26 @@ class ExportSuccessScreenBackup extends ConsumerWidget {
 
   Future<void> _openFolder(BuildContext context, WidgetRef ref) async {
     try {
-      // Get the directory from the file path
       final directory = Directory(backupFile.filePath).parent.path;
-      await ref.read(backupOperationProvider.notifier).openBackupFolder(directory);
+      final success = await ref.read(backupOperationProvider.notifier).openBackupFolder(directory);
+      if (!success && context.mounted) {
+        await DialogService.showInfo(
+          context,
+          Platform.isAndroid
+              ? 'Your backup is saved in Android/data/com.quizsnap.quizsnap/files/QuizSnap/Backups. Use Share Backup to save it to Downloads, Google Drive, or another location.'
+              : 'Your backup is saved in the app\'s Documents folder. You can access it through the Files app or by sharing it.',
+          title: 'Backup Location',
+        );
+      }
     } catch (e) {
       if (context.mounted) {
-        await DialogService.showError(context, 'Failed to open folder: $e');
+        await DialogService.showInfo(
+          context,
+          Platform.isAndroid
+              ? 'Your backup is saved in Android/data/com.quizsnap.quizsnap/files/QuizSnap/Backups. Use Share Backup to save it to Downloads, Google Drive, or another location.'
+              : 'Your backup is saved in the app\'s Documents folder. You can access it through the Files app or by sharing it.',
+          title: 'Backup Location',
+        );
       }
     }
   }

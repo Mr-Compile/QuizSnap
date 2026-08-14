@@ -393,7 +393,7 @@ class AppRouter {
             builder: (context, state) => const BackupHistoryScreen(),
             routes: [
               GoRoute(
-                path: 'restore',
+                path: 'restore-enhanced',
                 builder: (context, state) => const BackupRestoreScreenEnhanced(),
               ),
               GoRoute(

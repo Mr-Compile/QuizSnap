@@ -6,7 +6,6 @@ import 'package:share_plus/share_plus.dart' as share_plus;
 import 'package:open_filex/open_filex.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../database/database.dart';
 import '../models/backup_enhanced.dart';
 
@@ -25,7 +24,7 @@ class BackupServiceEnhanced {
     String? customPath,
   }) async {
     final backupId = DateTime.now().millisecondsSinceEpoch.toString();
-    final backupName = name ?? 'Backup_${DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now())}';
+    final backupName = name ?? 'quizsnap_backup_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}';
     
     final metadata = BackupMetadata(
       id: backupId,
@@ -216,31 +215,29 @@ class BackupServiceEnhanced {
 
   // Open backup folder in file manager
   Future<void> openBackupFolder(String folderPath) async {
-    try {
-      final directory = Directory(folderPath);
-      if (!await directory.exists()) {
-        throw Exception('Folder does not exist');
-      }
-
-      // Try to open the folder using OpenFilex with a directory
-      final result = await OpenFilex.open(folderPath);
-      
-      if (result.type != ResultType.done) {
-        // If that fails, try opening a file in the directory as a workaround
-        final files = directory.listSync().whereType<File>().toList();
-        if (files.isNotEmpty) {
-          await OpenFilex.open(files.first.path);
-        } else {
-          // If no files exist, try to use share_plus as a fallback
-          await share_plus.Share.shareXFiles(
-            [share_plus.XFile(folderPath)],
-            text: 'QuizSnap Backup Folder',
-          );
-        }
-      }
-    } catch (e) {
-      throw Exception('Failed to open folder: $e');
+    final directory = Directory(folderPath);
+    if (!await directory.exists()) {
+      throw Exception('Folder does not exist');
     }
+
+    // Try to open the first file in the directory — this is more reliable
+    // than trying to open a directory URI on Android.
+    final files = directory.listSync().whereType<File>().toList();
+    if (files.isNotEmpty) {
+      final result = await OpenFilex.open(files.first.path);
+      if (result.type == ResultType.done) return;
+    }
+
+    // If no files or OpenFilex failed, try opening the directory directly
+    try {
+      final result = await OpenFilex.open(folderPath);
+      if (result.type == ResultType.done) return;
+    } catch (_) {
+      // OpenFilex throws for directory paths on some Android versions
+    }
+
+    // All attempts failed — throw so the caller can show a fallback dialog
+    throw Exception('Could not open folder in file manager');
   }
 
   // Copy backup file path to clipboard
@@ -272,28 +269,28 @@ class BackupServiceEnhanced {
     }
   }
 
-  // Request storage permission
+  // Request storage permission — always returns true.
+  // App-private storage (used by default) does not require any runtime
+  // permission on Android or iOS.  file_picker uses SAF which also needs
+  // no permission.  This method is kept for backward compatibility but
+  // no longer requests any permission.
   Future<bool> requestStoragePermission() async {
-    if (Platform.isAndroid) {
-      final status = await Permission.storage.request();
-      if (status.isDenied) {
-        // Show explanation dialog (handled by UI)
-        return false;
-      }
-      if (status.isPermanentlyDenied) {
-        // Guide to settings (handled by UI)
-        return false;
-      }
-      return status.isGranted;
-    }
-    // iOS doesn't need explicit storage permission for app directory
     return true;
   }
 
   // Get default backup directory
+  // On Android, use external storage so files are visible in file managers
+  // (under Android/data/com.quizsnap.quizsnap/files/). On other platforms,
+  // use the app documents directory.
   Future<Directory> getDefaultBackupDirectory() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final backupDir = Directory('${directory.path}/QuizSnap/Backups');
+    Directory baseDir;
+    if (Platform.isAndroid) {
+      baseDir = await getExternalStorageDirectory() ??
+          await getApplicationDocumentsDirectory();
+    } else {
+      baseDir = await getApplicationDocumentsDirectory();
+    }
+    final backupDir = Directory('${baseDir.path}/QuizSnap/Backups');
     if (!await backupDir.exists()) {
       await backupDir.create(recursive: true);
     }
@@ -374,7 +371,7 @@ class BackupServiceEnhanced {
     await _cleanupOldBackups(schedule.maxBackups, schedule.customBackupPath);
 
     final backup = await exportBackup(
-      name: 'Auto_Backup_${DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now())}',
+      name: 'quizsnap_backup_auto_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}',
       description: 'Automatic backup',
       customPath: schedule.customBackupPath,
     );

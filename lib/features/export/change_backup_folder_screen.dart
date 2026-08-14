@@ -223,14 +223,6 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
 
   Future<void> _selectCustomFolder() async {
     try {
-      final hasPermission = await ref.read(backupOperationProvider.notifier).requestStoragePermission();
-      if (!hasPermission) {
-        if (mounted) {
-          DialogService.showError(context, 'Storage permission is required to select a folder');
-        }
-        return;
-      }
-
       final directoryPath = await FilePicker.platform.getDirectoryPath();
 
       if (directoryPath != null && mounted) {
@@ -252,17 +244,20 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
       await ref.read(backupOperationProvider.notifier).setCustomBackupPath(_selectedPath);
 
       if (mounted) {
-        DialogService.showSuccess(context, 
+        setState(() => _isLoading = false);
+        await DialogService.showSuccess(context,
           _selectedPath == null
               ? 'Reset to default backup location'
               : 'Custom backup location saved',
         );
-        Navigator.pop(context, true);
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        DialogService.showError(context, 'Failed to save changes: $e');
+        await DialogService.showError(context, 'Failed to save changes: $e');
       }
     }
   }
@@ -274,11 +269,11 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
       await testFile.writeAsString('QuizSnap test write successful');
       await testFile.delete();
       if (mounted) {
-        DialogService.showSuccess(context, 'Write test passed');
+        await DialogService.showSuccess(context, 'Write test passed');
       }
     } catch (e) {
       if (mounted) {
-        DialogService.showError(context, 'Write test failed: $e');
+        await DialogService.showError(context, 'Write test failed: $e');
       }
     }
   }
@@ -288,11 +283,19 @@ class _ChangeBackupFolderScreenState extends ConsumerState<ChangeBackupFolderScr
     try {
       final result = await OpenFilex.open(_selectedPath!);
       if (result.type != ResultType.done && mounted) {
-        DialogService.showError(context, 'Could not open folder');
+        await DialogService.showInfo(
+          context,
+          'Your backup is saved in Android/data/com.quizsnap.quizsnap/files/QuizSnap/Backups. Use Share Backup to save it to Downloads, Google Drive, or another location.',
+          title: 'Cannot Open Folder',
+        );
       }
     } catch (e) {
       if (mounted) {
-        DialogService.showError(context, 'Failed to open folder: $e');
+        await DialogService.showInfo(
+          context,
+          'Your backup is saved in Android/data/com.quizsnap.quizsnap/files/QuizSnap/Backups. Use Share Backup to save it to Downloads, Google Drive, or another location.',
+          title: 'Cannot Open Folder',
+        );
       }
     }
   }

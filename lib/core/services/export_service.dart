@@ -167,7 +167,7 @@ class ExportService {
     );
 
     // Save PDF
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await _getExportDirectory();
     final fileName = '${title.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
     final filePath = '${directory.path}/$fileName';
     final file = File(filePath);
@@ -225,7 +225,7 @@ class ExportService {
     final csvString = const ListToCsvConverter().convert(rows);
 
     // Save CSV
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await _getExportDirectory();
     final title = options.customTitle ?? (deck?.name ?? 'Flashcards Export');
     final fileName = '${title.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.csv';
     final filePath = '${directory.path}/$fileName';
@@ -308,7 +308,7 @@ class ExportService {
     final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
 
     // Save JSON
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await _getExportDirectory();
     final title = options.customTitle ?? (deck?.name ?? 'Flashcards Export');
     final fileName = '${title.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.json';
     final filePath = '${directory.path}/$fileName';
@@ -375,7 +375,7 @@ class ExportService {
     );
 
     // Save PDF
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await _getExportDirectory();
     final fileName = '${quizTitle.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
     final filePath = '${directory.path}/$fileName';
     final file = File(filePath);
@@ -428,12 +428,25 @@ class ExportService {
     );
 
     // Save PDF
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await _getExportDirectory();
     final fileName = '${quizTitle.replaceAll(' ', '_')}_answer_key_${DateTime.now().millisecondsSinceEpoch}.pdf';
     final filePath = '${directory.path}/$fileName';
     final file = File(filePath);
     await file.writeAsBytes(await pdf.save());
 
     return filePath;
+  }
+
+  Future<Directory> _getExportDirectory() async {
+    if (Platform.isAndroid) {
+      final dir = await getExternalStorageDirectory() ??
+          await getApplicationDocumentsDirectory();
+      final exportDir = Directory('${dir.path}/QuizSnap/Exports');
+      if (!await exportDir.exists()) {
+        await exportDir.create(recursive: true);
+      }
+      return exportDir;
+    }
+    return getApplicationDocumentsDirectory();
   }
 }
