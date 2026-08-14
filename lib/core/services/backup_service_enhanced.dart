@@ -245,12 +245,20 @@ class BackupServiceEnhanced {
     await Clipboard.setData(ClipboardData(text: filePath));
   }
 
-  // Delete backup file
+  // Delete backup file and remove from history
   Future<void> deleteBackupFile(String filePath) async {
     final file = File(filePath);
     if (await file.exists()) {
       await file.delete();
     }
+    // Remove from backup history in SharedPreferences
+    final history = await getBackupHistory();
+    final fileName = filePath.split('/').last;
+    final updatedHistory = history.where((b) {
+      final bFileName = b.filePath?.split('/').last;
+      return bFileName != fileName;
+    }).toList();
+    await _saveBackupHistory(updatedHistory);
   }
 
   // Get custom backup path

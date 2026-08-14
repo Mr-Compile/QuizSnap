@@ -745,6 +745,7 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
       try {
         await ref.read(backupOperationProvider.notifier).deleteBackupFile(backup.filePath!);
         if (mounted) {
+          _refreshAllProviders();
           await DialogService.showSuccess(context, 'Backup deleted');
         }
       } catch (e) {
