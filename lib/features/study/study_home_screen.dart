@@ -187,8 +187,11 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
   }
 
   Widget _buildQuickActions(BuildContext context, stats) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasDue = stats.dueToday > 0;
     final todayReviewColor = AppTheme.blue500;
-    
+    final inactiveColor = colorScheme.onSurfaceVariant;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -198,7 +201,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
         ),
         const SizedBox(height: AppTheme.spacingMd),
         CustomCard(
-          onTap: stats.dueToday > 0
+          onTap: hasDue
               ? () => _navigateToTodayReview(context)
               : null,
           child: Row(
@@ -206,16 +209,46 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
-                  color: stats.dueToday > 0
+                  color: hasDue
                       ? todayReviewColor.withValues(alpha: 0.1)
-                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                      : inactiveColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
-                child: Icon(
-                  Icons.today,
-                  color: stats.dueToday > 0
-                      ? todayReviewColor
-                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      Icons.today,
+                      color: hasDue ? todayReviewColor : inactiveColor,
+                    ),
+                    if (hasDue)
+                      Positioned(
+                        right: -6,
+                        top: -6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: todayReviewColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: colorScheme.surface,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            '${stats.dueToday}',
+                            style: AppTheme.bodySmall.copyWith(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: AppTheme.spacingMd),
@@ -229,17 +262,17 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                     ),
                     const SizedBox(height: AppTheme.spacingXs),
                     Text(
-                      stats.dueToday > 0
-                          ? '$stats.dueToday cards due'
+                      hasDue
+                          ? '${stats.dueToday} cards due'
                           : 'No cards due today',
                       style: AppTheme.bodySmall.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (stats.dueToday > 0)
+              if (hasDue)
                 Icon(
                   Icons.chevron_right,
                   color: todayReviewColor.withValues(alpha: 0.6),

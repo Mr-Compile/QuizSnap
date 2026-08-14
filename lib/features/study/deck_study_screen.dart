@@ -110,7 +110,7 @@ class DeckStudyScreen extends StatelessWidget {
   }
 
   void _showStudyOptions(BuildContext context, dynamic deck) {
-    bool shuffle = false;
+    bool shuffle = true;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

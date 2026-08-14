@@ -17,7 +17,7 @@ class QuizPracticeScreen extends StatefulWidget {
     super.key,
     required this.deckId,
     required this.deckName,
-    this.shuffle = false,
+    this.shuffle = true,
   });
 
   @override
@@ -31,7 +31,7 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
   int _incorrectCount = 0;
   bool _showAnswer = false;
   bool _isStarted = false;
-  bool _shuffle = false;
+  bool _shuffle = true;
   DateTime? _quizStart;
   int? _studySessionId;
   bool _isRecorded = false;

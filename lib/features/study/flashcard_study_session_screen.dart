@@ -30,7 +30,7 @@ class FlashcardStudySessionScreen extends StatefulWidget {
     this.deckId = 0,
     this.initialIndex = 0,
     this.initialRevealed = false,
-    this.shuffle = false,
+    this.shuffle = true,
   });
 
   @override
@@ -495,10 +495,13 @@ class _FlashcardStudySessionScreenState
       title: 'End Session',
       confirmAction: 'End',
       isDestructive: true,
-      onConfirm: () {
-        unawaited(_endStudySession());
-        context.read<StudySessionController>().endSession();
-        Navigator.of(context)
+      onConfirm: () async {
+        final controller = context.read<StudySessionController>();
+        final navigator = Navigator.of(context);
+        await _endStudySession();
+        if (!mounted) return;
+        controller.endSession();
+        navigator
           ..pop()
           ..pop();
       },

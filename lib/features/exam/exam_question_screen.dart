@@ -27,8 +27,22 @@ class ExamQuestionScreen extends StatefulWidget {
 
 class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
   Timer? _timer;
-  final _textController = TextEditingController();
-  final _listInputController = TextEditingController();
+  final Map<String, TextEditingController> _textControllers = {};
+  final Map<String, TextEditingController> _listInputControllers = {};
+
+  TextEditingController _textControllerFor(String questionId, String initialText) {
+    return _textControllers.putIfAbsent(
+      questionId,
+      () => TextEditingController(text: initialText),
+    );
+  }
+
+  TextEditingController _listInputControllerFor(String questionId) {
+    return _listInputControllers.putIfAbsent(
+      questionId,
+      () => TextEditingController(),
+    );
+  }
 
   @override
   void initState() {
@@ -73,15 +87,25 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     }
   }
 
+  void _syncTextAnswer() {
+    final examProvider = context.read<ExamProvider>();
+    final question = examProvider.currentQuestion;
+    if (question == null) return;
+    final controller = _textControllers[question.id];
+    if (controller != null && controller.text.trim().isNotEmpty) {
+      examProvider.submitTextAnswer(controller.text.trim());
+    }
+  }
+
   void _submitListAnswer(List<String> answers) {
     final examProvider = context.read<ExamProvider>();
     examProvider.submitListAnswer(answers);
   }
 
-  void _addListItem(List<String> items, String value) {
+  void _addListItem(String questionId, List<String> items, String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return;
-    _listInputController.clear();
+    _listInputControllers[questionId]?.clear();
     _submitListAnswer([...items, trimmed]);
   }
 
@@ -104,6 +128,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
 
   Future<void> _submitExam() async {
     _timer?.cancel();
+    _syncTextAnswer();
     _persistCurrentInput();
 
     final examProvider = context.read<ExamProvider>();
@@ -148,15 +173,16 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         if (question.type == QuestionType.mixedFormat &&
             question.correctAnswers != null &&
             question.correctAnswers!.isNotEmpty) {
-          // Mixed question resolved as enumeration
           break;
         }
         if (question.type == QuestionType.mixedFormat &&
             question.options.length >= 4) {
-          // Mixed question resolved as multiple choice
           break;
         }
-        _submitTextAnswer(_textController.text);
+        final controller = _textControllers[question.id];
+        if (controller != null) {
+          _submitTextAnswer(controller.text);
+        }
         break;
       case QuestionType.enumeration:
         final current = examProvider.currentAnswers?.firstWhere(
@@ -169,7 +195,8 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
           ),
         );
         final items = current?.listAnswer ?? <String>[];
-        final pending = _listInputController.text.trim();
+        final listController = _listInputControllers[question.id];
+        final pending = listController?.text.trim() ?? '';
         if (pending.isNotEmpty) {
           _submitListAnswer([...items, pending]);
         }
@@ -181,6 +208,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
 
   void _showPauseDialog() {
     _timer?.cancel();
+    _syncTextAnswer();
     _persistCurrentInput();
     showDialog(
       context: context,
@@ -206,8 +234,12 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    _textController.dispose();
-    _listInputController.dispose();
+    for (final c in _textControllers.values) {
+      c.dispose();
+    }
+    for (final c in _listInputControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -248,9 +280,6 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
                 timeSpent: Duration.zero,
               ),
             );
-
-            _textController.text = answer?.textAnswer ?? '';
-            _listInputController.text = '';
 
             return Column(
               children: [
@@ -491,7 +520,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         color: colorScheme.surface,
       ),
       child: TextField(
-        controller: _textController,
+        controller: _textControllerFor(question.id, answer?.textAnswer ?? ''),
         decoration: InputDecoration(
           hintText: 'Enter your answer',
           border: InputBorder.none,
@@ -547,7 +576,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
             );
           }),
           TextField(
-            controller: _listInputController,
+            controller: _listInputControllerFor(question.id),
             decoration: InputDecoration(
               hintText: 'Add item ${items.length + 1}',
               border: OutlineInputBorder(
@@ -560,7 +589,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
             ),
             style: AppTheme.bodyMedium,
             textInputAction: TextInputAction.done,
-            onSubmitted: (value) => _addListItem(items, value),
+            onSubmitted: (value) => _addListItem(question.id, items, value),
           ),
         ],
       ),

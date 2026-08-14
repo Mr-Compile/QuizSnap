@@ -19,7 +19,7 @@ class FlashcardListScreen extends StatefulWidget {
     super.key,
     required this.deckId,
     required this.deckName,
-    this.shuffle = false,
+    this.shuffle = true,
   });
 
   @override

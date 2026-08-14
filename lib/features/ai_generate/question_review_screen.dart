@@ -407,9 +407,12 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
 
       if (!mounted) return;
 
-      DialogService.showSuccess(context, 
+      await DialogService.showSuccess(
+        context,
         'Successfully saved ${_selectedQuestions.length} questions',
       );
+
+      if (!mounted) return;
 
       // Navigate back to home
       Navigator.of(context).popUntil((route) => route.isFirst);

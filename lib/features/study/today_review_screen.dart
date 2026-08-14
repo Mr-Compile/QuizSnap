@@ -17,7 +17,7 @@ class TodayReviewScreen extends StatefulWidget {
 }
 
 class _TodayReviewScreenState extends State<TodayReviewScreen> {
-  bool _shuffle = false;
+  bool _shuffle = true;
 
   @override
   Widget build(BuildContext context) {
