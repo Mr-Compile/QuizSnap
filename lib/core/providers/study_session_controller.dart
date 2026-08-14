@@ -19,7 +19,18 @@ class StudySessionController with ChangeNotifier {
   final Set<int> _ratedCardIds = {};
   final Map<int, int> _cardRatings = {};
   final Set<int> _revealedCardIds = {};
-  DateTime? _sessionStart;
+
+  // Crash-safe study-time tracking.
+  // [_accumulatedSeconds] holds time persisted across pauses/backgrounding.
+  // [_activeSince] marks the start of the current active (non-paused) span.
+  // [_isPaused] is true while the app is inactive/backgrounded.
+  int _accumulatedSeconds = 0;
+  DateTime? _activeSince;
+  bool _isPaused = false;
+
+  // Total review interactions (reveal + rate events). May exceed the unique
+  // reviewed-card count because a single card can be interacted with多次.
+  int _totalReviewInteractions = 0;
 
   StudySessionController({this._persistence});
 
@@ -41,9 +52,33 @@ class StudySessionController with ChangeNotifier {
   Set<int> get ratedCardIds => _ratedCardIds;
   Map<int, int> get cardRatings => _cardRatings;
 
-  Duration get timeSpent => _sessionStart != null
-      ? DateTime.now().difference(_sessionStart!)
-      : Duration.zero;
+  /// Unique set of cards that count as "studied" this session: any card that
+  /// was revealed, rated, or otherwise reviewed. Loaded/skipped cards are NOT
+  /// included.
+  Set<int> get reviewedCardIds => {..._revealedCardIds, ..._ratedCardIds};
+
+  /// Unique count of cards studied this session.
+  int get cardsStudied => reviewedCardIds.length;
+
+  /// Total review interactions (reveal + rate events) this session. Can exceed
+  /// [cardsStudied] because the same card may be interacted with多次.
+  int get totalReviews => _totalReviewInteractions;
+
+  /// Accumulated study seconds persisted across pauses/backgrounding.
+  int get accumulatedSeconds => _accumulatedSeconds;
+
+  /// Whether the session timer is currently paused (app inactive/backgrounded).
+  bool get isPaused => _isPaused;
+
+  /// Live elapsed seconds = persisted accumulation + current active span.
+  int get elapsedSeconds {
+    final active = _activeSince != null && !_isPaused
+        ? DateTime.now().difference(_activeSince!).inSeconds
+        : 0;
+    return _accumulatedSeconds + active;
+  }
+
+  Duration get timeSpent => Duration(seconds: elapsedSeconds);
 
   double get averageConfidence {
     if (_cardRatings.isEmpty) return 0.0;
@@ -56,11 +91,13 @@ class StudySessionController with ChangeNotifier {
         currentIndex: _currentIndex,
         isRevealed: isRevealed,
         totalCards: _flashcards.length,
+        accumulatedSeconds: snapshotSeconds(),
         lastStudiedAt: DateTime.now(),
       );
 
   SessionSummary get sessionSummary => SessionSummary(
-        cardsStudied: _cardRatings.length,
+        cardsStudied: cardsStudied,
+        totalReviews: totalReviews,
         totalCards: _flashcards.length,
         averageConfidence: averageConfidence,
         timeSpent: timeSpent,
@@ -74,6 +111,7 @@ class StudySessionController with ChangeNotifier {
     int startIndex = 0,
     bool startRevealed = false,
     bool shuffle = false,
+    int resumeAccumulatedSeconds = 0,
   }) {
     final source = List<Flashcard>.from(flashcards);
     _flashcards = List.unmodifiable(shuffle ? _shuffleList(source) : source);
@@ -83,9 +121,13 @@ class StudySessionController with ChangeNotifier {
     _ratedCardIds.clear();
     _cardRatings.clear();
     _revealedCardIds.clear();
-    _sessionStart = DateTime.now();
+    _totalReviewInteractions = 0;
+    _accumulatedSeconds = resumeAccumulatedSeconds;
+    _isPaused = false;
+    _activeSince = DateTime.now();
     if (startRevealed && currentCard != null) {
       _revealedCardIds.add(currentCard!.id);
+      _totalReviewInteractions++;
     }
     _persist();
     notifyListeners();
@@ -113,12 +155,14 @@ class StudySessionController with ChangeNotifier {
       deckName: state.deckName,
       startIndex: state.currentIndex,
       startRevealed: state.isRevealed,
+      resumeAccumulatedSeconds: state.accumulatedSeconds,
     );
   }
 
   void revealCurrentCard() {
     final card = currentCard;
     if (card != null && _revealedCardIds.add(card.id)) {
+      _totalReviewInteractions++;
       HapticFeedback.lightImpact();
       _persist();
       notifyListeners();
@@ -176,6 +220,7 @@ class StudySessionController with ChangeNotifier {
 
     _ratedCardIds.add(card.id);
     _cardRatings[card.id] = quality;
+    _totalReviewInteractions++;
     await onPersist(card.id, quality);
     _persist();
     notifyListeners();
@@ -195,9 +240,54 @@ class StudySessionController with ChangeNotifier {
   bool hasRating(int flashcardId) => _ratedCardIds.contains(flashcardId);
   int? getRating(int flashcardId) => _cardRatings[flashcardId];
 
+  /// Pauses the live timer and folds the current active span into the
+  /// accumulated seconds. Safe to call repeatedly. Returns the accumulated
+  /// seconds so the caller can persist them to the database.
+  int pause() {
+    if (_isPaused) return _accumulatedSeconds;
+    _foldActiveSpan();
+    _isPaused = true;
+    _activeSince = null;
+    notifyListeners();
+    return _accumulatedSeconds;
+  }
+
+  /// Resumes the live timer starting a new active span. Does not double-count
+  /// because [pause] already folded the previous span into accumulation.
+  void resume() {
+    if (!_isPaused) {
+      // Ensure an active span exists even if resume is called without pause.
+      _activeSince ??= DateTime.now();
+      return;
+    }
+    _isPaused = false;
+    _activeSince = DateTime.now();
+    notifyListeners();
+  }
+
+  /// Folds the current active span (if any) into [_accumulatedSeconds].
+  void _foldActiveSpan() {
+    if (_activeSince != null) {
+      _accumulatedSeconds += DateTime.now().difference(_activeSince!).inSeconds;
+      _activeSince = null;
+    }
+  }
+
+  /// Returns the accumulated seconds after folding the current active span,
+  /// without changing the paused state. Used for periodic persistence so the
+  /// DB always reflects the latest study time without ending the session.
+  int snapshotSeconds() {
+    final active = _activeSince != null && !_isPaused
+        ? DateTime.now().difference(_activeSince!).inSeconds
+        : 0;
+    return _accumulatedSeconds + active;
+  }
+
   void endSession() {
+    _foldActiveSpan();
     _persistence?.clear();
-    _sessionStart = null;
+    _activeSince = null;
+    _isPaused = false;
   }
 
   void _persist() {
@@ -226,6 +316,7 @@ class StudySessionController with ChangeNotifier {
 
 class SessionSummary {
   final int cardsStudied;
+  final int totalReviews;
   final int totalCards;
   final double averageConfidence;
   final Duration timeSpent;
@@ -233,6 +324,7 @@ class SessionSummary {
 
   SessionSummary({
     required this.cardsStudied,
+    required this.totalReviews,
     required this.totalCards,
     required this.averageConfidence,
     required this.timeSpent,

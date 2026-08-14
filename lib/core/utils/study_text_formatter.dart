@@ -13,7 +13,8 @@ class StudyTextFormatter {
     double paragraphSpacing = 12,
     double listIndent = 24,
   }) {
-    final effectiveStyle = baseStyle ?? Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
+    final effectiveStyle = (baseStyle ?? Theme.of(context).textTheme.bodyMedium ?? const TextStyle())
+        .copyWith(height: 1.5);
     final color = effectiveStyle.color ?? Theme.of(context).colorScheme.onSurface;
     final spans = <Widget>[];
 

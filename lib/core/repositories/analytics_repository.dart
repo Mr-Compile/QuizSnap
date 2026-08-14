@@ -130,6 +130,25 @@ class AnalyticsRepository {
         ));
   }
 
+  /// Persists the current study duration (and best-known cards studied) to the
+  /// session row without closing it (endedAt is not set). Used for periodic
+  /// crash-safe persistence every few seconds and on app lifecycle pauses so
+  /// study time is never lost if the app is killed or backgrounded.
+  Future<void> updateStudySessionDuration(
+    int sessionId, {
+    required int durationSeconds,
+    int? cardsStudied,
+    int? cardsCorrect,
+  }) async {
+    await (_database.update(_database.studySessions)
+          ..where((tbl) => tbl.id.equals(sessionId)))
+        .write(StudySessionsCompanion(
+          durationSeconds: Value(durationSeconds),
+          cardsStudied: cardsStudied != null ? Value(cardsStudied) : const Value.absent(),
+          cardsCorrect: cardsCorrect != null ? Value(cardsCorrect) : const Value.absent(),
+        ));
+  }
+
   // Create a quiz result
   Future<int> createQuizResult({
     int? deckId,

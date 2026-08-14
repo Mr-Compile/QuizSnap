@@ -852,6 +852,8 @@ class AppTheme {
     }
     final hours = totalSeconds ~/ 3600;
     final minutes = (totalSeconds % 3600) ~/ 60;
-    return minutes > 0 ? '$hours hr $minutes min' : '$hours hr';
+    return minutes > 0
+        ? '$hours hr ${minutes.toString().padLeft(2, '0')} min'
+        : '$hours hr';
   }
 }

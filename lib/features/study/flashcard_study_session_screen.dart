@@ -39,30 +39,48 @@ class FlashcardStudySessionScreen extends StatefulWidget {
 }
 
 class _FlashcardStudySessionScreenState
-    extends State<FlashcardStudySessionScreen> {
+    extends State<FlashcardStudySessionScreen>
+    with WidgetsBindingObserver {
   int? _dbSessionId;
   DateTime? _dbSessionStart;
   bool _isDbSessionEnded = false;
   DatabaseProvider? _dbProvider;
 
+  // Crash-safe study-time tracking.
+  Timer? _persistenceTimer;
+  Timer? _timerTicker;
+  bool _isAppInactive = false;
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _persistenceTimer?.cancel();
+    _timerTicker?.cancel();
     // Best-effort: end the session if the user exits without confirming
     // (e.g. system back button). We cannot await in dispose, so we fire
-    // a microtask that performs the DB update.
-    if (!_isDbSessionEnded && _dbSessionId != null && _dbSessionStart != null) {
+    // a microtask that performs the DB update using the controller's
+    // accumulated seconds so study time and metrics are never lost.
+    if (!_isDbSessionEnded && _dbSessionId != null) {
       final sessionId = _dbSessionId!;
-      final sessionStart = _dbSessionStart!;
-      final durationSeconds = DateTime.now().difference(sessionStart).inSeconds;
       final db = _dbProvider;
+      final controller = _controllerForDispose();
+      final durationSeconds = controller?.snapshotSeconds() ??
+          (_dbSessionStart != null
+              ? DateTime.now().difference(_dbSessionStart!).inSeconds
+              : 0);
+      final cardsStudied = controller?.cardsStudied ?? 0;
+      final cardsCorrect =
+          controller?.cardRatings.values.where((q) => q >= 3).length ?? 0;
+      // Fold the active span so the controller state is consistent.
+      controller?.pause();
       // Use a microtask to avoid async work in dispose.
       Future.microtask(() async {
         if (db == null) return;
         try {
           await db.analyticsRepository.endStudySession(
             sessionId,
-            cardsStudied: 0,
-            cardsCorrect: 0,
+            cardsStudied: cardsStudied,
+            cardsCorrect: cardsCorrect,
             durationSeconds: durationSeconds,
           );
           db.refreshAnalytics();
@@ -72,9 +90,47 @@ class _FlashcardStudySessionScreenState
     super.dispose();
   }
 
+  StudySessionController? _controllerForDispose() {
+    try {
+      return context.read<StudySessionController>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final controller = _controllerForDispose();
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        _isAppInactive = true;
+        _pauseTimerTicker();
+        controller?.pause();
+        _persistDuration();
+        break;
+      case AppLifecycleState.detached:
+        _isAppInactive = true;
+        controller?.pause();
+        _persistDuration();
+        break;
+      case AppLifecycleState.resumed:
+        if (_isAppInactive) {
+          _isAppInactive = false;
+          controller?.resume();
+          _startTimerTicker();
+        }
+        break;
+      case AppLifecycleState.hidden:
+        // App still alive but not visible; treat like inactive for safety.
+        break;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _dbProvider = context.read<DatabaseProvider>();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -89,7 +145,55 @@ class _FlashcardStudySessionScreenState
         startRevealed: widget.initialRevealed,
         shuffle: widget.shuffle,
       );
+      _startPersistenceTimer();
+      _startTimerTicker();
     });
+  }
+
+  /// Persists the current accumulated study seconds to the DB session row
+  /// every 5 seconds so study time survives crashes/force-closes.
+  void _startPersistenceTimer() {
+    _persistenceTimer?.cancel();
+    _persistenceTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _persistDuration();
+    });
+  }
+
+  /// Updates the DB session row with the controller's current accumulated
+  /// seconds (and best-known cards studied) without ending the session.
+  void _persistDuration() {
+    final sessionId = _dbSessionId;
+    final db = _dbProvider;
+    final controller = _controllerForDispose();
+    if (sessionId == null || db == null || controller == null) return;
+    final seconds = controller.snapshotSeconds();
+    final cardsStudied = controller.cardsStudied;
+    final cardsCorrect =
+        controller.cardRatings.values.where((q) => q >= 3).length;
+    Future.microtask(() async {
+      try {
+        await db.analyticsRepository.updateStudySessionDuration(
+          sessionId,
+          durationSeconds: seconds,
+          cardsStudied: cardsStudied,
+          cardsCorrect: cardsCorrect,
+        );
+      } catch (_) {}
+    });
+  }
+
+  /// Drives the live session timer display by notifying listeners every second.
+  void _startTimerTicker() {
+    _timerTicker?.cancel();
+    _timerTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {});
+    });
+  }
+
+  void _pauseTimerTicker() {
+    _timerTicker?.cancel();
+    _timerTicker = null;
   }
 
   @override
@@ -136,6 +240,8 @@ class _FlashcardStudySessionScreenState
                       Theme.of(context).colorScheme.primary,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  _buildSessionTimer(context, controller),
                   const SizedBox(height: 16),
                   Expanded(
                     child: FlashcardFlipCard(
@@ -168,10 +274,53 @@ class _FlashcardStudySessionScreenState
     );
   }
 
+  /// Live session timer placed near the progress indicator.
+  /// Format: under 1 hour -> MM:SS, 1 hour or more -> HH:MM:SS.
+  /// Pauses when the app goes inactive and resumes correctly.
+  Widget _buildSessionTimer(BuildContext context, StudySessionController controller) {
+    final totalSeconds = controller.elapsedSeconds;
+    final String formatted;
+    if (totalSeconds >= 3600) {
+      final hours = totalSeconds ~/ 3600;
+      final minutes = (totalSeconds % 3600) ~/ 60;
+      final seconds = totalSeconds % 60;
+      formatted = '$hours:'
+          '${minutes.toString().padLeft(2, '0')}:'
+          '${seconds.toString().padLeft(2, '0')}';
+    } else {
+      final minutes = totalSeconds ~/ 60;
+      final seconds = totalSeconds % 60;
+      formatted = '${minutes.toString().padLeft(2, '0')}:'
+          '${seconds.toString().padLeft(2, '0')}';
+    }
+
+    final color = controller.isPaused
+        ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)
+        : Theme.of(context).colorScheme.primary;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          controller.isPaused ? Icons.pause_circle_outline : Icons.timer_outlined,
+          size: 18,
+          color: color,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          formatted,
+          style: AppTheme.labelLarge.copyWith(
+            color: color,
+            fontFeatures: const [FontFeature.tabularFigures()],
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildCompletionScreen(BuildContext context, StudySessionController controller) {
     final summary = controller.sessionSummary;
-    final minutes = summary.timeSpent.inMinutes;
-    final seconds = summary.timeSpent.inSeconds % 60;
 
     return Scaffold(
       appBar: CustomAppBar(
@@ -194,7 +343,7 @@ class _FlashcardStudySessionScreenState
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppTheme.spacingLg),
-            _buildSummaryCard(context, summary, minutes, seconds),
+            _buildSummaryCard(context, summary),
             const SizedBox(height: AppTheme.spacingXl),
             ElevatedButton(
               onPressed: () async {
@@ -224,6 +373,9 @@ class _FlashcardStudySessionScreenState
                   shuffle: widget.shuffle,
                 );
                 await _startStudySession();
+                if (!mounted) return;
+                _startPersistenceTimer();
+                _startTimerTicker();
               },
               child: const Text('Continue Studying'),
             ),
@@ -233,15 +385,16 @@ class _FlashcardStudySessionScreenState
     );
   }
 
-  Widget _buildSummaryCard(BuildContext context, SessionSummary summary, int minutes, int seconds) {
+  Widget _buildSummaryCard(BuildContext context, SessionSummary summary) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: Column(
           children: [
             _buildSummaryRow(context, 'Cards Studied', '${summary.cardsStudied} / ${summary.totalCards}'),
+            _buildSummaryRow(context, 'Total Reviews', summary.totalReviews.toString()),
             _buildSummaryRow(context, 'Average Confidence', summary.averageConfidence.toStringAsFixed(1)),
-            _buildSummaryRow(context, 'Time Spent', '${minutes}m ${seconds}s'),
+            _buildSummaryRow(context, 'Time Spent', AppTheme.formatStudyDuration(summary.timeSpent.inSeconds)),
             _buildSummaryRow(context, 'Due Tomorrow', summary.dueTomorrowCount.toString()),
           ],
         ),
@@ -477,10 +630,16 @@ class _FlashcardStudySessionScreenState
     if (_isDbSessionEnded || _dbSessionId == null || _dbSessionStart == null) {
       return;
     }
+    _persistenceTimer?.cancel();
+    _pauseTimerTicker();
     final controller = context.read<StudySessionController>();
-    final cardsStudied = controller.ratedCardIds.length;
+    // Cards Studied = unique reviewed cards (revealed OR rated), not just rated.
+    final cardsStudied = controller.cardsStudied;
     final cardsCorrect = controller.cardRatings.values.where((q) => q >= 3).length;
-    final durationSeconds = DateTime.now().difference(_dbSessionStart!).inSeconds;
+    // Use the controller's crash-safe accumulated seconds, not wall-clock from
+    // start, so paused/backgrounded time is not double-counted.
+    final durationSeconds = controller.snapshotSeconds();
+    controller.pause();
     final db = _dbProvider ?? context.read<DatabaseProvider>();
     await db.analyticsRepository.endStudySession(
       _dbSessionId!,

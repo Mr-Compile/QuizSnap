@@ -59,21 +59,31 @@ abstract class UnifiedTextCleaner {
     return text;
   }
 
-  /// OCR-specific: aggressively remove isolated single characters and
-  /// common noise fragments.
+  /// OCR-specific: remove isolated single-character noise lines while
+  /// preserving blank lines (paragraph breaks), list markers, and headings.
   static String _ocrExtraClean(String text) {
     final lines = text.split('\n');
     final kept = <String>[];
     for (final line in lines) {
       final trimmed = line.trim();
-      if (trimmed.isEmpty) continue;
-      // Drop lines that are only one or two non-word symbols.
+      // Preserve blank lines so paragraph breaks survive.
+      if (trimmed.isEmpty) {
+        kept.add('');
+        continue;
+      }
+      // Preserve list markers and short numeric/letter list labels.
+      if (RegExp(r'^(\d+[).\-]\s+|[-*•]\s+)').hasMatch(trimmed)) {
+        kept.add(line);
+        continue;
+      }
+      // Drop lines that are only one or two non-word symbols (OCR noise).
       if (trimmed.length <= 2 && !RegExp(r'^[A-Za-z0-9]{1,2}$').hasMatch(trimmed)) {
         continue;
       }
       kept.add(line);
     }
-    return kept.join('\n');
+    // Collapse runs of blank lines beyond a single paragraph break.
+    return kept.join('\n').replaceAll(RegExp(r'\n{3,}'), '\n\n');
   }
 
   static String _normalizePunctuation(String text) {

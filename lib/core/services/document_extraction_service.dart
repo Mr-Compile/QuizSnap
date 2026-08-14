@@ -97,30 +97,77 @@ class DocumentExtractionService {
     }
   }
   
-  /// Extract text content from XML by removing tags
+  /// Extract text content from XML by removing tags while preserving the
+  /// document's paragraph and line-break structure.
+  ///
+  /// DOCX represents paragraphs with `<w:p>` and explicit line breaks with
+  /// `<w:br/>` / `<w:cr/>`; tabs use `<w:tab/>`. We convert these structural
+  /// markers to newlines/tabs *before* stripping the remaining tags so the
+  /// downstream cleaner and review screens can preserve paragraph breaks,
+  /// blank lines, lists, headings, and indentation instead of collapsing
+  /// everything into a single space-separated line.
   static String _extractTextFromXml(String xml) {
-    // Remove all XML tags
-    String text = xml.replaceAll(RegExp(r'<[^>]*>'), ' ');
-    
-    // Decode common HTML entities
+    String text = xml;
+
+    // Preserve structural markers as real whitespace before tag stripping.
+    // Each paragraph end -> newline; an extra blank line between paragraphs
+    // is introduced by the closing tag so consecutive paragraphs are
+    // separated by a paragraph break (\n\n) after normalization.
+    text = text.replaceAllMapped(
+      RegExp(r'</w:p>', caseSensitive: false),
+      (_) => '\n\n',
+    );
+    text = text.replaceAllMapped(
+      RegExp(r'<w:br\s*/?>', caseSensitive: false),
+      (_) => '\n',
+    );
+    text = text.replaceAllMapped(
+      RegExp(r'<w:cr\s*/?>', caseSensitive: false),
+      (_) => '\n',
+    );
+    text = text.replaceAllMapped(
+      RegExp(r'<w:tab\s*/?>', caseSensitive: false),
+      (_) => '\t',
+    );
+
+    // Remove all remaining XML tags.
+    text = text.replaceAll(RegExp(r'<[^>]*>'), ' ');
+
+    // Decode common HTML entities.
     text = text.replaceAll('&lt;', '<');
     text = text.replaceAll('&gt;', '>');
     text = text.replaceAll('&amp;', '&');
     text = text.replaceAll('&quot;', '"');
     text = text.replaceAll('&apos;', "'");
     text = text.replaceAll('&nbsp;', ' ');
-    
+
     return text;
   }
-  
-  /// Clean DOCX extracted text
+
+  /// Clean DOCX extracted text while preserving paragraph breaks, blank lines,
+  /// list markers, headings, and indentation.
+  ///
+  /// Only spaces/tabs are collapsed (never newlines), and runs of more than
+  /// two newlines are reduced to a single paragraph break. This keeps the
+  /// document human-readable in review screens and AI prompts.
   static String _cleanDocxText(String text) {
-    // Remove excessive whitespace
-    String cleaned = text.replaceAll(RegExp(r'\s+'), ' ');
-    
-    // Remove special characters that might interfere with AI processing
+    // Normalize line endings.
+    String cleaned = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+
+    // Collapse runs of spaces/tabs into a single space, but preserve newlines.
+    cleaned = cleaned.replaceAll(RegExp(r'[ \t]+'), ' ');
+
+    // Trim trailing whitespace on each line (keeps indentation via leading
+    // spaces being already collapsed above; we only strip trailing noise).
+    cleaned = cleaned.split('\n').map((l) => l.trimRight()).join('\n');
+
+    // Collapse 3+ newlines into a single paragraph break (\n\n).
+    cleaned = cleaned.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+    // Remove control characters that interfere with processing, but keep
+    // newlines (\n) and tabs (\t).
     cleaned = cleaned.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F]'), '');
-    
+
     return cleaned.trim();
   }
 

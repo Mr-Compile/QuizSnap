@@ -8,6 +8,7 @@ class StudySessionState {
   final bool isRevealed;
   final DateTime? lastStudiedAt;
   final int totalCards;
+  final int accumulatedSeconds;
 
   const StudySessionState({
     required this.deckId,
@@ -16,6 +17,7 @@ class StudySessionState {
     required this.isRevealed,
     required this.totalCards,
     this.lastStudiedAt,
+    this.accumulatedSeconds = 0,
   });
 
   Map<String, dynamic> toJson() {
@@ -25,6 +27,7 @@ class StudySessionState {
       'currentIndex': currentIndex,
       'isRevealed': isRevealed,
       'totalCards': totalCards,
+      'accumulatedSeconds': accumulatedSeconds,
       'lastStudiedAt': lastStudiedAt?.toIso8601String(),
     };
   }
@@ -36,6 +39,7 @@ class StudySessionState {
       currentIndex: json['currentIndex'] as int,
       isRevealed: json['isRevealed'] as bool,
       totalCards: json['totalCards'] as int,
+      accumulatedSeconds: (json['accumulatedSeconds'] as num?)?.toInt() ?? 0,
       lastStudiedAt: json['lastStudiedAt'] != null
           ? DateTime.tryParse(json['lastStudiedAt'] as String)
           : null,
@@ -49,6 +53,7 @@ class StudySessionState {
     bool? isRevealed,
     DateTime? lastStudiedAt,
     int? totalCards,
+    int? accumulatedSeconds,
   }) {
     return StudySessionState(
       deckId: deckId ?? this.deckId,
@@ -57,6 +62,7 @@ class StudySessionState {
       isRevealed: isRevealed ?? this.isRevealed,
       lastStudiedAt: lastStudiedAt ?? this.lastStudiedAt,
       totalCards: totalCards ?? this.totalCards,
+      accumulatedSeconds: accumulatedSeconds ?? this.accumulatedSeconds,
     );
   }
 }
