@@ -26,7 +26,11 @@ import 'core/providers/trash_provider.dart';
 import 'core/providers/flashcard_selection_provider.dart';
 import 'core/services/cleanup_scheduler.dart';
 import 'core/services/trash_service.dart';
+import 'core/services/session_inactivity_service.dart';
+import 'core/providers/focus_mode_provider.dart';
 import 'core/navigation/app_router.dart';
+import 'shared/widgets/activity_detector.dart';
+import 'shared/widgets/dialogs/inactivity_warning_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +45,16 @@ void main() async {
   final securityProvider = SecurityProvider();
   await securityProvider.initialize();
 
+  // Create SessionInactivityService — depends on SecurityProvider.
+  final sessionInactivityService = SessionInactivityService(securityProvider);
+
+  // Create FocusModeProvider — tracks study/exam focus sessions.
+  final focusModeProvider = FocusModeProvider();
+
+  // Wire FocusModeProvider into the inactivity service so it suspends
+  // during study/exam sessions.
+  sessionInactivityService.attachFocusModeProvider(focusModeProvider);
+
   // Schedule a one-time trash cleanup in the background; the scheduler starts the daily timer disabled by default.
   unawaited(CleanupScheduler(database: database, prefs: prefs).runNow());
 
@@ -54,6 +68,8 @@ void main() async {
         prefs: prefs,
         dbProvider: dbProvider,
         securityProvider: securityProvider,
+        sessionInactivityService: sessionInactivityService,
+        focusModeProvider: focusModeProvider,
       ),
     ),
   );
@@ -63,12 +79,16 @@ class QuizSnapApp extends StatefulWidget {
   final SharedPreferences prefs;
   final DatabaseProvider dbProvider;
   final SecurityProvider securityProvider;
+  final SessionInactivityService sessionInactivityService;
+  final FocusModeProvider focusModeProvider;
 
   const QuizSnapApp({
     super.key,
     required this.prefs,
     required this.dbProvider,
     required this.securityProvider,
+    required this.sessionInactivityService,
+    required this.focusModeProvider,
   });
 
   @override
@@ -77,20 +97,26 @@ class QuizSnapApp extends StatefulWidget {
 
 class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
   late final SecurityProvider _securityProvider;
+  late final SessionInactivityService _sessionInactivityService;
 
   @override
   void initState() {
     super.initState();
     _securityProvider = widget.securityProvider;
+    _sessionInactivityService = widget.sessionInactivityService;
     WidgetsBinding.instance.addObserver(this);
 
     // Bridge SecurityProvider state changes to GoRouter so the redirect
     // re-evaluates when the app is locked/unlocked (e.g. lifecycle events).
     _securityProvider.addListener(_onSecurityChanged);
+
+    // Start inactivity tracking once the app is running.
+    _sessionInactivityService.start();
   }
 
   @override
   void dispose() {
+    _sessionInactivityService.stop();
     _securityProvider.removeListener(_onSecurityChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -106,26 +132,34 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    debugPrint('[QuizSnapApp] lifecycle event: ${state.name}');
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
-        // App going to background — lock on resume if PIN is enabled.
-        // We don't lock here; we lock on resume to avoid locking during
-        // transient inactive states (e.g. system dialogs).
-        debugPrint('[QuizSnapApp] lifecycle: ${state.name}');
+        // App going to background — stop inactivity tracking.
+        // We lock on resume, not here, to avoid locking during transient
+        // inactive states (system dialogs, keyboard show/hide, etc.).
+        _sessionInactivityService.stop();
         break;
       case AppLifecycleState.detached:
-        debugPrint('[QuizSnapApp] lifecycle: detached');
+        _sessionInactivityService.stop();
         break;
       case AppLifecycleState.resumed:
-        // Lock the app once when returning from background, but only if
-        // PIN is enabled and the app is not already locked.  This prevents
-        // re-locking immediately after unlock (race condition guard).
-        debugPrint('[QuizSnapApp] lifecycle: resumed');
-        if (_securityProvider.isPinEnabled && !_securityProvider.isLocked) {
-          debugPrint('[QuizSnapApp] locking app on resume');
-          _securityProvider.lockApp();
-        }
+        // Priority 1: App PIN Lock — always check first.
+        // lockApp() has internal guards:
+        //   - skips if PIN not enabled
+        //   - skips if already locked
+        //   - skips if isUnlocking (unlock in progress)
+        //   - skips if within unlock grace period (3s after unlock)
+        //   - skips if lock screen already visible
+        // These guards prevent the relock loop.
+        debugPrint('[QuizSnapApp] lifecycle: resumed — checking lock');
+        _securityProvider.lockApp();
+
+        // Priority 2: Restart inactivity tracking.
+        // If app lock was applied, the session timer will be idle until
+        // the user unlocks (the service checks isLocked and skips ticks).
+        _sessionInactivityService.start();
         break;
       case AppLifecycleState.hidden:
         break;
@@ -149,6 +183,10 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
         // SecurityProvider is created early in main() so it can be
         // initialized before runApp and wired to the router refresh.
         provider_pkg.ChangeNotifierProvider.value(value: _securityProvider),
+        // SessionInactivityService tracks foreground inactivity.
+        provider_pkg.ChangeNotifierProvider.value(value: _sessionInactivityService),
+        // FocusModeProvider tracks study/exam focus sessions.
+        provider_pkg.ChangeNotifierProvider.value(value: widget.focusModeProvider),
         provider_pkg.ChangeNotifierProvider(create: (_) => ReminderProvider()),
         provider_pkg.ChangeNotifierProvider(create: (_) => DeckBookmarkProvider(widget.prefs)),
         provider_pkg.ChangeNotifierProvider(create: (_) => FlashcardRevealProvider()),
@@ -200,9 +238,113 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
             routerConfig: AppRouter.router,
+            builder: (context, child) {
+              return ActivityDetector(
+                child: _SessionWarningHandler(
+                  child: child!,
+                ),
+              );
+            },
           );
         },
       ),
     );
   }
+}
+
+/// Listens to [SessionInactivityService] and shows/dismisses the
+/// [InactivityWarningDialog] with a live countdown.
+///
+/// This widget must be inside the [MaterialApp.router] builder so its
+/// context has access to the root navigator for showing dialogs.
+class _SessionWarningHandler extends StatefulWidget {
+  final Widget child;
+
+  const _SessionWarningHandler({required this.child});
+
+  @override
+  State<_SessionWarningHandler> createState() => _SessionWarningHandlerState();
+}
+
+class _SessionWarningHandlerState extends State<_SessionWarningHandler> {
+  SessionInactivityService? _service;
+  bool _dialogShown = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _service ??= context.read<SessionInactivityService>();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _service?.addListener(_onServiceChanged);
+    });
+  }
+
+  @override
+  void dispose() {
+    _service?.removeListener(_onServiceChanged);
+    super.dispose();
+  }
+
+  void _onServiceChanged() {
+    final service = _service;
+    if (service == null || !mounted) return;
+
+    // Focus mode guard: never show warning dialog during study/exam.
+    if (service.isFocusMode) {
+      if (_dialogShown) {
+        _dialogShown = false;
+        _dismissDialog();
+      }
+      return;
+    }
+
+    if (service.isWarningPhase && !_dialogShown) {
+      _dialogShown = true;
+      _showWarningDialog(service);
+    } else if (!service.isWarningPhase && _dialogShown) {
+      _dialogShown = false;
+      _dismissDialog();
+    }
+  }
+
+  void _dismissDialog() {
+    if (!mounted) return;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
+  }
+
+  void _showWarningDialog(SessionInactivityService service) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (dialogContext) {
+        return ListenableBuilder(
+          listenable: service,
+          builder: (context, _) {
+            if (!service.isWarningPhase) {
+              return const SizedBox.shrink();
+            }
+            return InactivityWarningDialog(
+              countdown: service.countdown,
+              onStillHere: () => service.dismissWarning(),
+              onLockNow: () => service.lockNow(),
+            );
+          },
+        );
+      },
+    ).then((_) {
+      _dialogShown = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

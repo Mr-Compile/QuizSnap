@@ -21,8 +21,25 @@ class _PinLockScreenState extends State<PinLockScreen> {
   Timer? _blackScreenGuard;
 
   @override
+  void initState() {
+    super.initState();
+    // Track that the lock screen is visible so lockApp() can guard
+    // against stacking duplicate lock screens.
+    context.read<SecurityProvider>().setLockScreenVisible(true);
+    debugPrint('[PinLockScreen] lock screen shown');
+  }
+
+  @override
   void dispose() {
     _blackScreenGuard?.cancel();
+    // Mark the lock screen as no longer visible.
+    // Use read() since the provider may still be available at dispose time.
+    try {
+      context.read<SecurityProvider>().setLockScreenVisible(false);
+      debugPrint('[PinLockScreen] lock screen dismissed');
+    } catch (_) {
+      // Provider may be unavailable during app teardown.
+    }
     _pinController.dispose();
     super.dispose();
   }
@@ -74,14 +91,19 @@ class _PinLockScreenState extends State<PinLockScreen> {
 
     bool success = false;
     try {
+      // verifyPin() implements the atomic unlock transaction:
+      //   1. sets isUnlocking = true
+      //   2. validates PIN
+      //   3. sets isLocked = false + lastUnlockTime = now
+      //   4. notifies listeners
+      //   5. sets isUnlocking = false
       success = await securityProvider.verifyPin(pin);
     } catch (e) {
       debugPrint('[PinLockScreen] unlock error: $e');
       success = false;
     } finally {
-      // Always clear the loading flag — verifyPin already does this
-      // internally, but this is a defensive guarantee so no spinner
-      // can remain active after unlock success or failure.
+      // Defensive: always clear loading + unlocking flags so no
+      // spinner or lock state can remain stuck.
       if (securityProvider.isLoading) {
         securityProvider.clearLoading();
       }
@@ -90,10 +112,15 @@ class _PinLockScreenState extends State<PinLockScreen> {
     if (!mounted) return;
 
     if (success) {
-      debugPrint('[PinLockScreen] unlock success — restoring route');
+      debugPrint('[PinLockScreen] unlock success — '
+          'appLocked=${securityProvider.isAppLocked}, '
+          'sessionLocked=${securityProvider.isSessionLocked}, '
+          'restoring route');
       setState(() {
         _failedAttempts = 0;
       });
+      // isLocked is already false (set by verifyPin), so we can
+      // safely navigate away from the lock screen.
       _restoreRoute();
     } else {
       debugPrint('[PinLockScreen] unlock failed — incorrect PIN');

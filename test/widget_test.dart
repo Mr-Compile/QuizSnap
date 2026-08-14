@@ -12,6 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quiz_snap/main.dart';
 import 'package:quiz_snap/core/providers/database_provider.dart';
 import 'package:quiz_snap/core/providers/security_provider.dart';
+import 'package:quiz_snap/core/services/session_inactivity_service.dart';
+import 'package:quiz_snap/core/providers/focus_mode_provider.dart';
 
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
@@ -23,10 +25,17 @@ void main() {
     final dbProvider = DatabaseProvider();
     await dbProvider.initializeDatabase();
     
+    final securityProvider = SecurityProvider();
+    await securityProvider.initialize();
+    final focusModeProvider = FocusModeProvider();
+    final sessionInactivityService = SessionInactivityService(securityProvider);
+    sessionInactivityService.attachFocusModeProvider(focusModeProvider);
     await tester.pumpWidget(QuizSnapApp(
       prefs: prefs,
       dbProvider: dbProvider,
-      securityProvider: SecurityProvider(),
+      securityProvider: securityProvider,
+      sessionInactivityService: sessionInactivityService,
+      focusModeProvider: focusModeProvider,
     ));
 
     // Verify that our app builds.

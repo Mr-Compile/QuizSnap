@@ -105,12 +105,25 @@ class AppRouter {
     refreshListenable: _refreshNotifier,
     errorBuilder: (context, state) => const NotFoundScreen(),
     redirect: (context, state) {
-      // Security check - redirect to PIN lock if app is locked
+      // Security check - redirect to PIN lock if app or session is locked.
+      // Guard: don't redirect while an unlock transaction is in progress
+      // (verifyPin sets isUnlocking=true before clearing isLocked).
       final securityProvider = context.read<SecurityProvider>();
+      if (securityProvider.isUnlocking) {
+        // Unlock in progress — don't interfere with navigation.
+        return null;
+      }
+      // Guard: don't redirect if the lock screen is already visible
+      // (prevents duplicate navigation when both lock systems fire).
+      if (securityProvider.lockScreenVisible) {
+        return null;
+      }
       if (securityProvider.isLocked && state.uri.path != AppRoutes.pinLock) {
         // Save the route the user was on so it can be restored after unlock.
         securityProvider.setRouteBeforeLock(state.uri.path);
-        debugPrint('[AppRouter] redirect to pin-lock from ${state.uri.path}');
+        debugPrint('[AppRouter] redirect to pin-lock from ${state.uri.path} '
+            '(appLocked=${securityProvider.isAppLocked}, '
+            'sessionLocked=${securityProvider.isSessionLocked})');
         return AppRoutes.pinLock;
       }
       return null;

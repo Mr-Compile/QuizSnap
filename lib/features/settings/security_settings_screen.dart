@@ -70,6 +70,16 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => _showChangePinDialog(),
                     ),
+                  if (securityProvider.isPinEnabled)
+                    ListTile(
+                      leading: const Icon(Icons.lock_clock),
+                      title: const Text('Lock Now'),
+                      subtitle: const Text('Immediately lock the app with PIN'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        securityProvider.lockApp();
+                      },
+                    ),
                 ],
               ),
               _buildSection(

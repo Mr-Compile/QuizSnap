@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/models/exam.dart';
+import '../../core/providers/focus_mode_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -27,11 +29,13 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    context.read<FocusModeProvider>().enterExam();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    context.read<FocusModeProvider>().exitExam();
     super.dispose();
   }
 

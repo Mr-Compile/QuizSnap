@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/focus_mode_provider.dart';
 import '../../core/utils/flashcard_answer_codec.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -42,10 +43,12 @@ class _QuizPracticeScreenState extends State<QuizPracticeScreen> {
   void initState() {
     super.initState();
     _dbProvider = context.read<DatabaseProvider>();
+    context.read<FocusModeProvider>().enterStudy();
   }
 
   @override
   void dispose() {
+    context.read<FocusModeProvider>().exitStudy();
     // Best-effort: end the session if the user exits without finishing.
     if (!_isRecorded && _studySessionId != null && _quizStart != null) {
       final sessionId = _studySessionId!;

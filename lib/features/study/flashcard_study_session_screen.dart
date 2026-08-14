@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/flashcard_reveal_provider.dart';
+import '../../core/providers/focus_mode_provider.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/providers/study_session_controller.dart';
 import '../../core/theme/app_theme.dart';
@@ -56,6 +57,7 @@ class _FlashcardStudySessionScreenState
     WidgetsBinding.instance.removeObserver(this);
     _persistenceTimer?.cancel();
     _timerTicker?.cancel();
+    context.read<FocusModeProvider>().exitStudy();
     // Best-effort: end the session if the user exits without confirming
     // (e.g. system back button). We cannot await in dispose, so we fire
     // a microtask that performs the DB update using the controller's
@@ -132,6 +134,7 @@ class _FlashcardStudySessionScreenState
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _dbProvider = context.read<DatabaseProvider>();
+    context.read<FocusModeProvider>().enterStudy();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       context.read<FlashcardRevealProvider>().clear();

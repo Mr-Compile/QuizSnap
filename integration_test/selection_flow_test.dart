@@ -4,6 +4,8 @@ import 'package:quiz_snap/main.dart';
 import 'package:quiz_snap/core/database/database.dart';
 import 'package:quiz_snap/core/providers/database_provider.dart';
 import 'package:quiz_snap/core/providers/security_provider.dart';
+import 'package:quiz_snap/core/services/session_inactivity_service.dart';
+import 'package:quiz_snap/core/providers/focus_mode_provider.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:quiz_snap/core/providers/deck_bookmark_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,10 +32,17 @@ void main() {
 
     testWidgets('Delete → Trash → Restore flow for flashcard', (WidgetTester tester) async {
       // Build the app
+      final securityProvider = SecurityProvider();
+      await securityProvider.initialize();
+      final focusModeProvider = FocusModeProvider();
+      final sessionInactivityService = SessionInactivityService(securityProvider);
+      sessionInactivityService.attachFocusModeProvider(focusModeProvider);
       await tester.pumpWidget(QuizSnapApp(
         prefs: prefs,
         dbProvider: dbProvider,
-        securityProvider: SecurityProvider(),
+        securityProvider: securityProvider,
+        sessionInactivityService: sessionInactivityService,
+        focusModeProvider: focusModeProvider,
       ));
       await tester.pumpAndSettle();
 
@@ -122,10 +131,17 @@ void main() {
     });
 
     testWidgets('Delete → Trash → Restore flow for deck', (WidgetTester tester) async {
+      final securityProvider = SecurityProvider();
+      await securityProvider.initialize();
+      final focusModeProvider = FocusModeProvider();
+      final sessionInactivityService = SessionInactivityService(securityProvider);
+      sessionInactivityService.attachFocusModeProvider(focusModeProvider);
       await tester.pumpWidget(QuizSnapApp(
         prefs: prefs,
         dbProvider: dbProvider,
-        securityProvider: SecurityProvider(),
+        securityProvider: securityProvider,
+        sessionInactivityService: sessionInactivityService,
+        focusModeProvider: focusModeProvider,
       ));
       await tester.pumpAndSettle();
 
@@ -191,10 +207,17 @@ void main() {
     });
 
     testWidgets('Delete → Trash → Restore flow for folder', (WidgetTester tester) async {
+      final securityProvider = SecurityProvider();
+      await securityProvider.initialize();
+      final focusModeProvider = FocusModeProvider();
+      final sessionInactivityService = SessionInactivityService(securityProvider);
+      sessionInactivityService.attachFocusModeProvider(focusModeProvider);
       await tester.pumpWidget(QuizSnapApp(
         prefs: prefs,
         dbProvider: dbProvider,
-        securityProvider: SecurityProvider(),
+        securityProvider: securityProvider,
+        sessionInactivityService: sessionInactivityService,
+        focusModeProvider: focusModeProvider,
       ));
       await tester.pumpAndSettle();
 
@@ -250,10 +273,17 @@ void main() {
     });
 
     testWidgets('Permanent delete functionality', (WidgetTester tester) async {
+      final securityProvider = SecurityProvider();
+      await securityProvider.initialize();
+      final focusModeProvider = FocusModeProvider();
+      final sessionInactivityService = SessionInactivityService(securityProvider);
+      sessionInactivityService.attachFocusModeProvider(focusModeProvider);
       await tester.pumpWidget(QuizSnapApp(
         prefs: prefs,
         dbProvider: dbProvider,
-        securityProvider: SecurityProvider(),
+        securityProvider: securityProvider,
+        sessionInactivityService: sessionInactivityService,
+        focusModeProvider: focusModeProvider,
       ));
       await tester.pumpAndSettle();
 
@@ -290,10 +320,17 @@ void main() {
     });
 
     testWidgets('Provider state consistency during delete/restore', (WidgetTester tester) async {
+      final securityProvider = SecurityProvider();
+      await securityProvider.initialize();
+      final focusModeProvider = FocusModeProvider();
+      final sessionInactivityService = SessionInactivityService(securityProvider);
+      sessionInactivityService.attachFocusModeProvider(focusModeProvider);
       await tester.pumpWidget(QuizSnapApp(
         prefs: prefs,
         dbProvider: dbProvider,
-        securityProvider: SecurityProvider(),
+        securityProvider: securityProvider,
+        sessionInactivityService: sessionInactivityService,
+        focusModeProvider: focusModeProvider,
       ));
       await tester.pumpAndSettle();
 
@@ -340,10 +377,17 @@ void main() {
     });
 
     testWidgets('Navigation and UI flow for delete/restore', (WidgetTester tester) async {
+      final securityProvider = SecurityProvider();
+      await securityProvider.initialize();
+      final focusModeProvider = FocusModeProvider();
+      final sessionInactivityService = SessionInactivityService(securityProvider);
+      sessionInactivityService.attachFocusModeProvider(focusModeProvider);
       await tester.pumpWidget(QuizSnapApp(
         prefs: prefs,
         dbProvider: dbProvider,
-        securityProvider: SecurityProvider(),
+        securityProvider: securityProvider,
+        sessionInactivityService: sessionInactivityService,
+        focusModeProvider: focusModeProvider,
       ));
       await tester.pumpAndSettle();
 
@@ -398,10 +442,17 @@ void main() {
     });
 
     testWidgets('Selected count tracking', (WidgetTester tester) async {
+      final securityProvider = SecurityProvider();
+      await securityProvider.initialize();
+      final focusModeProvider = FocusModeProvider();
+      final sessionInactivityService = SessionInactivityService(securityProvider);
+      sessionInactivityService.attachFocusModeProvider(focusModeProvider);
       await tester.pumpWidget(QuizSnapApp(
         prefs: prefs,
         dbProvider: dbProvider,
-        securityProvider: SecurityProvider(),
+        securityProvider: securityProvider,
+        sessionInactivityService: sessionInactivityService,
+        focusModeProvider: focusModeProvider,
       ));
       await tester.pumpAndSettle();
 
@@ -439,10 +490,17 @@ void main() {
     });
 
     testWidgets('Analytics refresh after delete/restore', (WidgetTester tester) async {
+      final securityProvider = SecurityProvider();
+      await securityProvider.initialize();
+      final focusModeProvider = FocusModeProvider();
+      final sessionInactivityService = SessionInactivityService(securityProvider);
+      sessionInactivityService.attachFocusModeProvider(focusModeProvider);
       await tester.pumpWidget(QuizSnapApp(
         prefs: prefs,
         dbProvider: dbProvider,
-        securityProvider: SecurityProvider(),
+        securityProvider: securityProvider,
+        sessionInactivityService: sessionInactivityService,
+        focusModeProvider: focusModeProvider,
       ));
       await tester.pumpAndSettle();
 

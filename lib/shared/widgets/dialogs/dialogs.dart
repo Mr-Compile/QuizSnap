@@ -8,3 +8,4 @@ export 'warning_dialog.dart';
 export 'info_dialog.dart';
 export 'confirmation_dialog.dart';
 export 'loading_dialog.dart';
+export 'inactivity_warning_dialog.dart';

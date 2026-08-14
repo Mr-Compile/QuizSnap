@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/exam_provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/focus_mode_provider.dart';
 import '../../core/models/exam.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
@@ -47,6 +48,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
   @override
   void initState() {
     super.initState();
+    context.read<FocusModeProvider>().enterExam();
     _startTimer();
   }
 
@@ -253,6 +255,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     for (final c in _listInputControllers.values) {
       c.dispose();
     }
+    context.read<FocusModeProvider>().exitExam();
     super.dispose();
   }
 
