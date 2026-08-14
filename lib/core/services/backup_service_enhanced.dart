@@ -84,12 +84,12 @@ class BackupServiceEnhanced {
       final checksum = backupData.generateChecksum();
       final finalBackupData = backupData.copyWith(checksum: checksum);
 
-      // Determine save location - use app documents directory by default
+      // Determine save location
       String savePath;
       if (customPath != null) {
-        savePath = customPath;
+        // customPath is a directory — append the filename
+        savePath = '$customPath/$backupName.quizsnap';
       } else {
-        // Use app documents directory by default
         final backupDir = await getDefaultBackupDirectory();
         savePath = '${backupDir.path}/$backupName.quizsnap';
       }

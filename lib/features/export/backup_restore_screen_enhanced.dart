@@ -442,9 +442,12 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
   Future<void> _proceedWithBackupCreation() async {
     setState(() => _isCreatingBackup = true);
 
+    final customPath = await ref.read(customBackupPathProvider.future);
+
     final result = await ref.read(backupOperationProvider.notifier).exportBackup(
           name: 'quizsnap_backup_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}',
           description: 'Manual backup',
+          customPath: customPath,
         );
 
     if (mounted) {
@@ -492,25 +495,33 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.folder_open, size: 18),
-            label: const Text('Open Folder'),
-            onPressed: () {
-              Navigator.pop(context);
-              _handleOpenFolder();
-            },
-          ),
-          FilledButton.icon(
-            icon: const Icon(Icons.share, size: 18),
-            label: const Text('Share'),
-            onPressed: () {
-              Navigator.pop(context);
-              _shareBackup(result.filePath);
-            },
+          OverflowBar(
+            spacing: 8,
+            overflowSpacing: 8,
+            overflowAlignment: OverflowBarAlignment.end,
+            overflowDirection: VerticalDirection.down,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.folder_open, size: 18),
+                label: const Text('Open Folder'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _handleOpenFolder();
+                },
+              ),
+              FilledButton.icon(
+                icon: const Icon(Icons.share, size: 18),
+                label: const Text('Share'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _shareBackup(result.filePath);
+                },
+              ),
+            ],
           ),
         ],
       ),
@@ -761,13 +772,20 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          Text(value),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
