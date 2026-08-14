@@ -188,8 +188,10 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
 
   Widget _buildQuickActions(BuildContext context, stats) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasDue = stats.dueToday > 0;
-    final todayReviewColor = AppTheme.blue500;
+    final todayReviewColor = isDark ? AppTheme.blue400 : AppTheme.blue600;
+    final todayReviewBgColor = isDark ? AppTheme.blue900 : AppTheme.blue50;
     final inactiveColor = colorScheme.onSurfaceVariant;
 
     return Column(
@@ -210,7 +212,7 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
                   color: hasDue
-                      ? todayReviewColor.withValues(alpha: 0.1)
+                      ? todayReviewBgColor
                       : inactiveColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
@@ -258,7 +260,9 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                   children: [
                     Text(
                       'Today\'s Review',
-                      style: AppTheme.labelLarge,
+                      style: AppTheme.labelLarge.copyWith(
+                        color: hasDue ? todayReviewColor : null,
+                      ),
                     ),
                     const SizedBox(height: AppTheme.spacingXs),
                     Text(

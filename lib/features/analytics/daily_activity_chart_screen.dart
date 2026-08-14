@@ -89,6 +89,12 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
   }
 
   Widget _buildActivityChart(BuildContext context, List activities) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 600;
+    final maxLabels = isTablet ? 8 : 6;
+    final interval = _calculateInterval(_selectedDays, maxLabels);
+    final reservedSize = _calculateReservedSize(_selectedDays);
+
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,13 +130,13 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 30,
-                      interval: (_selectedDays ~/ 7).toDouble(),
+                      reservedSize: reservedSize,
+                      interval: interval,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
                         if (index < 0 || index >= activities.length) return const SizedBox();
                         final activity = activities[index];
-                        final date = DateFormat('MM/dd').format(activity.date);
+                        final date = _formatDate(activity.date, _selectedDays);
                         return Text(
                           date,
                           style: AppTheme.bodySmall.copyWith(
@@ -214,6 +220,40 @@ class _DailyActivityChartScreenState extends State<DailyActivityChartScreen> {
       (max, activity) => activity.cardsStudied > max ? activity.cardsStudied : max,
     );
     return maxCards > 0 ? (maxCards * 1.2).ceilToDouble() : 10;
+  }
+
+  double _calculateInterval(int days, int maxLabels) {
+    if (days <= 7) return 1.0; // Show every day for 7 days
+    
+    // Calculate interval to show approximately maxLabels
+    if (days <= 30) {
+      // For 30 days, aim for 5-6 labels
+      // 30 / 6 = 5, so interval of 5 gives us labels at 0, 5, 10, 15, 20, 25, 30
+      return 5.0;
+    } else {
+      // For 90 days, aim for 6-8 labels
+      // 90 / 6 = 15, so interval of 15 gives us labels at 0, 15, 30, 45, 60, 75, 90
+      return 15.0;
+    }
+  }
+
+  double _calculateReservedSize(int days) {
+    if (days <= 7) return 30.0; // Short labels like "Mon"
+    if (days <= 30) return 40.0; // Medium labels like "Aug 1"
+    return 35.0; // Month labels like "Jul"
+  }
+
+  String _formatDate(DateTime date, int selectedDays) {
+    if (selectedDays <= 7) {
+      // Show day abbreviation: Mon, Tue, etc.
+      return DateFormat('E').format(date);
+    } else if (selectedDays <= 30) {
+      // Show month and day: Aug 1, Aug 7, etc.
+      return DateFormat('MMM d').format(date);
+    } else {
+      // Show month only: Jul, Aug, Sep
+      return DateFormat('MMM').format(date);
+    }
   }
 
   Widget _buildActivityStats(BuildContext context, List activities) {
