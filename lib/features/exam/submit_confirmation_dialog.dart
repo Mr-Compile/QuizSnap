@@ -25,11 +25,15 @@ class SubmitConfirmationDialog extends StatelessWidget {
   }) async {
     await showDialog(
       context: context,
-      builder: (context) => SubmitConfirmationDialog(
-        answeredCount: answeredCount,
-        totalQuestions: totalQuestions,
-        onConfirm: onConfirm,
-        onCancel: onCancel,
+      builder: (context) => AnimatedPadding(
+        padding: MediaQuery.of(context).viewInsets,
+        duration: const Duration(milliseconds: 200),
+        child: SubmitConfirmationDialog(
+          answeredCount: answeredCount,
+          totalQuestions: totalQuestions,
+          onConfirm: onConfirm,
+          onCancel: onCancel,
+        ),
       ),
     );
   }
@@ -76,11 +80,13 @@ class SubmitConfirmationDialog extends StatelessWidget {
       content: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: isTablet ? 520 : double.infinity,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Text(
               'Are you ready to submit your exam?',
               style: AppTheme.bodyLarge,
@@ -128,6 +134,7 @@ class SubmitConfirmationDialog extends StatelessWidget {
               ),
             ],
           ],
+          ),
         ),
       ),
       actions: [

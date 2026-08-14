@@ -66,7 +66,20 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     _showTimeExpiredDialog();
   }
 
-  void _showTimeExpiredDialog() {
+  /// Dismisses the on-screen keyboard and waits for the dismiss animation /
+  /// next frame to settle before any dialog or bottom sheet is presented.
+  ///
+  /// This prevents RenderFlex overflow errors that occur when a dialog is
+  /// shown while the keyboard is still animating closed (e.g. after typing
+  /// an Identification / Enumeration answer and tapping "Finish Exam").
+  Future<void> _dismissKeyboardAndAwaitFrame() async {
+    FocusScope.of(context).unfocus();
+    await Future.delayed(const Duration(milliseconds: 150));
+  }
+
+  Future<void> _showTimeExpiredDialog() async {
+    await _dismissKeyboardAndAwaitFrame();
+    if (!mounted) return;
     DialogService.showInfo(
       context,
       'Your exam time has expired. Your answers will be submitted automatically.',
@@ -114,15 +127,15 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     _submitListAnswer(updated);
   }
 
-  void _showSubmitConfirmation() {
-    showDialog(
+  Future<void> _showSubmitConfirmation() async {
+    await _dismissKeyboardAndAwaitFrame();
+    if (!mounted) return;
+    await SubmitConfirmationDialog.show(
       context: context,
-      builder: (context) => SubmitConfirmationDialog(
-        answeredCount: context.read<ExamProvider>().answeredCount,
-        totalQuestions: context.read<ExamProvider>().totalQuestions,
-        onConfirm: _submitExam,
-        onCancel: () => Navigator.of(context).pop(),
-      ),
+      answeredCount: context.read<ExamProvider>().answeredCount,
+      totalQuestions: context.read<ExamProvider>().totalQuestions,
+      onConfirm: _submitExam,
+      onCancel: () => Navigator.of(context).pop(),
     );
   }
 
@@ -206,22 +219,22 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     }
   }
 
-  void _showPauseDialog() {
+  Future<void> _showPauseDialog() async {
     _timer?.cancel();
     _syncTextAnswer();
     _persistCurrentInput();
-    showDialog(
+    await _dismissKeyboardAndAwaitFrame();
+    if (!mounted) return;
+    await PauseDialog.show(
       context: context,
-      builder: (context) => PauseDialog(
-        onResume: () {
-          Navigator.of(context).pop();
-          _startTimer();
-        },
-        onExit: () {
-          Navigator.of(context).pop();
-          _exitExam();
-        },
-      ),
+      onResume: () {
+        Navigator.of(context).pop();
+        _startTimer();
+      },
+      onExit: () {
+        Navigator.of(context).pop();
+        _exitExam();
+      },
     );
   }
 

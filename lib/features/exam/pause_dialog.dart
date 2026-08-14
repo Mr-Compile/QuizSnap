@@ -19,9 +19,13 @@ class PauseDialog extends StatelessWidget {
   }) async {
     await showDialog(
       context: context,
-      builder: (context) => PauseDialog(
-        onResume: onResume,
-        onExit: onExit,
+      builder: (context) => AnimatedPadding(
+        padding: MediaQuery.of(context).viewInsets,
+        duration: const Duration(milliseconds: 200),
+        child: PauseDialog(
+          onResume: onResume,
+          onExit: onExit,
+        ),
       ),
     );
   }
@@ -66,11 +70,13 @@ class PauseDialog extends StatelessWidget {
       content: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: isTablet ? 520 : double.infinity,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Text(
               'Your exam has been paused. You can resume or exit the exam.',
               style: theme.textTheme.bodyMedium,
@@ -102,6 +108,7 @@ class PauseDialog extends StatelessWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
       actions: [
