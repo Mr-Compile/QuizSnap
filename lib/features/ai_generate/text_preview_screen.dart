@@ -8,11 +8,13 @@ import 'ai_generation_config_screen.dart';
 class TextPreviewScreen extends StatefulWidget {
   final String text;
   final String source;
+  final bool showImportSuccess;
 
   const TextPreviewScreen({
     super.key,
     required this.text,
     required this.source,
+    this.showImportSuccess = false,
   });
 
   @override
@@ -59,6 +61,8 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
       ),
       body: Column(
         children: [
+          if (widget.showImportSuccess)
+            _buildImportSuccessBanner(context),
           // Source info and statistics
           Container(
             padding: const EdgeInsets.all(16),
@@ -191,6 +195,40 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
                     ],
                   ),
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImportSuccessBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.check_circle,
+            color: Theme.of(context).colorScheme.primary,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Text imported successfully',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

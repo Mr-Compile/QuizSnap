@@ -181,6 +181,7 @@ class _FolderListScreenState extends State<FolderListScreen> {
       if (confirmed != true || !context.mounted) return;
       try {
         await dbProvider.folderRepository.deleteFolder(folder.id);
+        dbProvider.refreshAll();
         if (context.mounted) setState(() {});
       } catch (e) {
         if (context.mounted) DialogService.showError(context, 'Error deleting folder: $e');

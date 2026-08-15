@@ -435,6 +435,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         await recentRepo.updateSavedDeckId(widget.generationId!, _selectedDeckId!);
       }
 
+      dbProvider.refreshAll();
+
       if (!mounted) return;
 
       await DialogService.showSuccess(

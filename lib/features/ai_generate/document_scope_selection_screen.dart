@@ -23,11 +23,13 @@ enum DocumentScope {
 class DocumentScopeSelectionScreen extends StatefulWidget {
   final File file;
   final String fileType;
+  final bool showImportSuccess;
 
   const DocumentScopeSelectionScreen({
     super.key,
     required this.file,
     required this.fileType,
+    this.showImportSuccess = false,
   });
 
   @override
@@ -134,6 +136,7 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (widget.showImportSuccess) _buildImportSuccessBanner(),
           // Document info
           _buildDocumentInfo(),
           const SizedBox(height: 24),
@@ -196,6 +199,40 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
             icon: Icons.highlight,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
             onTap: () => _navigateToHighlightSelector(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImportSuccessBanner() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.check_circle,
+            color: Theme.of(context).colorScheme.primary,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Document imported successfully',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),

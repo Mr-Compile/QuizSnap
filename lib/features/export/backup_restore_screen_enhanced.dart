@@ -13,6 +13,7 @@ import '../../shared/widgets/empty_state.dart';
 import '../../core/models/backup_enhanced.dart';
 import '../../core/providers/backup_provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/database/database.dart';
 import '../../core/navigation/app_routes.dart';
 import 'import_preview_screen.dart';
 import 'change_backup_folder_screen.dart';
@@ -817,19 +818,24 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     if (confirmed != true || !mounted) return;
 
     // Show a progress dialog while restoring.
+    // Do NOT await the dialog; it would deadlock because it is dismissed
+    // only after the restore completes.
     if (!mounted) return;
-    await showDialog(
+    showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => const _RestoringProgressDialog(),
     );
 
-    final newDb = await ref
-        .read(backupOperationProvider.notifier)
-        .restoreFromDbFile(filePath);
-
-    if (mounted) {
-      Navigator.of(context, rootNavigator: true).pop(); // dismiss progress
+    AppDatabase? newDb;
+    try {
+      newDb = await ref
+          .read(backupOperationProvider.notifier)
+          .restoreFromDbFile(filePath);
+    } finally {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // dismiss progress
+      }
     }
 
     if (newDb != null && mounted) {

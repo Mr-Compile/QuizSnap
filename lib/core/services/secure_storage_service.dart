@@ -18,6 +18,10 @@ class SecureStorageService {
   static const String _pinFailedAttemptsKey = 'pin_failed_attempts';
   static const String _pinLockoutEndTimeKey = 'pin_lockout_end_time';
 
+  // Default quota authorization password. Centralized here to avoid
+  // duplicating it across the UI. Hashed before storage.
+  static const String defaultQuotaAuthPassword = 'QuizSnap2026';
+
   // Groq API Key Storage
   Future<void> storeGroqApiKey(String apiKey) async {
     await _storage.write(key: _groqApiKeyKey, value: apiKey);
@@ -130,6 +134,13 @@ class SecureStorageService {
 
   Future<bool> isQuotaAuthEnabled() async {
     final value = await _storage.read(key: _quotaAuthEnabledKey);
+    if (value == null) {
+      // First install or legacy state: enable by default and store the
+      // default password as the single source of truth.
+      await setQuotaAuthEnabled(true);
+      await storeQuotaAuthPassword(defaultQuotaAuthPassword);
+      return true;
+    }
     return value == 'true';
   }
 

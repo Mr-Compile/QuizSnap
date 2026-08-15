@@ -198,6 +198,7 @@ class RecentGenerationDetailsScreen extends StatelessWidget {
       }
       await db.deckRepository.updateDeckCardCount(selectedDeckId);
       await recentRepo.updateSavedDeckId(generation.id, selectedDeckId);
+      db.refreshAll();
       if (!context.mounted) return;
       await DialogService.showSuccess(context, 'Saved ${questions.length} questions to deck');
     } catch (e) {

@@ -166,13 +166,9 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
         // Close the bottom sheet first.
         Navigator.of(context).pop();
 
-        // Show success message and AWAIT it before navigating so it
-        // does not persist or reappear when navigating backward.
-        if (!mounted) return;
-        await DialogService.showSuccess(context, 'File imported successfully');
-
-        // Navigate to the next screen only after the user dismisses the dialog.
-        if (!mounted) return;
+        // Navigate directly to the review/extracted-content screen and
+        // communicate the successful import through the destination screen.
+        // Do NOT show a success dialog here; that keeps stale state alive.
 
         // Navigate to document scope selection screen
         if (widget.fileType.toLowerCase() == 'pdf') {
@@ -181,6 +177,7 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
               builder: (context) => DocumentScopeSelectionScreen(
                 file: copiedFile,
                 fileType: widget.fileType,
+                showImportSuccess: true,
               ),
             ),
           );
@@ -197,6 +194,7 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
                 builder: (context) => TextPreviewScreen(
                   text: text,
                   source: fileName,
+                  showImportSuccess: true,
                 ),
               ),
             );
@@ -209,14 +207,15 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
           try {
             final text = await DocumentExtractionService.extractFromFile(copiedFile);
             if (!mounted) return;
-            
+
             final fileName = copiedFile.path.split('/').last;
-            
+
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => TextPreviewScreen(
                   text: text,
                   source: fileName,
+                  showImportSuccess: true,
                 ),
               ),
             );

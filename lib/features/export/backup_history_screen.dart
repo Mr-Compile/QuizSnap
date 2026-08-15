@@ -8,6 +8,7 @@ import '../../shared/widgets/empty_state.dart';
 import '../../core/models/backup_enhanced.dart';
 import '../../core/providers/backup_provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/database/database.dart';
 import '../../core/services/dialog_service.dart';
 
 class BackupHistoryScreen extends ConsumerStatefulWidget {
@@ -198,18 +199,23 @@ class _BackupHistoryScreenState extends ConsumerState<BackupHistoryScreen> {
     if (confirmed != true || !mounted) return;
 
     if (!mounted) return;
-    await showDialog(
+    // Do NOT await the dialog; it would deadlock because it is dismissed
+    // only after the restore completes.
+    showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => const _RestoringDialog(),
     );
 
-    final newDb = await ref
-        .read(backupOperationProvider.notifier)
-        .restoreFromDbFile(localPath);
-
-    if (mounted) {
-      Navigator.of(context, rootNavigator: true).pop();
+    AppDatabase? newDb;
+    try {
+      newDb = await ref
+          .read(backupOperationProvider.notifier)
+          .restoreFromDbFile(localPath);
+    } finally {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
     }
 
     if (newDb != null && mounted) {
@@ -313,80 +319,139 @@ class _BackupFileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomCard(
-      onTap: onTap,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .primary
-                  .withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.storage,
-              color: Theme.of(context).colorScheme.primary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  backup.fileName,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    _buildChip(context, backup.fileSizeDisplay),
-                    const SizedBox(width: 8),
-                    _buildLocationBadge(context),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        _formatDateTime(backup.createdAt),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.6),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 360;
+        return CustomCard(
+          onTap: onTap,
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.storage,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          backup.fileName,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            _buildChip(context, backup.fileSizeDisplay),
+                            _buildLocationBadge(context),
+                            Text(
+                              _formatDateTime(backup.createdAt),
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
+                                  ),
                             ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!isNarrow)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildActionButton(
+                          context,
+                          icon: Icons.share,
+                          onPressed: onShare,
+                          tooltip: 'Share',
+                        ),
+                        _buildActionButton(
+                          context,
+                          icon: Icons.restore,
+                          onPressed: onRestore,
+                          tooltip: 'Restore',
+                        ),
+                        _buildActionButton(
+                          context,
+                          icon: Icons.delete,
+                          onPressed: onDelete,
+                          tooltip: 'Delete',
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              if (isNarrow) ...[
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _buildActionButton(
+                      context,
+                      icon: Icons.share,
+                      onPressed: onShare,
+                      tooltip: 'Share',
+                    ),
+                    _buildActionButton(
+                      context,
+                      icon: Icons.restore,
+                      onPressed: onRestore,
+                      tooltip: 'Restore',
+                    ),
+                    _buildActionButton(
+                      context,
+                      icon: Icons.delete,
+                      onPressed: onDelete,
+                      tooltip: 'Delete',
                     ),
                   ],
                 ),
               ],
-            ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: onShare,
-            tooltip: 'Share',
-          ),
-          IconButton(
-            icon: const Icon(Icons.restore),
-            onPressed: onRestore,
-            tooltip: 'Restore',
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: onDelete,
-            tooltip: 'Delete',
-          ),
-        ],
-      ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return IconButton(
+      icon: Icon(icon),
+      onPressed: onPressed,
+      tooltip: tooltip,
+      padding: const EdgeInsets.all(8),
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
     );
   }
 

@@ -134,7 +134,21 @@ class AppRouter {
       // Main screen with bottom navigation (using shell route for state preservation)
       GoRoute(
         path: AppRoutes.home,
-        builder: (context, state) => const MainScreen(),
+        builder: (context, state) {
+          final tabIndex = int.tryParse(
+            state.uri.queryParameters['tab'] ?? '0',
+          );
+          return MainScreen(
+            initialIndex: switch (tabIndex) {
+              0 => 0,
+              1 => 1,
+              2 => 2,
+              3 => 3,
+              4 => 4,
+              _ => 0,
+            },
+          );
+        },
       ),
 
       // Deck / Library routes

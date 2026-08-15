@@ -265,6 +265,7 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
         ),
       );
       await db.deckRepository.updateDeckCardCount(card.deckId);
+      db.refreshAll();
       if (mounted) {
         await DialogService.showSuccess(context, 'Flashcard duplicated');
       }

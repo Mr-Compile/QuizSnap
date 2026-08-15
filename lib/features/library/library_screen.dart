@@ -76,7 +76,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   void _refresh() {
-    setState(() => _dataFuture = _loadData());
+    setState(() {
+      _dataFuture = _loadData();
+    });
   }
 
   /// Returns the deck count for a folder.

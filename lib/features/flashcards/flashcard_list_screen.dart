@@ -276,6 +276,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
         await db.flashcardRepository.deleteFlashcard(id);
       }
       await db.deckRepository.updateDeckCardCount(widget.deckId);
+      db.refreshAll();
       if (!context.mounted) return;
       await DialogService.showSuccess(context, '${selection.selectedCount} flashcards moved to Trash');
       selection.clear();
@@ -297,6 +298,7 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
           card.copyWith(isFavorite: !card.isFavorite),
         );
       }
+      db.refreshAll();
       if (!context.mounted) return;
       await DialogService.showSuccess(context, '${selection.selectedCount} flashcards bookmarked');
       setState(() {});

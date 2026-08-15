@@ -76,7 +76,9 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
   }
 
   Future<void> _refresh() async {
-    setState(() => _dataFuture = _loadData());
+    setState(() {
+      _dataFuture = _loadData();
+    });
   }
 
   @override

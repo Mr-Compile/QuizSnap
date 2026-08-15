@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart' as share_plus;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:drift/native.dart';
 import 'package:intl/intl.dart';
 import '../database/database.dart';
 import '../models/backup_enhanced.dart';
@@ -160,18 +161,52 @@ class BackupServiceEnhanced {
     }
   }
 
+  /// Validate that a file contains the tables expected by this version of QuizSnap.
+  ///
+  /// This does not rely on the active database connection, so it can be run
+  /// before closing/replacing the live database.
+  Future<bool> _hasRequiredQuizSnapTables(String path) async {
+    final required = _database.allTables
+        .map((t) => t.actualTableName)
+        .where((name) => name != 'sqlite_master')
+        .toSet();
+    final file = File(path);
+    final tempDb = AppDatabase(NativeDatabase.createInBackground(file));
+    try {
+      final rows = await tempDb.customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
+      ).get();
+      final tables = rows.map((r) => r.read<String>('name')).toSet();
+      return required.every(tables.contains);
+    } catch (e) {
+      debugPrint('[BackupService] required table validation failed: $e');
+      return false;
+    } finally {
+      await tempDb.close();
+    }
+  }
+
   /// Restore from a real SQLite `.db` file.
   ///
-  /// Validates the SQLite header, checkpoints & closes the live database,
-  /// removes stale WAL/SHM files, then copies the source `.db` over the active
-  /// database path. The caller is responsible for reopening the database
-  /// connection (see [BackupOperationNotifier] / [DatabaseProvider.reopenDatabase]).
+  /// Validates the SQLite header and required QuizSnap tables, checkpoints &
+  /// closes the live database, removes stale WAL/SHM files, then copies the
+  /// source `.db` over the active database path. The caller is responsible for
+  /// reopening the database connection (see [BackupOperationNotifier] /
+  /// [DatabaseProvider.reopenDatabase]).
   ///
   /// [sourcePath] must be a filesystem path. For SAF-backed files use
   /// [cacheSafFileForRestore] first to materialise a local copy.
   Future<void> restoreFromDbFile(String sourcePath) async {
     if (!await validateSqliteFile(sourcePath)) {
-      throw Exception('The selected file is not a valid SQLite database');
+      throw Exception(
+        'This file is not a valid SQLite database. Please select a .db file created by QuizSnap.',
+      );
+    }
+
+    if (!await _hasRequiredQuizSnapTables(sourcePath)) {
+      throw Exception(
+        'This file is not a valid QuizSnap backup or is not compatible with this version of QuizSnap.',
+      );
     }
 
     final dbFile = await _getDatabaseFile();

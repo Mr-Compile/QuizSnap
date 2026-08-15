@@ -8,14 +8,25 @@ import '../ai_generate/ai_generate_home_screen.dart';
 import '../analytics/analytics_dashboard_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int initialIndex;
+
+  const MainScreen({
+    super.key,
+    this.initialIndex = 0,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   // NOTE: PIN lock is handled exclusively by the GoRouter redirect in
   // AppRouter.  This screen must NOT show its own PinLockScreen or call

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/navigation/app_routes.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
@@ -25,6 +25,7 @@ class AboutQuizSnapScreen extends StatelessWidget {
     return Scaffold(
       appBar: const CustomAppBar(
         title: 'About QuizSnap',
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: ConstrainedBox(
@@ -352,7 +353,7 @@ class AboutQuizSnapScreen extends StatelessWidget {
     return CustomButton(
       text: 'Back to Settings',
       icon: Icons.arrow_back,
-      onPressed: () => Navigator.of(context).pushReplacementNamed(AppRoutes.settingsHome),
+      onPressed: () => GoRouter.of(context).pop(),
       isOutlined: true,
       fullWidth: true,
     );
