@@ -83,6 +83,7 @@ class AppRoutes {
   static const String databaseMaintenance = '/settings/database';
   static const String trashSettings = '/settings/trash';
   static const String userManual = '/settings/user-manual';
+  static const String aboutQuizSnap = '/settings/about';
 
   // Folder routes
   static const String folders = '/folders';

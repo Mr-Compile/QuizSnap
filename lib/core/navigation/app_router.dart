@@ -57,6 +57,7 @@ import '../../features/settings/set_pin_screen.dart';
 import '../../features/settings/reminder_settings_screen.dart';
 import '../../features/settings/database_maintenance_screen.dart';
 import '../../features/settings/trash_settings_screen.dart';
+import '../../features/settings/about_quizsnap_screen.dart';
 import '../../features/user_manual/user_manual_home_screen.dart';
 import '../../features/folders/folder_list_screen.dart';
 import '../../features/folders/create_folder_screen.dart';
@@ -509,6 +510,10 @@ class AppRouter {
           GoRoute(
             path: 'user-manual',
             builder: (context, state) => const UserManualHomeScreen(),
+          ),
+          GoRoute(
+            path: 'about',
+            builder: (context, state) => const AboutQuizSnapScreen(),
           ),
         ],
       ),

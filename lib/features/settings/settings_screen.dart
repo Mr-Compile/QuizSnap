@@ -370,49 +370,10 @@ class SettingsScreen extends StatelessWidget {
           title: 'About QuizSnap',
           subtitle: 'Version 1.0.0',
           trailing: const SizedBox.shrink(),
-          onTap: () => _showAboutDialog(context),
+          onTap: () => GoRouter.of(context).push(AppRoutes.aboutQuizSnap),
         ),
       ],
     );
   }
 
-  void _showAboutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('About QuizSnap'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Version 1.0.0'),
-              const SizedBox(height: 16),
-              const Text(
-                'QuizSnap is a powerful flashcard and study application designed to help you learn effectively.',
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Features:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text('• Create and organize flashcards'),
-              const Text('• AI-powered question generation'),
-              const Text('• Spaced repetition learning'),
-              const Text('• Study analytics and insights'),
-              const Text('• Export and backup options'),
-              const Text('• Secure PIN lock'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
 }
