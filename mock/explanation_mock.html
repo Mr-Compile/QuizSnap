@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QuizSnap — Answer Explanation Mock</title>
+<style>
+  :root {
+    /* QuizSnap light theme tokens (from app_theme.dart) */
+    --bamboo-green-50: #F0FDF4;
+    --bamboo-green-100: #DCFCE7;
+    --bamboo-green-600: #16A34A;
+    --bamboo-green-900: #14532D;
+    --slate-100: #F1F5F9;
+    --slate-200: #E2E8F0;
+    --slate-300: #CBD5E1;
+    --slate-600: #475569;
+    --slate-900: #0F172A;
+    --red-100: #FEE2E2;
+    --red-600: #DC2626;
+    --red-900: #7F1D1D;
+    --emerald-50: #ECFDF5;
+    --emerald-600: #059669;
+    --neutral-white-50: #FFFFFF;
+    --neutral-white-200: #F5F5F5;
+
+    --primary: var(--bamboo-green-600);
+    --on-primary: #FFFFFF;
+    --primary-container: var(--bamboo-green-50);
+    --on-primary-container: var(--bamboo-green-900);
+    --surface: var(--neutral-white-50);
+    --on-surface: var(--slate-900);
+    --on-surface-variant: var(--slate-600);
+    --outline: var(--slate-300);
+    --error: var(--red-600);
+    --error-container: var(--red-100);
+    --on-error-container: var(--red-900);
+    --tertiary: var(--emerald-600);
+
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --spacing-xs: 8px;
+    --spacing-sm: 12px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+
+    --font: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  body.dark {
+    --primary: #22C55E;
+    --on-primary: #052E16;
+    --primary-container: #14532D;
+    --on-primary-container: #DCFCE7;
+    --surface: #0F172A;
+    --on-surface: #F1F5F9;
+    --on-surface-variant: #94A3B8;
+    --outline: #334155;
+    --error: #F87171;
+    --error-container: #450A0A;
+    --on-error-container: #FECACA;
+    --tertiary: #34D399;
+    --neutral-white-50: #0F172A;
+    --neutral-white-200: #1E293B;
+    --card-bg: #1E293B;
+    --scrim: rgba(0,0,0,0.7);
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--scrim, rgba(0,0,0,0.5));
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    color: var(--on-surface);
+    transition: background 0.2s;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+    overflow: hidden;
+  }
+
+  /* Handle */
+  .handle {
+    width: 40px;
+    height: 4px;
+    background: var(--outline);
+    opacity: 0.5;
+    border-radius: 2px;
+    margin: var(--spacing-sm) auto 0;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-xs) var(--spacing-sm) var(--spacing-lg);
+    gap: var(--spacing-sm);
+  }
+  .header .icon { color: var(--primary); font-size: 22px; }
+  .header .title {
+    flex: 1;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--on-surface);
+  }
+  .header .close {
+    width: 48px; height: 48px;
+    border: none; background: transparent;
+    color: var(--on-surface);
+    font-size: 22px; cursor: pointer;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .header .close:hover { background: rgba(128,128,128,0.1); }
+
+  /* Scrollable content */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 var(--spacing-lg) var(--spacing-lg);
+  }
+
+  .card {
+    background: var(--card-bg, #FFFFFF);
+    border: 1px solid var(--outline);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: 0;
+  }
+
+  .label-medium {
+    font-size: 14px; font-weight: 500;
+    color: rgba(15,23,42,0.6);
+  }
+  body.dark .label-medium { color: rgba(241,245,249,0.6); }
+
+  .label-large {
+    font-size: 16px; font-weight: 500;
+  }
+
+  .title-medium {
+    font-size: 16px; font-weight: 600;
+  }
+
+  .body-large {
+    font-size: 18px; font-weight: 400; line-height: 1.5;
+  }
+
+  .body-medium {
+    font-size: 16px; font-weight: 400; line-height: 1.5;
+  }
+
+  /* Question card */
+  .question-card .q-label {
+    font-size: 14px; font-weight: 500;
+    color: var(--on-surface-variant);
+    margin-bottom: var(--spacing-sm);
+  }
+  .question-card .q-text {
+    font-size: 18px; line-height: 1.5; color: var(--on-surface);
+  }
+
+  /* Correct answer card */
+  .correct-card {
+    background: var(--primary-container);
+    border-color: var(--primary);
+  }
+  .correct-card .ca-row {
+    display: flex; align-items: center; gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+  }
+  .correct-card .ca-row .check {
+    color: var(--primary); font-size: 20px;
+  }
+  .correct-card .ca-row .ca-label {
+    font-size: 16px; font-weight: 700; color: var(--primary);
+  }
+  .correct-card .ca-value {
+    font-size: 16px; font-weight: 600; color: var(--on-primary-container);
+  }
+
+  /* AI Explanation section */
+  .ai-section { margin-top: 0; }
+  .ai-heading {
+    display: flex; align-items: center; gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+  }
+  .ai-heading .ai-icon { color: var(--primary); font-size: 20px; }
+  .ai-heading .ai-title {
+    font-size: 16px; font-weight: 600; color: var(--on-surface);
+  }
+
+  /* Formatted text blocks (mimics StudyTextFormatter) */
+  .formatted { color: var(--on-surface); }
+  .formatted .paragraph {
+    font-size: 18px; line-height: 1.5; margin: 0 0 12px 0;
+  }
+  .formatted .paragraph:last-child { margin-bottom: 0; }
+  .formatted .spacer { height: 12px; }
+  .formatted .list-item {
+    display: flex; gap: 8px;
+    padding-left: 24px; margin-bottom: 4px;
+    font-size: 18px; line-height: 1.5;
+  }
+  .formatted .list-item .marker {
+    font-weight: 700; color: var(--on-surface);
+    flex-shrink: 0;
+  }
+  .formatted .list-item .text { flex: 1; }
+
+  /* Footer */
+  .footer {
+    padding: var(--spacing-lg);
+    background: var(--surface);
+    border-top: 1px solid rgba(203,213,225,0.2);
+    display: flex; gap: var(--spacing-md);
+  }
+  .btn {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 15px; font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: var(--font);
+    min-height: 48px;
+    transition: opacity 0.15s, transform 0.05s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+  }
+  .btn-filled {
+    background: var(--primary);
+    color: var(--on-primary);
+    border: 1.5px solid var(--primary);
+  }
+
+  /* Loading state */
+  .loading {
+    text-align: center; padding: var(--spacing-xl) 0;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--outline);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    margin: 0 auto var(--spacing-md);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading .loading-text {
+    font-size: 16px; color: var(--on-surface-variant);
+  }
+
+  /* Error state */
+  .error-card { text-align: center; }
+  .error-card .err-icon {
+    font-size: 48px; color: var(--on-surface-variant); opacity: 0.5;
+    margin-bottom: var(--spacing-md);
+  }
+  .error-card .err-title {
+    font-size: 16px; font-weight: 500; color: var(--on-surface-variant);
+    margin-bottom: var(--spacing-sm);
+  }
+  .error-card .err-msg {
+    font-size: 16px; line-height: 1.5; color: var(--on-surface-variant);
+    margin-bottom: var(--spacing-md);
+  }
+
+  /* Theme toggle */
+  .toggle-bar {
+    position: fixed; top: 16px; right: 16px; z-index: 100;
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .toggle-bar button {
+    padding: 8px 14px; border-radius: 8px; border: 1px solid #ccc;
+    background: #fff; color: #333; cursor: pointer; font-size: 13px;
+    font-family: var(--font);
+  }
+  body.dark .toggle-bar button { background: #1E293B; color: #F1F5F9; border-color: #334155; }
+
+  /* Scenario tabs */
+  .scenarios {
+    position: fixed; top: 16px; left: 16px; z-index: 100;
+    display: flex; gap: 6px; flex-wrap: wrap; max-width: 60vw;
+  }
+  .scenarios button {
+    padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc;
+    background: #fff; color: #333; cursor: pointer; font-size: 12px;
+    font-family: var(--font);
+  }
+  body.dark .scenarios button { background: #1E293B; color: #F1F5F9; border-color: #334155; }
+  .scenarios button.active { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+
+  .hint {
+    position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; color: rgba(255,255,255,0.6); z-index: 100;
+    font-family: var(--font);
+  }
+</style>
+</head>
+<body>
+
+<div class="scenarios" id="scenarios">
+  <button data-s="loaded" class="active">Loaded (paragraphs)</button>
+  <button data-s="lists">Lists</button>
+  <button data-s="loading">Loading</button>
+  <button data-s="error">Error</button>
+  <button data-s="empty">Empty answer</button>
+  <button data-s="long">Long scroll</button>
+</div>
+
+<div class="toggle-bar">
+  <button id="themeBtn">Dark mode</button>
+</div>
+
+<div class="phone" id="phone">
+  <div class="handle"></div>
+  <div class="header">
+    <span class="icon">💡</span>
+    <span class="title">Answer Explanation</span>
+    <button class="close" aria-label="Close">✕</button>
+  </div>
+  <div class="content" id="content"></div>
+  <div class="footer">
+    <button class="btn btn-outline">Close</button>
+    <button class="btn btn-filled">↗ View Full Details</button>
+  </div>
+</div>
+
+<div class="hint">Mock of the updated Answer Explanation bottom sheet — toggle scenarios &amp; theme</div>
+
+<script>
+const scenarios = {
+  loaded: {
+    question: "Which United Nations Sustainable Development Goal is focused on taking urgent action to combat climate change and its impacts?",
+    correctAnswer: "Climate Action",
+    explanation: `Climate Action is correct because Goal 13 is specifically focused on taking urgent action to combat climate change and its impacts.
+
+This goal aims to reduce greenhouse gas emissions, promote renewable energy, and protect people from the effects of climate change.
+
+Why the other options are incorrect:
+
+The other options do not accurately describe the main goal of Goal 13. Affordable and Clean Energy refers to Goal 7, Clean Water and Sanitation refers to Goal 6, and Zero Hunger refers to Goal 2.`
+  },
+  lists: {
+    question: "Which of the following are primary greenhouse gases contributing to climate change?",
+    correctAnswer: "Carbon dioxide, Methane, and Nitrous oxide",
+    explanation: `The correct answer lists the three primary greenhouse gases driven by human activity. Here is why each matters:
+
+1. Carbon dioxide is the largest contributor, released mainly by burning fossil fuels for energy and transport.
+2. Methane is far more potent at trapping heat and is emitted by agriculture, livestock, and landfills.
+3. Nitrous oxide comes largely from synthetic fertilizers and industrial processes.
+
+Why the other options are incorrect:
+
+- Water vapor is a natural greenhouse gas but is not primarily driven by human emissions in the same direct way.
+- Oxygen and nitrogen make up most of the atmosphere but are not greenhouse gases.`
+  },
+  loading: { loading: true },
+  error: { error: true },
+  empty: {
+    question: "What is the capital of France?",
+    correctAnswer: "",
+    explanation: "Paris is the capital of France and has been the political and cultural center of the country for centuries."
+  },
+  long: {
+    question: "Explain the carbon cycle and its role in regulating Earth's climate.",
+    correctAnswer: "The continuous exchange of carbon among the atmosphere, oceans, biosphere, and geosphere",
+    explanation: `The carbon cycle describes how carbon moves between Earth's atmosphere, oceans, living organisms, and rocks. It is one of the most important natural systems for regulating climate.
+
+Photosynthesis and respiration
+
+Plants absorb carbon dioxide from the atmosphere during photosynthesis, storing carbon in their tissues. Animals then consume plants, and both plants and animals release carbon back through respiration.
+
+Ocean absorption
+
+The oceans absorb large amounts of carbon dioxide from the air, acting as a major carbon sink. Some of this carbon is used by marine organisms to build shells, eventually forming limestone rock over geological time.
+
+Fossil fuels
+
+When organisms die and are buried under high pressure for millions of years, they can form fossil fuels such as coal, oil, and natural gas. Burning these fuels rapidly releases stored carbon back into the atmosphere.
+
+Human impact
+
+1. Burning fossil fuels adds carbon dioxide far faster than natural systems can absorb it.
+2. Deforestation reduces the number of trees available to remove carbon dioxide.
+3. Cement production releases additional carbon dioxide through chemical reactions.
+
+Why this matters for climate
+
+Increasing atmospheric carbon dioxide strengthens the greenhouse effect, trapping more heat and raising global temperatures. This is the central mechanism behind human-driven climate change.`
+  }
+};
+
+function renderFormatted(text) {
+  // Mimics StudyTextFormatter.buildBlocks: split on \n, preserve blank lines as spacers,
+  // detect numbered and bullet lists.
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  const html = [];
+  const numbered = /^(\d+)[).\-]?\s+/;
+  const bullet = /^[\-*•]\s+/;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line === '') {
+      if (html.length && !html[html.length-1].classList?.contains('spacer')) {
+        html.push(el('div', 'spacer'));
+      }
+      continue;
+    }
+    const n = line.match(numbered);
+    const b = line.match(bullet);
+    if (n) {
+      const content = line.slice(n[0].length);
+      html.push(listItem(`${n[1]}.`, content));
+    } else if (b) {
+      const content = line.slice(b[0].length);
+      html.push(listItem('•', content));
+    } else {
+      html.push(el('div', 'paragraph', cleanMd(line)));
+    }
+  }
+  return html.map(e => e.outerHTML).join('');
+}
+
+function cleanMd(s) {
+  return s.replace(/\*\*/g,'').replace(/__/g,'').replace(/^#+\s*/,'').replace(/`/g,'').trim();
+}
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function listItem(marker, content) {
+  const row = el('div', 'list-item');
+  const m = el('span', 'marker', marker);
+  const t = el('span', 'text', cleanMd(content));
+  row.appendChild(m); row.appendChild(t);
+  return row;
+}
+
+function render(s) {
+  const c = document.getElementById('content');
+  c.innerHTML = '';
+  const data = scenarios[s];
+
+  // Question
+  const q = el('div', 'card question-card');
+  q.appendChild(el('div', 'q-label', 'Question'));
+  q.appendChild(el('div', 'q-text', data.question || ''));
+  c.appendChild(q);
+  c.appendChild(spacer());
+
+  // Correct answer (only if non-empty)
+  if (data.correctAnswer && data.correctAnswer.trim()) {
+    const ca = el('div', 'card correct-card');
+    const row = el('div', 'ca-row');
+    row.appendChild(el('span', 'check', '✓'));
+    row.appendChild(el('span', 'ca-label', 'Correct Answer'));
+    ca.appendChild(row);
+    ca.appendChild(el('div', 'ca-value', data.correctAnswer));
+    c.appendChild(ca);
+    c.appendChild(spacer());
+  }
+
+  // Explanation area
+  if (data.loading) {
+    const l = el('div', 'loading');
+    l.appendChild(el('div', 'spinner'));
+    l.appendChild(el('div', 'loading-text', 'Generating explanation...'));
+    c.appendChild(l);
+  } else if (data.error) {
+    const e = el('div', 'card error-card');
+    e.appendChild(el('div', 'err-icon', 'ℹ'));
+    e.appendChild(el('div', 'err-title', 'Explanation Unavailable'));
+    const msg = el('div', 'err-msg', "We couldn't generate an explanation right now. Please check your internet connection or AI configuration and try again.");
+    e.appendChild(msg);
+    c.appendChild(e);
+    // Update footer to show Retry instead of View Full Details
+    const footer = document.querySelector('.footer');
+    footer.innerHTML = '';
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'btn btn-outline';
+    closeBtn.textContent = 'Close';
+    footer.appendChild(closeBtn);
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn btn-filled';
+    retryBtn.textContent = 'Retry';
+    footer.appendChild(retryBtn);
+  } else if (data.explanation) {
+    const section = el('div', 'ai-section');
+    const head = el('div', 'ai-heading');
+    head.appendChild(el('span', 'ai-icon', '🧠'));
+    head.appendChild(el('span', 'ai-title', 'AI Explanation'));
+    section.appendChild(head);
+    const card = el('div', 'card');
+    const fmt = el('div', 'formatted');
+    fmt.innerHTML = renderFormatted(data.explanation);
+    card.appendChild(fmt);
+    section.appendChild(card);
+    c.appendChild(section);
+  }
+}
+
+function spacer() {
+  const s = el('div');
+  s.style.height = '24px';
+  return s;
+}
+
+// Scenario buttons
+document.querySelectorAll('.scenarios button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.scenarios button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    render(b.dataset.s);
+  });
+});
+
+// Theme toggle
+const themeBtn = document.getElementById('themeBtn');
+themeBtn.addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+  themeBtn.textContent = document.body.classList.contains('dark') ? 'Light mode' : 'Dark mode';
+});
+
+// Initial render
+render('loaded');
+</script>
+</body>
+</html>

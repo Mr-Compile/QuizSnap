@@ -73,6 +73,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
       // Generate new explanation
       final explanation = await examProvider.generateExplanation(widget.question);
 
+      if (!mounted) return;
       setState(() {
         _explanation = explanation;
         _isLoading = false;
@@ -111,6 +112,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
 
       // AI service unavailable or other non-network failure: show the
       // standardized "Explanation Unavailable" message instead of raw errors.
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _errorMessage = 'unavailable';
@@ -120,12 +122,13 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.8,
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusLg)),
       ),
       child: Column(
@@ -133,9 +136,14 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
         children: [
           _buildHandle(),
           _buildHeader(),
-          Expanded(
+          Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppTheme.spacingLg),
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacingLg,
+                0,
+                AppTheme.spacingLg,
+                AppTheme.spacingLg,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -167,23 +175,36 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
   }
 
   Widget _buildHeader() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.all(AppTheme.spacingLg),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spacingLg,
+        AppTheme.spacingSm,
+        AppTheme.spacingXs,
+        AppTheme.spacingSm,
+      ),
       child: Row(
         children: [
           Icon(
-            Icons.lightbulb_outline,
-            color: Theme.of(context).colorScheme.primary,
+            Icons.lightbulb,
+            color: colorScheme.primary,
+            semanticLabel: 'Answer explanation',
           ),
           const SizedBox(width: AppTheme.spacingSm),
-          Text(
-            'Answer Explanation',
-            style: AppTheme.titleLarge,
+          Expanded(
+            child: Text(
+              'Answer Explanation',
+              style: AppTheme.titleLarge.copyWith(color: colorScheme.onSurface),
+            ),
           ),
-          const Spacer(),
           IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.of(context).pop(),
+            tooltip: 'Close',
+            style: IconButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              tapTargetSize: MaterialTapTargetSize.padded,
+            ),
           ),
         ],
       ),
@@ -191,6 +212,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
   }
 
   Widget _buildQuestion() {
+    final colorScheme = Theme.of(context).colorScheme;
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,13 +220,13 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
           Text(
             'Question',
             style: AppTheme.labelMedium.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
           Text(
             widget.question.question,
-            style: AppTheme.bodyLarge,
+            style: AppTheme.bodyLarge.copyWith(color: colorScheme.onSurface),
           ),
         ],
       ),
@@ -213,52 +235,76 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
 
   Widget _buildCorrectAnswer() {
     final colorScheme = Theme.of(context).colorScheme;
-    return CustomCard(
-      color: colorScheme.primaryContainer,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.check_circle,
-                color: colorScheme.primary,
-                size: 20,
-              ),
-              const SizedBox(width: AppTheme.spacingSm),
-              Text(
-                'Correct Answer',
-                style: AppTheme.labelMedium.copyWith(
+    final correctAnswer = (widget.question.correctAnswer ?? '').trim();
+
+    // Do not render an empty answer container.
+    if (correctAnswer.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Semantics(
+      label: 'Correct answer: $correctAnswer',
+      child: CustomCard(
+        color: colorScheme.primaryContainer,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.check_circle,
                   color: colorScheme.primary,
+                  size: 20,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.spacingSm),
-          Text(
-            widget.question.correctAnswer ?? '',
-            style: AppTheme.bodyLarge.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onPrimaryContainer,
+                const SizedBox(width: AppTheme.spacingSm),
+                Text(
+                  'Correct Answer',
+                  style: AppTheme.labelLarge.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: AppTheme.spacingSm),
+            Text(
+              correctAnswer,
+              style: AppTheme.titleMedium.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildExplanation() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (_isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(AppTheme.spacingXl),
-          child: CircularProgressIndicator(),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingXl),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: AppTheme.spacingMd),
+              Text(
+                'Generating explanation...',
+                style: AppTheme.bodyMedium.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     if (_errorMessage != null) {
-      final colorScheme = Theme.of(context).colorScheme;
       final isUnavailable = _errorMessage == 'unavailable';
       return CustomCard(
         color: isUnavailable ? null : colorScheme.errorContainer,
@@ -267,7 +313,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
             Icon(
               isUnavailable ? Icons.info_outline : Icons.error_outline,
               color: isUnavailable
-                  ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)
+                  ? colorScheme.onSurface.withValues(alpha: 0.4)
                   : colorScheme.error,
               size: 48,
             ),
@@ -276,23 +322,21 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
               isUnavailable ? 'Explanation Unavailable' : 'Failed to load explanation',
               style: AppTheme.labelLarge.copyWith(
                 color: isUnavailable
-                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)
+                    ? colorScheme.onSurface.withValues(alpha: 0.6)
                     : colorScheme.error,
               ),
             ),
             const SizedBox(height: AppTheme.spacingSm),
             Text(
               isUnavailable
-                  ? 'No explanation is available for this question yet.'
+                  ? 'We couldn\'t generate an explanation right now. Please check your internet connection or AI configuration and try again.'
                   : 'Please check your connection and try again.',
-              style: AppTheme.bodyMedium,
+              style: AppTheme.bodyMedium.copyWith(
+                color: isUnavailable
+                    ? colorScheme.onSurface.withValues(alpha: 0.6)
+                    : colorScheme.onErrorContainer,
+              ),
               textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTheme.spacingMd),
-            CustomButton(
-              text: 'Retry',
-              onPressed: _loadExplanation,
-              isOutlined: true,
             ),
           ],
         ),
@@ -310,20 +354,20 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
             Icon(
               Icons.info_outline,
               size: 48,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+              color: colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: AppTheme.spacingMd),
             Text(
               'Explanation Unavailable',
               style: AppTheme.labelLarge.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: AppTheme.spacingXs),
             Text(
               'No explanation is available for this question yet.',
               style: AppTheme.bodyMedium.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -332,44 +376,53 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              Icons.psychology_outlined,
-              color: Theme.of(context).colorScheme.primary,
-              size: 20,
-            ),
-            const SizedBox(width: AppTheme.spacingSm),
-            Text(
-              'AI Explanation',
-              style: AppTheme.labelLarge,
-            ),
-          ],
-        ),
-        const SizedBox(height: AppTheme.spacingMd),
-        CustomCard(
-          child: FormattedStudyText(
-            text: sanitized,
-            style: AppTheme.bodyLarge.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
+    return Semantics(
+      label: 'AI explanation',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.psychology_outlined,
+                color: colorScheme.primary,
+                size: 20,
+              ),
+              const SizedBox(width: AppTheme.spacingSm),
+              Text(
+                'AI Explanation',
+                style: AppTheme.titleMedium.copyWith(
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
+          CustomCard(
+            child: FormattedStudyText(
+              text: sanitized,
+              style: AppTheme.bodyLarge.copyWith(
+                color: colorScheme.onSurface,
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildFooter() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final hasError = _errorMessage != null;
+    final hasExplanation = _explanation != null && _explanation!.isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: colorScheme.surface,
         border: Border(
           top: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            color: colorScheme.outline.withValues(alpha: 0.2),
           ),
         ),
       ),
@@ -384,21 +437,28 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
           ),
           const SizedBox(width: AppTheme.spacingMd),
           Expanded(
-            child: CustomButton(
-              text: 'View Full Details',
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => FullExplanationScreen(
-                      question: widget.question,
-                      explanation: _explanation,
-                    ),
-                  ),
-                );
-              },
-              icon: Icons.open_in_full,
-            ),
+            child: hasError
+                ? CustomButton(
+                    text: 'Retry',
+                    onPressed: _loadExplanation,
+                  )
+                : hasExplanation
+                    ? CustomButton(
+                        text: 'View Full Details',
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => FullExplanationScreen(
+                                question: widget.question,
+                                explanation: _explanation,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: Icons.open_in_full,
+                      )
+                    : const SizedBox.shrink(),
           ),
         ],
       ),

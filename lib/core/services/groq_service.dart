@@ -225,7 +225,14 @@ Explain why the correct answer is correct and why the other options are incorrec
     try {
       _client!.startChat();
       _client!.setCustomInstructionsWith(
-        'You are an expert educator. Keep explanations short (1-3 sentences). Do NOT use Markdown, headings, bullet points, bold (**), or underlines (__). Write in plain text directly to the point.',
+        'You are an expert educator writing clear, readable study explanations for students. '
+        'Use plain text only. Do NOT use Markdown headings (#), bold (**), underlines (__), '
+        'fenced code blocks, or any other Markdown syntax. '
+        'Structure your explanation into short, readable paragraphs separated by a single blank line. '
+        'You may use simple numbered lists (1. 2. 3.) or bullet lists (- ) when listing distinct reasons. '
+        'Keep each paragraph to 1-3 sentences. Be direct, specific, and student-friendly. '
+        'Do not write robotic openings such as "As an AI", "The correct answer is", '
+        '"Here is the explanation", or similar phrases. Start directly with the explanation.',
       );
       final response = await _client!.sendMessage(prompt);
       return response.choices.first.message.content;

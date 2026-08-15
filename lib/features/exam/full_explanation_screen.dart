@@ -195,7 +195,7 @@ class FullExplanationScreen extends StatelessWidget {
   }
 
   Widget _buildExplanationCard(BuildContext context) {
-    if (explanation == null) {
+    if (explanation == null || explanation!.trim().isEmpty) {
       return CustomCard(
         child: Column(
           children: [
@@ -223,13 +223,15 @@ class FullExplanationScreen extends StatelessWidget {
           Row(
             children: [
               Icon(
-                Icons.psychology,
+                Icons.psychology_outlined,
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: AppTheme.spacingSm),
               Text(
                 'AI Explanation',
-                style: AppTheme.labelLarge,
+                style: AppTheme.titleMedium.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ],
           ),
