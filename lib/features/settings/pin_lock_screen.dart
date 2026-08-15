@@ -12,7 +12,7 @@ import '../../shared/widgets/pin_keypad.dart';
 ///
 /// The screen prevents interaction with the underlying app while the
 /// app is locked. It shows a numeric keypad, PIN dot indicators, and
-/// a live 30-second countdown after 5 failed attempts.
+/// inline error feedback on incorrect PINs.
 ///
 /// When [isOverlay] is true (default), the widget is rendered as a
 /// full-screen overlay on top of the application content by
@@ -26,9 +26,13 @@ import '../../shared/widgets/pin_keypad.dart';
 /// restores the previous route on unlock.
 ///
 /// When the brute-force cooldown is active (5 failed attempts), a
-/// centered [CooldownLockoutDialog] modal is shown ON TOP of this
-/// screen.  The normal PIN layout remains visible behind the dimmed
-/// barrier, and the keypad is disabled until the countdown expires.
+/// centered [CooldownModalOverlay] is rendered INSIDE this screen's
+/// own [Stack] — NOT via showDialog().  This keeps the PIN screen and
+/// the cooldown panel in the same widget tree, eliminating the
+/// Navigator/Overlay layering problems that occurred when the cooldown
+/// was shown as a separate dialog.  The normal PIN layout remains
+/// visible behind the dimmed barrier, and the keypad is disabled until
+/// the countdown expires.
 class PinLockScreen extends StatefulWidget {
   final bool isOverlay;
 
@@ -43,35 +47,6 @@ class _PinLockScreenState extends State<PinLockScreen> {
   String? _errorText;
   Timer? _blackScreenGuard;
 
-  /// Tracks whether the cooldown modal is currently shown so we don't
-  /// stack duplicate dialogs.
-  bool _cooldownModalShown = false;
-
-  /// Listener attached to [SecurityProvider] that shows the
-  /// [CooldownLockoutDialog] when `isInLockout` becomes true and
-  /// resets the flag when it becomes false.
-  void _onSecurityChanged() {
-    if (!mounted) return;
-    final securityProvider = context.read<SecurityProvider>();
-    final inLockout = securityProvider.isInLockout;
-
-    if (inLockout && !_cooldownModalShown) {
-      _cooldownModalShown = true;
-      debugPrint('[PinLockScreen] cooldown started — showing modal');
-      CooldownLockoutDialog.show(context).then((_) {
-        _cooldownModalShown = false;
-        // Clear any stale error text when the cooldown ends.
-        if (mounted) {
-          setState(() => _errorText = null);
-        }
-      });
-    } else if (!inLockout && _cooldownModalShown) {
-      // Lockout ended externally (e.g. clearLockout was called).  The
-      // dialog auto-closes itself, so we just reset the flag.
-      _cooldownModalShown = false;
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -83,26 +58,10 @@ class _PinLockScreenState extends State<PinLockScreen> {
       context.read<SecurityProvider>().setLockScreenVisible(true);
     }
     debugPrint('[PinLockScreen] lock screen shown (overlay=${widget.isOverlay})');
-
-    // Listen for cooldown state changes to show/dismiss the modal.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final securityProvider = context.read<SecurityProvider>();
-      securityProvider.addListener(_onSecurityChanged);
-      // Check initial state — the app may start in a lockout (e.g.
-      // after restart during countdown).
-      _onSecurityChanged();
-    });
   }
 
   @override
   void dispose() {
-    // Remove the cooldown listener.
-    try {
-      context.read<SecurityProvider>().removeListener(_onSecurityChanged);
-    } catch (_) {
-      // Provider may be unavailable during app teardown.
-    }
     _blackScreenGuard?.cancel();
     // Only manage lockScreenVisible in route mode — in overlay mode the
     // _AppLockHandler owns this flag.
@@ -126,7 +85,7 @@ class _PinLockScreenState extends State<PinLockScreen> {
   Future<void> _onPinSubmitted(String pin) async {
     final securityProvider = context.read<SecurityProvider>();
 
-    // Block unlock during lockout — the cooldown modal is already
+    // Block unlock during lockout — the cooldown overlay is already
     // visible and the keypad should be disabled, but this is a
     // defensive guard in case a submit event slips through.
     if (securityProvider.isInLockout) {
@@ -181,9 +140,8 @@ class _PinLockScreenState extends State<PinLockScreen> {
       setState(() => _errorText = message);
 
       // If the failed attempt triggered a lockout, the
-      // CooldownLockoutDialog will appear automatically via the
-      // _CooldownListener built below — no manual countdown start
-      // is needed here.
+      // CooldownModalOverlay will appear automatically because the
+      // build() method watches isInLockout — no showDialog() is needed.
     }
   }
 
@@ -231,6 +189,10 @@ class _PinLockScreenState extends State<PinLockScreen> {
     // In overlay mode the widget sits on top of the entire app inside
     // a Stack.  We use a fully opaque Scaffold so the underlying
     // application content is completely hidden and not interactable.
+    //
+    // The cooldown overlay is rendered INSIDE this widget's own Stack
+    // (not via showDialog) so the PIN screen and cooldown panel belong
+    // to the same widget tree — no third Navigator/Overlay layer.
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -239,111 +201,126 @@ class _PinLockScreenState extends State<PinLockScreen> {
         backgroundColor: colorScheme.surface,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.vertical,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacing4,
-                  vertical: AppTheme.spacing4,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Lock icon — always visible (the cooldown modal
-                    // appears on top of this, not as a replacement).
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: AppTheme.bambooGreen600
-                            .withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.lock_outline,
-                        size: 40,
-                        color: AppTheme.bambooGreen600,
-                      ),
+          child: Stack(
+            children: [
+              // ── PIN lock content ──────────────────────────────────
+              SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: MediaQuery.of(context).size.height -
+                        MediaQuery.of(context).padding.vertical,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacing4,
+                      vertical: AppTheme.spacing4,
                     ),
-                    const SizedBox(height: AppTheme.spacing4),
-
-                    // Titles — always visible
-                    Text(
-                      'QuizSnap',
-                      style: AppTheme.headlineSmall.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppTheme.spacing1),
-                    Text(
-                      'App Locked',
-                      style: AppTheme.headlineMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppTheme.spacing2),
-                    Text(
-                      'Enter your PIN to continue.',
-                      style: AppTheme.bodyMedium.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: AppTheme.spacing8),
-
-                    // PIN keypad — uses the configured PIN length so a
-                    // 4-digit PIN shows 4 dots and auto-submits at 4.
-                    // Disabled during cooldown; the modal sits on top.
-                    PinKeypad(
-                      key: _keypadKey,
-                      maxLength: securityProvider.pinLength,
-                      minLength: securityProvider.pinLength,
-                      dotCount: securityProvider.pinLength,
-                      autoSubmit: true,
-                      errorText: _errorText,
-                      enabled: !inLockout && !securityProvider.isLoading,
-                      onChanged: _onPinChanged,
-                      onSubmit: _onPinSubmitted,
-                    ),
-
-                    const SizedBox(height: AppTheme.spacing6),
-
-                    // Failed attempts indicator (only when not in
-                    // lockout — the modal handles the lockout message).
-                    if (!inLockout && securityProvider.failedAttempts > 0)
-                      Text(
-                        'Incorrect PIN. ${securityProvider.failedAttempts} of ${SecurityProvider.maxFailedAttempts} failed attempts.',
-                        style: AppTheme.bodySmall.copyWith(
-                          color: colorScheme.error,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Lock icon — always visible (the cooldown overlay
+                        // appears on top of this, not as a replacement).
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: AppTheme.bambooGreen600
+                                .withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.lock_outline,
+                            size: 40,
+                            color: AppTheme.bambooGreen600,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                      )
-                    else if (!inLockout)
-                      const SizedBox(height: AppTheme.spacing4),
-                  ],
+                        const SizedBox(height: AppTheme.spacing4),
+
+                        // Titles — always visible
+                        Text(
+                          'QuizSnap',
+                          style: AppTheme.headlineSmall.copyWith(
+                            color: colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppTheme.spacing1),
+                        Text(
+                          'App Locked',
+                          style: AppTheme.headlineMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppTheme.spacing2),
+                        Text(
+                          'Enter your PIN to continue.',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: AppTheme.spacing8),
+
+                        // PIN keypad — uses the configured PIN length so a
+                        // 4-digit PIN shows 4 dots and auto-submits at 4.
+                        // Disabled during cooldown; the overlay sits on top.
+                        PinKeypad(
+                          key: _keypadKey,
+                          maxLength: securityProvider.pinLength,
+                          minLength: securityProvider.pinLength,
+                          dotCount: securityProvider.pinLength,
+                          autoSubmit: true,
+                          errorText: _errorText,
+                          enabled: !inLockout && !securityProvider.isLoading,
+                          onChanged: _onPinChanged,
+                          onSubmit: _onPinSubmitted,
+                        ),
+
+                        const SizedBox(height: AppTheme.spacing6),
+
+                        // Failed attempts indicator (only when not in
+                        // lockout — the overlay handles the lockout message).
+                        if (!inLockout && securityProvider.failedAttempts > 0)
+                          Text(
+                            'Incorrect PIN. ${securityProvider.failedAttempts} of ${SecurityProvider.maxFailedAttempts} failed attempts.',
+                            style: AppTheme.bodySmall.copyWith(
+                              color: colorScheme.error,
+                            ),
+                            textAlign: TextAlign.center,
+                          )
+                        else if (!inLockout)
+                          const SizedBox(height: AppTheme.spacing4),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
+
+              // ── Cooldown overlay (same widget tree, no showDialog) ──
+              // Rendered on top of the PIN content when the brute-force
+              // lockout is active.  This is the ONLY cooldown UI layer.
+              if (inLockout)
+                CooldownModalOverlay(
+                  securityProvider: securityProvider,
+                ),
+            ],
           ),
         ),
       ),
-      // The cooldown modal is driven by a listener that watches
-      // SecurityProvider.isInLockout.  When lockout starts the modal
-      // appears on top of this screen; when it expires the modal
-      // auto-closes and the keypad re-enables.
     );
   }
 }
 
-/// A centered Material 3 modal dialog shown on top of the
-/// [PinLockScreen] when the brute-force cooldown is active.
+/// A centered modal overlay rendered INSIDE the [PinLockScreen]'s own
+/// [Stack] when the brute-force cooldown is active.
 ///
-/// The dialog displays:
+/// This is NOT shown via showDialog() — it is a plain widget that
+/// belongs to the same widget tree as the PIN screen.  This eliminates
+/// the Navigator/Overlay layering problems that occurred when the
+/// cooldown was a separate dialog.
+///
+/// The overlay displays:
+/// * A modal barrier (dimmed background)
 /// * A security/shield icon
 /// * "Too many attempts" title
 /// * An explanation message
@@ -352,40 +329,30 @@ class _PinLockScreenState extends State<PinLockScreen> {
 ///   cooldown (computed from [SecurityProvider.lockoutEndTime], not
 ///   from an in-memory timer, so it survives widget rebuilds and app
 ///   lifecycle events)
-/// * A "Got it" button that dismisses the dialog but does NOT bypass
-///   the cooldown — the keypad remains disabled until the countdown
-///   reaches zero, at which point [SecurityProvider.clearLockout] is
-///   called and the keypad re-enables.
+/// * Supporting text
 ///
-/// The dialog is non-dismissible via barrier tap or back button
-/// (safer UX — it auto-closes when the countdown expires).  The
-/// underlying PIN screen remains visible behind the dimmed barrier.
+/// The overlay is non-dismissible (no "Got it" button) — it
+/// auto-disappears when the countdown reaches zero because
+/// [SecurityProvider.isInLockout] becomes false, which triggers a
+/// rebuild of the parent [Stack] and removes this overlay.
 ///
-/// The countdown is driven by a 1-second [Timer.periodic] that only
-/// updates the **display** — the authoritative remaining time is
+/// The countdown display is driven by a 1-second [Timer.periodic] that
+/// only updates the **display** — the authoritative remaining time is
 /// always computed from `lockoutEndTime - DateTime.now()` so the
 /// countdown cannot drift or reset due to rebuilds.
-class CooldownLockoutDialog extends StatefulWidget {
-  const CooldownLockoutDialog({super.key});
+class CooldownModalOverlay extends StatefulWidget {
+  final SecurityProvider securityProvider;
 
-  /// Shows the cooldown dialog as a non-dismissible modal overlay.
-  ///
-  /// Returns when the dialog is dismissed (either by the "Got it"
-  /// button or automatically when the countdown expires).
-  static Future<void> show(BuildContext context) {
-    return showDialog(
-      context: context,
-      barrierDismissible: false,
-      useRootNavigator: true,
-      builder: (dialogContext) => const CooldownLockoutDialog(),
-    );
-  }
+  const CooldownModalOverlay({
+    super.key,
+    required this.securityProvider,
+  });
 
   @override
-  State<CooldownLockoutDialog> createState() => _CooldownLockoutDialogState();
+  State<CooldownModalOverlay> createState() => _CooldownModalOverlayState();
 }
 
-class _CooldownLockoutDialogState extends State<CooldownLockoutDialog> {
+class _CooldownModalOverlayState extends State<CooldownModalOverlay> {
   Timer? _displayTimer;
   int _displaySeconds = 0;
 
@@ -393,8 +360,7 @@ class _CooldownLockoutDialogState extends State<CooldownLockoutDialog> {
   void initState() {
     super.initState();
     // Initialise the display from the authoritative source.
-    final securityProvider = context.read<SecurityProvider>();
-    _displaySeconds = securityProvider.lockoutRemainingSeconds;
+    _displaySeconds = widget.securityProvider.lockoutRemainingSeconds;
     _startDisplayTimer();
   }
 
@@ -405,8 +371,7 @@ class _CooldownLockoutDialogState extends State<CooldownLockoutDialog> {
         timer.cancel();
         return;
       }
-      final securityProvider = context.read<SecurityProvider>();
-      final remaining = securityProvider.lockoutRemainingSeconds;
+      final remaining = widget.securityProvider.lockoutRemainingSeconds;
 
       setState(() {
         _displaySeconds = remaining;
@@ -415,12 +380,9 @@ class _CooldownLockoutDialogState extends State<CooldownLockoutDialog> {
       if (remaining <= 0) {
         timer.cancel();
         // Clear the lockout state in the provider — this re-enables
-        // the keypad on the PIN screen behind us.
-        securityProvider.clearLockout();
-        // Auto-close the modal.
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
+        // the keypad on the PIN screen behind us and causes the
+        // parent Stack to rebuild without this overlay.
+        widget.securityProvider.clearLockout();
       }
     });
   }
@@ -441,146 +403,138 @@ class _CooldownLockoutDialogState extends State<CooldownLockoutDialog> {
         ? (_displaySeconds / totalDuration).clamp(0.0, 1.0)
         : 0.0;
 
-    return PopScope(
-      canPop: false,
+    return Positioned.fill(
       child: Semantics(
-        label: 'Cooldown dialog: Too many attempts. '
+        label: 'Cooldown overlay: Too many attempts. '
             'Try again in $_displaySeconds seconds.',
         namesRoute: true,
-        child: AlertDialog(
-          backgroundColor: colorScheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTheme.rounded2xl),
-          ),
-          elevation: 0,
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: isTablet ? AppTheme.spacing8 : AppTheme.spacing6,
-            vertical: AppTheme.spacing6,
-          ),
-          insetPadding: EdgeInsets.symmetric(
-            horizontal: isTablet ? AppTheme.spacing8 : AppTheme.spacing4,
-            vertical: AppTheme.spacing8,
-          ),
-          content: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: isTablet ? 420 : double.infinity,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Security icon
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: colorScheme.errorContainer
-                          .withValues(alpha: 0.5),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.lock_clock,
-                      size: 32,
-                      color: colorScheme.error,
+        child: Material(
+          // Modal barrier — dimmed background that blocks interaction
+          // with the PIN keypad behind it.  Uses a semantic theme
+          // color, not a hardcoded black/white.
+          color: colorScheme.scrim.withValues(alpha: 0.6),
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isTablet ? AppTheme.spacing8 : AppTheme.spacing4,
+                vertical: AppTheme.spacing8,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isTablet ? 420 : double.infinity,
+                ),
+                child: Container(
+                  // Centered panel — uses surfaceContainer for a
+                  // theme-aware elevated surface.
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(AppTheme.rounded2xl),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? AppTheme.spacing8 : AppTheme.spacing6,
+                    vertical: AppTheme.spacing6,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Security icon
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: colorScheme.errorContainer
+                                .withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.lock_clock,
+                            size: 32,
+                            color: colorScheme.error,
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacing4),
+
+                        // Title
+                        Text(
+                          'Too many attempts',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontSize: isTablet ? AppTheme.text2xl : AppTheme.textLg,
+                            fontWeight: AppTheme.fontSemiBold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppTheme.spacing3),
+
+                        // Explanation
+                        Text(
+                          'For your protection, PIN entry is temporarily locked.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurface.withValues(alpha: 0.8),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppTheme.spacing5),
+
+                        // "Try again in" label
+                        Text(
+                          'Try again in',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppTheme.spacing2),
+
+                        // Countdown — the strongest visual element
+                        Text(
+                          '$_displaySeconds',
+                          style: theme.textTheme.headlineLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.error,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppTheme.spacing1),
+                        Text(
+                          _displaySeconds == 1 ? 'second' : 'seconds',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: AppTheme.spacing5),
+
+                        // Linear progress indicator — derived from the actual
+                        // remaining cooldown (not faked).
+                        Semantics(
+                          label: 'Cooldown progress: ${(_displaySeconds / totalDuration * 100).round()} percent remaining',
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            backgroundColor:
+                                colorScheme.errorContainer.withValues(alpha: 0.3),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(colorScheme.error),
+                            minHeight: 6,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+
+                        const SizedBox(height: AppTheme.spacing4),
+
+                        // Supporting text
+                        Text(
+                          'PIN entry will be available when the timer reaches zero.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: AppTheme.spacing4),
-
-                  // Title
-                  Text(
-                    'Too many attempts',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontSize: isTablet ? AppTheme.text2xl : AppTheme.textLg,
-                      fontWeight: AppTheme.fontSemiBold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppTheme.spacing3),
-
-                  // Explanation
-                  Text(
-                    'For your protection, PIN entry is temporarily locked.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.8),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppTheme.spacing5),
-
-                  // "Try again in" label
-                  Text(
-                    'Try again in',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppTheme.spacing2),
-
-                  // Countdown — the strongest visual element
-                  Text(
-                    '$_displaySeconds',
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.error,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppTheme.spacing1),
-                  Text(
-                    _displaySeconds == 1 ? 'second' : 'seconds',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: AppTheme.spacing5),
-
-                  // Linear progress indicator — derived from the actual
-                  // remaining cooldown (not faked).
-                  Semantics(
-                    label: 'Cooldown progress: ${(_displaySeconds / totalDuration * 100).round()} percent remaining',
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor:
-                          colorScheme.errorContainer.withValues(alpha: 0.3),
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(colorScheme.error),
-                      minHeight: 6,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-
-                  const SizedBox(height: AppTheme.spacing4),
-
-                  // Supporting text
-                  Text(
-                    'PIN entry will be available when the timer reaches zero.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  const SizedBox(height: AppTheme.spacing5),
-
-                  // Action — "Got it" dismisses the dialog but does NOT
-                  // bypass the cooldown.  The keypad remains disabled
-                  // until clearLockout() is called by the timer.
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(48),
-                        backgroundColor: colorScheme.error,
-                        foregroundColor: colorScheme.onError,
-                      ),
-                      child: const Text('Got it'),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

@@ -106,6 +106,7 @@ class QuizSnapApp extends StatefulWidget {
 class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
   late final SecurityProvider _securityProvider;
   late final SessionInactivityService _sessionInactivityService;
+  late final FocusModeProvider _focusModeProvider;
 
   /// Tracks whether the app was actually backgrounded (paused) before
   /// the next `resumed` event.  This prevents re-locking on transient
@@ -119,6 +120,7 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
     super.initState();
     _securityProvider = widget.securityProvider;
     _sessionInactivityService = widget.sessionInactivityService;
+    _focusModeProvider = widget.focusModeProvider;
     WidgetsBinding.instance.addObserver(this);
 
     // Bridge SecurityProvider state changes to GoRouter so the redirect
@@ -170,9 +172,19 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
         // not just transiently inactive.  lockApp() also has internal
         // guards (PIN not enabled, already locked, unlock grace period,
         // lock screen visible) that prevent spurious re-locks.
+        //
+        // Focus mode guard: do NOT trigger automatic App Lock while the
+        // user is actively taking an Exam or using Study Mode.  This
+        // prevents interrupting the question/card flow.  Manual "Lock
+        // Now" is unaffected because it calls lockApp() directly from
+        // the Security screen, not through this lifecycle handler.
         if (_wasBackgrounded) {
-          debugPrint('[QuizSnapApp] lifecycle: resumed from background — checking lock');
-          _securityProvider.lockApp();
+          if (_focusModeProvider.isFocusMode) {
+            debugPrint('[QuizSnapApp] lifecycle: resumed from background — focus mode active, skipping lock');
+          } else {
+            debugPrint('[QuizSnapApp] lifecycle: resumed from background — checking lock');
+            _securityProvider.lockApp();
+          }
         } else {
           debugPrint('[QuizSnapApp] lifecycle: resumed from transient inactive — no lock');
         }

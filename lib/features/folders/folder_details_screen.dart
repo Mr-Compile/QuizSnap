@@ -15,6 +15,8 @@ import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/search_bar.dart';
 import 'rename_folder_dialog.dart';
+import 'move_deck_to_folder_dialog.dart';
+import '../decks/edit_deck_screen.dart';
 
 class FolderDetailsScreen extends StatefulWidget {
   final int folderId;
@@ -278,7 +280,8 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
             onSelected: (value) => _onDeckMenuSelected(context, deck, value),
             itemBuilder: (context) => const [
               PopupMenuItem(value: 'view', child: Text('View Deck')),
-              PopupMenuItem(value: 'remove', child: Text('Remove from folder')),
+              PopupMenuItem(value: 'edit', child: Text('Edit Deck')),
+              PopupMenuItem(value: 'move', child: Text('Move Deck')),
               PopupMenuItem(value: 'delete', child: Text('Delete')),
             ],
           ),
@@ -341,25 +344,28 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
       return;
     }
 
-    if (value == 'remove') {
-      final confirmed = await DialogService.showConfirmation(
-        context,
-        'Remove "${deck.name}" from this folder? The deck will remain in your Library as an unfiled deck.',
-        title: 'Remove from folder',
-        confirmAction: 'Remove',
+    if (value == 'edit') {
+      // Reuse the existing EditDeckScreen flow used by DeckDetailsScreen.
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => EditDeckScreen(deckId: deck.id),
+        ),
       );
-      if (confirmed != true || !context.mounted) return;
+      if (context.mounted) await _refresh();
+      return;
+    }
 
-      final dbProvider = context.read<DatabaseProvider>();
-      try {
-        await dbProvider.deckRepository.removeDeckFromFolder(deck.id);
-        dbProvider.refreshAll();
-        if (!context.mounted) return;
-        await DialogService.showSuccess(context, 'Deck removed from folder');
-        if (context.mounted) await _refresh();
-      } catch (e) {
-        if (context.mounted) DialogService.showError(context, 'Error removing deck: $e');
-      }
+    if (value == 'move') {
+      // Reuse the existing MoveDeckToFolderDialog.  Folder-first: the
+      // dialog enforces that a deck must always belong to a folder.
+      await showDialog(
+        context: context,
+        builder: (context) => MoveDeckToFolderDialog(
+          deckId: deck.id,
+          currentFolderId: deck.folderId,
+        ),
+      );
+      if (context.mounted) await _refresh();
       return;
     }
 

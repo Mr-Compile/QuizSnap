@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers/database_provider.dart';
@@ -154,25 +155,43 @@ class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerM
                           // ignore: deprecated_member_use
                           value: _selectedFolderId,
                           decoration: const InputDecoration(
-                            labelText: 'Folder (optional)',
+                            labelText: 'Folder (required)',
                             hintText: 'Select a folder',
                           ),
                           items: snapshot.hasData
-                              ? [
-                                  const DropdownMenuItem<int>(
-                                    value: null,
-                                    child: Text('No Folder'),
-                                  ),
-                                  ...snapshot.data!.map((folder) {
-                                    return DropdownMenuItem<int>(
-                                      value: folder.id,
-                                      child: Text(folder.name),
-                                    );
-                                  }),
-                                ]
+                              ? snapshot.data!.map((folder) {
+                                  return DropdownMenuItem<int>(
+                                    value: folder.id,
+                                    child: Text(folder.name),
+                                  );
+                                }).toList()
                               : null,
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Please select a folder';
+                            }
+                            return null;
+                          },
                           onChanged: (value) => setState(() => _selectedFolderId = value),
                         ),
+                        if (snapshot.hasData && snapshot.data!.isEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(top: AppTheme.spacingSm),
+                            child: Text(
+                              'No folders yet. Create a folder first to organize your decks.',
+                              style: AppTheme.bodySmall.copyWith(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingSm),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.create_new_folder_outlined),
+                            label: const Text('Create Folder'),
+                            onPressed: () =>
+                                GoRouter.of(context).push('/folders/create'),
+                          ),
+                        ],
                         const SizedBox(height: AppTheme.spacingLg),
                         Text(
                           'Color',
@@ -237,20 +256,26 @@ class _EditDeckScreenState extends State<EditDeckScreen> with BackButtonHandlerM
       return;
     }
 
+    // Folder-first: a deck must always belong to a folder.
+    if (_selectedFolderId == null) {
+      await DialogService.showError(context, 'Please select a folder for this deck.');
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     final dbProvider = context.read<DatabaseProvider>();
-    
+
     try {
       final deck = await dbProvider.deckRepository.getDeckById(widget.deckId);
-      
+
       await dbProvider.deckRepository.updateDeck(
         deck.copyWith(
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim().isEmpty
               ? const drift.Value(null)
               : drift.Value(_descriptionController.text.trim()),
-          folderId: _selectedFolderId != null ? drift.Value(_selectedFolderId!) : const drift.Value(null),
+          folderId: drift.Value(_selectedFolderId!),
           color: _selectedColor,
         ),
       );
