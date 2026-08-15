@@ -156,18 +156,24 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
 
       if (result != null && result.files.isNotEmpty && result.files.single.path != null) {
         final originalFile = File(result.files.single.path!);
-        
+
         // Copy file to app storage to avoid permission issues
         final copiedFilePath = await _fileManagementService.copyFileToAppStorage(originalFile);
         final copiedFile = File(copiedFilePath);
-        
+
         if (!mounted) return;
-        
+
+        // Close the bottom sheet first.
         Navigator.of(context).pop();
-        
-        // Show success message
-        DialogService.showSuccess(context, 'File imported successfully');
-        
+
+        // Show success message and AWAIT it before navigating so it
+        // does not persist or reappear when navigating backward.
+        if (!mounted) return;
+        await DialogService.showSuccess(context, 'File imported successfully');
+
+        // Navigate to the next screen only after the user dismisses the dialog.
+        if (!mounted) return;
+
         // Navigate to document scope selection screen
         if (widget.fileType.toLowerCase() == 'pdf') {
           Navigator.of(context).push(
@@ -183,9 +189,9 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
           try {
             final text = await DocumentExtractionService.extractFromFile(copiedFile);
             if (!mounted) return;
-            
+
             final fileName = copiedFile.path.split('/').last;
-            
+
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => TextPreviewScreen(

@@ -255,7 +255,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                   icon: Icons.quiz,
                   label: 'Start\nExam',
                   color: AppTheme.purple600,
-                  onTap: () => GoRouter.of(context).push(AppRoutes.studyHome),
+                  onTap: () => GoRouter.of(context).push('/study/decks'),
                 ),
                 _buildQuickAction(
                   context,

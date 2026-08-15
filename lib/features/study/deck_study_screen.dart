@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -173,6 +174,19 @@ class DeckStudyScreen extends StatelessWidget {
                 },
                 icon: const Icon(Icons.quiz),
                 label: const Text('Quiz Mode'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacingSm),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  final name = Uri.encodeComponent(deck.name);
+                  context.push('/exam/${deck.id}/setup?deckName=$name');
+                },
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Exam Mode'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.all(AppTheme.spacingMd),
                 ),

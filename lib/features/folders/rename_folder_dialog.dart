@@ -113,6 +113,9 @@ class _RenameFolderDialogState extends State<RenameFolderDialog> {
         ),
       );
 
+      // Trigger dependent consumers (LibraryScreen, FolderDetailsScreen) to rebuild.
+      dbProvider.refreshAll();
+
       if (mounted) {
         await DialogService.showSuccess(context, 'Folder updated successfully');
         if (!mounted) return;

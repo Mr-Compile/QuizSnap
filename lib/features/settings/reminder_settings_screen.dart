@@ -26,7 +26,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
     final reminderProvider = context.read<ReminderProvider>();
     await reminderProvider.initialize();
     
-    if (!mounted) return;
+    if (!context.mounted) return;
     
     final timeParts = reminderProvider.reminderTime.split(':');
     setState(() {
@@ -56,45 +56,52 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
 
   void _showDayPicker() {
     final reminderProvider = context.read<ReminderProvider>();
-    final selectedDays = Set<int>.from(reminderProvider.reminderDays);
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Days'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (int day = 1; day <= 7; day++)
-              CheckboxListTile(
-                title: Text(_getDayName(day)),
-                value: selectedDays.contains(day),
-                onChanged: (value) {
-                  setState(() {
-                    if (value == true) {
-                      selectedDays.add(day);
-                    } else {
-                      selectedDays.remove(day);
-                    }
-                  });
-                },
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final selectedDays = Set<int>.from(reminderProvider.reminderDays);
+
+          return AlertDialog(
+            title: const Text('Select Days'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (int day = 1; day <= 7; day++)
+                  CheckboxListTile(
+                    title: Text(_getDayName(day)),
+                    value: selectedDays.contains(day),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        if (value == true) {
+                          selectedDays.add(day);
+                        } else {
+                          selectedDays.remove(day);
+                        }
+                      });
+                    },
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
               ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await reminderProvider.setReminderDays(selectedDays.toList());
-              if (!mounted) return;
-              Navigator.pop(this.context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
+              ElevatedButton(
+                onPressed: () async {
+                  await reminderProvider
+                      .setReminderDays(selectedDays.toList());
+                  if (!context.mounted) return;
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -137,12 +144,35 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
                   onChanged: reminderProvider.isLoading
                       ? null
                       : (value) async {
+                          // Before enabling, ensure notification permissions
+                          // are granted. If not, request them first.
+                          if (value) {
+                            final granted =
+                                await reminderProvider.arePermissionsGranted();
+                            if (!granted) {
+                              if (!context.mounted) return;
+                              await reminderProvider.requestPermissions();
+                            }
+                            final grantedAfter =
+                                await reminderProvider.arePermissionsGranted();
+                            if (!grantedAfter) {
+                              if (!context.mounted) return;
+                              await DialogService.showInfo(
+                                context,
+                                'Enable notification permissions in system settings to use study reminders.',
+                                title: 'Permission Required',
+                              );
+                              return;
+                            }
+                          }
+
                           await reminderProvider.setEnabled(value);
-                          if (!mounted) return;
+                          if (!context.mounted) return;
 
                           if (reminderProvider.errorMessage != null) {
-                            if (!mounted) return;
-                            await DialogService.showError(this.context, reminderProvider.errorMessage!);
+                            if (!context.mounted) return;
+                            await DialogService.showError(
+                                context, reminderProvider.errorMessage!);
                           }
                         },
                 ),
@@ -292,7 +322,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
               onChanged: (value) async {
                 if (value != null) {
                   await reminderProvider.setFrequency(value);
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   // ignore: use_build_context_synchronously
                   Navigator.pop(dialogContext);
                 }
@@ -309,7 +339,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
               onChanged: (value) async {
                 if (value != null) {
                   await reminderProvider.setFrequency(value);
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   // ignore: use_build_context_synchronously
                   Navigator.pop(dialogContext);
                 }
@@ -326,7 +356,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
               onChanged: (value) async {
                 if (value != null) {
                   await reminderProvider.setFrequency(value);
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   // ignore: use_build_context_synchronously
                   Navigator.pop(dialogContext);
                 }

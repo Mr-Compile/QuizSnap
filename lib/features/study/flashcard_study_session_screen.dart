@@ -85,7 +85,7 @@ class _FlashcardStudySessionScreenState
             cardsCorrect: cardsCorrect,
             durationSeconds: durationSeconds,
           );
-          db.refreshAnalytics();
+          db.refreshAll();
         } catch (_) {}
       });
     }
@@ -651,7 +651,7 @@ class _FlashcardStudySessionScreenState
       durationSeconds: durationSeconds,
     );
     _isDbSessionEnded = true;
-    db.refreshAnalytics();
+    db.refreshAll();
   }
 
   Future<void> _toggleBookmark(BuildContext context, Flashcard card) async {
@@ -659,6 +659,7 @@ class _FlashcardStudySessionScreenState
     final updated = card.copyWith(isFavorite: !card.isFavorite);
     try {
       await db.flashcardRepository.updateFlashcard(updated);
+      db.refreshAll();
       if (!context.mounted) return;
       await DialogService.showSuccess(
         context,

@@ -40,7 +40,6 @@ class AppRoutes {
   static const String examQuestion = '/exam/:examId/question';
   static const String examResult = '/exam/:examId/result';
   static const String examReview = '/exam/:examId/review';
-  static const String cachedExplanations = '/exam/explanations';
 
   // AI Generation routes
   static const String aiHome = '/ai-generate';

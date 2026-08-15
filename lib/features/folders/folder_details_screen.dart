@@ -5,10 +5,12 @@ import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/navigation/app_routes.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
+import '../../shared/widgets/search_bar.dart';
 import 'rename_folder_dialog.dart';
 
 class FolderDetailsScreen extends StatefulWidget {
@@ -33,11 +35,36 @@ class _FolderDetailsData {
 
 class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
   late Future<_FolderDetailsData> _dataFuture;
+  DatabaseProvider? _dbProvider;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _dataFuture = _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final dbProvider = context.read<DatabaseProvider>();
+    if (_dbProvider != dbProvider) {
+      _dbProvider?.removeListener(_onProviderChanged);
+      _dbProvider = dbProvider;
+      _dbProvider?.addListener(_onProviderChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _dbProvider?.removeListener(_onProviderChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onProviderChanged() {
+    if (mounted) _refresh();
   }
 
   Future<_FolderDetailsData> _loadData() async {
@@ -85,6 +112,13 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
           final folder = data.folder;
           final color = Color(int.parse(folder.color.replaceFirst('#', '0xFF')));
 
+          // Filter decks by search query.
+          final decks = _searchQuery.isEmpty
+              ? data.decks
+              : data.decks
+                  .where((d) => d.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+                  .toList();
+
           return CustomScrollView(
             slivers: [
               SliverToBoxAdapter(
@@ -120,20 +154,61 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
                   ),
                 ),
               ),
+              // Search bar for decks within this folder.
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingMd,
+                  ),
+                  child: CustomSearchBar(
+                    controller: _searchController,
+                    hintText: 'Search decks in this folder...',
+                    onChanged: (value) =>
+                        setState(() => _searchQuery = value.trim()),
+                    onClear: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: AppTheme.spacingSm),
+              ),
               if (data.decks.isEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
                   child: EmptyState(
                     icon: Icons.style_outlined,
                     title: 'No decks in this folder',
-                    subtitle: 'Move or create a deck in this folder to see it here',
+                    subtitle: 'Create a deck in this folder to see it here',
+                    action: ElevatedButton.icon(
+                      onPressed: () => _navigateToCreateDeck(context),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Deck'),
+                    ),
+                  ),
+                )
+              else if (decks.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      'No decks match "$_searchQuery"',
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
+                      ),
+                    ),
                   ),
                 )
               else
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildDeckCard(context, data.decks[index]),
-                    childCount: data.decks.length,
+                    (context, index) => _buildDeckCard(context, decks[index]),
+                    childCount: decks.length,
                   ),
                 ),
               const SliverToBoxAdapter(
@@ -142,6 +217,11 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
             ],
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _navigateToCreateDeck(context),
+        tooltip: 'Create Deck in this folder',
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -212,6 +292,10 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
     GoRouter.of(context).push('/decks/${deck.id}');
   }
 
+  void _navigateToCreateDeck(BuildContext context) {
+    GoRouter.of(context).push('${AppRoutes.createDeck}?folderId=${widget.folderId}');
+  }
+
   Future<void> _onMenuSelected(String value) async {
     if (!mounted) return;
     final dbProvider = context.read<DatabaseProvider>();
@@ -239,7 +323,11 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
       if (confirmed != true || !mounted) return;
       try {
         await dbProvider.folderRepository.deleteFolder(widget.folderId);
-        if (mounted) GoRouter.of(context).pop();
+        dbProvider.refreshAll();
+        if (mounted) {
+          await DialogService.showSuccess(context, 'Folder deleted');
+          if (mounted) GoRouter.of(context).pop();
+        }
       } catch (e) {
         if (mounted) DialogService.showError(context, 'Error deleting folder: $e');
       }
@@ -253,6 +341,7 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
     final dbProvider = context.read<DatabaseProvider>();
     try {
       await dbProvider.deckRepository.removeDeckFromFolder(deck.id);
+      dbProvider.refreshAll();
       if (!context.mounted) return;
       await DialogService.showSuccess(context, 'Deck removed from folder');
       if (context.mounted) await _refresh();

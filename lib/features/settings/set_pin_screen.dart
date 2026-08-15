@@ -3,9 +3,15 @@ import 'package:provider/provider.dart';
 import '../../core/providers/security_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
-import '../../shared/widgets/custom_button.dart';
+import '../../shared/widgets/custom_card.dart';
+import '../../shared/widgets/pin_keypad.dart';
 import '../../core/services/dialog_service.dart';
 
+/// Modern Set PIN screen with a two-step PIN entry flow (enter → confirm)
+/// using a large numeric keypad and dot indicators.
+///
+/// Hierarchy:
+/// Security → PIN Lock → Set PIN → Enter PIN → Confirm PIN → Save
 class SetPinScreen extends StatefulWidget {
   const SetPinScreen({super.key});
 
@@ -14,232 +20,235 @@ class SetPinScreen extends StatefulWidget {
 }
 
 class _SetPinScreenState extends State<SetPinScreen> {
-  final _pinController = TextEditingController();
-  final _confirmPinController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  
-  bool _obscurePin = true;
-  bool _obscureConfirmPin = true;
+  /// 0 = enter PIN, 1 = confirm PIN
+  int _step = 0;
+  String _firstPin = '';
+  String? _errorText;
+  final _keypadKey = GlobalKey<PinKeypadState>();
 
   @override
   void dispose() {
-    _pinController.dispose();
-    _confirmPinController.dispose();
     super.dispose();
   }
 
-  Future<void> _setPin() async {
-    if (!_formKey.currentState!.validate()) return;
+  void _onPinChanged(String pin) {
+    if (_errorText != null) {
+      setState(() => _errorText = null);
+    }
+  }
 
+  void _onPinSubmitted(String pin) {
+    if (_step == 0) {
+      // Validate minimum length on the first step.
+      if (pin.length < 4) {
+        setState(() => _errorText = 'Your PIN must contain 4–6 digits.');
+        return;
+      }
+      // Move to confirm step.
+      setState(() {
+        _firstPin = pin;
+        _step = 1;
+        _errorText = null;
+      });
+      _keypadKey.currentState?.clear();
+    } else {
+      // Confirm step — compare with first PIN.
+      if (pin != _firstPin) {
+        setState(() {
+          _errorText = 'PINs do not match. Please try again.';
+          _step = 0;
+          _firstPin = '';
+        });
+        _keypadKey.currentState?.clear();
+      } else {
+        // PINs match — save.
+        _savePin(pin);
+      }
+    }
+  }
+
+  Future<void> _savePin(String pin) async {
     final securityProvider = context.read<SecurityProvider>();
-    final pin = _pinController.text;
-
     final success = await securityProvider.setPin(pin);
 
     if (!mounted) return;
 
     if (success) {
-      if (!mounted) return;
-      if (!mounted) return;
-      await DialogService.showSuccess(context, 'PIN set successfully!');
+      await DialogService.showSuccess(
+        context,
+        'PIN set successfully. Your app is now protected.',
+        title: 'PIN Set',
+      );
       if (!mounted) return;
       Navigator.pop(context);
     } else {
-      if (!mounted) return;
-      await DialogService.showError(context, 'Failed to set PIN: ${securityProvider.errorMessage}');
+      // Reset to step 0 so the user can re-enter.
+      setState(() {
+        _errorText = securityProvider.errorMessage ??
+            'Something went wrong. Please try again.';
+        _step = 0;
+        _firstPin = '';
+      });
+      _keypadKey.currentState?.clear();
     }
+  }
+
+  void _cancel() {
+    Navigator.pop(context);
+  }
+
+  void _backToEnterStep() {
+    setState(() {
+      _step = 0;
+      _firstPin = '';
+      _errorText = null;
+    });
+    _keypadKey.currentState?.clear();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final securityProvider = context.watch<SecurityProvider>();
+
     return Scaffold(
-      appBar: const CustomAppBar(
-        title: 'Set PIN',
-      ),
-      body: Consumer<SecurityProvider>(
-        builder: (context, securityProvider, child) {
-          return ListView(
-            padding: const EdgeInsets.all(AppTheme.spacingLg),
+      appBar: const CustomAppBar(title: 'Set PIN'),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacing4,
+            vertical: AppTheme.spacing4,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Card(
+              // Status card
+              _buildStatusCard(context, colorScheme),
+              const SizedBox(height: AppTheme.spacing4),
+
+              // PIN entry card
+              CustomCard(
                 child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.spacingLg),
+                  padding: const EdgeInsets.all(AppTheme.spacing6),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(
+                      // Lock icon
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: AppTheme.bambooGreen600
+                              .withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
                         child: Icon(
                           Icons.lock_outline,
-                          size: 64,
                           color: AppTheme.bambooGreen600,
+                          size: 32,
                         ),
                       ),
-                      const SizedBox(height: AppTheme.spacingLg),
+                      const SizedBox(height: AppTheme.spacing4),
+
+                      // Step title
                       Text(
-                        'Create a PIN',
-                        style: AppTheme.titleMedium,
+                        _step == 0 ? 'Set your PIN' : 'Confirm your PIN',
+                        style: AppTheme.titleLarge,
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: AppTheme.spacingSm),
+                      const SizedBox(height: AppTheme.spacing2),
+
+                      // Step description
                       Text(
-                        'Enter a 4-digit PIN to lock your app',
+                        _step == 0
+                            ? 'Enter a 4–6 digit PIN.'
+                            : 'Re-enter your PIN to confirm.',
                         style: AppTheme.bodyMedium.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: AppTheme.spacingXl),
-                      Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            TextFormField(
-                              controller: _pinController,
-                              obscureText: _obscurePin,
-                              keyboardType: TextInputType.number,
-                              maxLength: 4,
-                              decoration: InputDecoration(
-                                labelText: 'PIN',
-                                hintText: '••••',
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePin ? Icons.visibility_off : Icons.visibility,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscurePin = !_obscurePin;
-                                    });
-                                  },
-                                ),
-                                border: const OutlineInputBorder(),
-                                counterText: '',
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter a PIN';
-                                }
-                                if (value.length != 4) {
-                                  return 'PIN must be 4 digits';
-                                }
-                                if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                                  return 'PIN must contain only numbers';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: AppTheme.spacingLg),
-                            TextFormField(
-                              controller: _confirmPinController,
-                              obscureText: _obscureConfirmPin,
-                              keyboardType: TextInputType.number,
-                              maxLength: 4,
-                              decoration: InputDecoration(
-                                labelText: 'Confirm PIN',
-                                hintText: '••••',
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureConfirmPin ? Icons.visibility_off : Icons.visibility,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscureConfirmPin = !_obscureConfirmPin;
-                                    });
-                                  },
-                                ),
-                                border: const OutlineInputBorder(),
-                                counterText: '',
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please confirm your PIN';
-                                }
-                                if (value != _pinController.text) {
-                                  return 'PINs do not match';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: AppTheme.spacingXl),
-                            CustomButton(
-                              text: 'Set PIN',
-                              onPressed: securityProvider.isLoading ? null : _setPin,
-                              isLoading: securityProvider.isLoading,
-                            ),
-                          ],
+                      const SizedBox(height: AppTheme.spacing6),
+
+                      // PIN keypad
+                      PinKeypad(
+                        key: _keypadKey,
+                        maxLength: 6,
+                        minLength: 4,
+                        autoSubmit: true,
+                        errorText: _errorText,
+                        enabled: !securityProvider.isLoading,
+                        onChanged: _onPinChanged,
+                        onSubmit: _onPinSubmitted,
+                      ),
+
+                      const SizedBox(height: AppTheme.spacing4),
+
+                      // Step indicator + secondary actions
+                      if (_step == 1)
+                        TextButton.icon(
+                          onPressed: securityProvider.isLoading
+                              ? null
+                              : _backToEnterStep,
+                          icon: const Icon(Icons.arrow_back, size: 18),
+                          label: const Text('Re-enter PIN'),
+                        )
+                      else
+                        TextButton(
+                          onPressed:
+                              securityProvider.isLoading ? null : _cancel,
+                          child: const Text('Cancel'),
                         ),
-                      ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: AppTheme.spacingLg),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.spacingLg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'PIN Security Tips',
-                        style: AppTheme.titleMedium,
-                      ),
-                      const SizedBox(height: AppTheme.spacingMd),
-                      _buildTip(
-                        icon: Icons.numbers,
-                        title: 'Use a unique PIN',
-                        description: 'Don\'t use common PINs like 1234 or 0000',
-                      ),
-                      const SizedBox(height: AppTheme.spacingSm),
-                      _buildTip(
-                        icon: Icons.memory,
-                        title: 'Memorize your PIN',
-                        description: 'Don\'t write it down or store it in plain text',
-                      ),
-                      const SizedBox(height: AppTheme.spacingSm),
-                      _buildTip(
-                        icon: Icons.phonelink_lock,
-                        title: 'Enable biometrics',
-                        description: 'You can also enable fingerprint/face unlock for convenience',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              const SizedBox(height: AppTheme.spacing6),
             ],
-          );
-        },
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildTip({
-    required IconData icon,
-    required String title,
-    required String description,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: AppTheme.bambooGreen600, size: 20),
-        const SizedBox(width: AppTheme.spacingMd),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: AppTheme.labelMedium,
+  Widget _buildStatusCard(BuildContext context, ColorScheme colorScheme) {
+    return CustomCard(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spacing4),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.bambooGreen600.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               ),
-              Text(
-                description,
-                style: AppTheme.bodySmall.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              child: Icon(
+                Icons.shield_outlined,
+                color: AppTheme.bambooGreen600,
+                size: 24,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: AppTheme.spacing3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('PIN Lock', style: AppTheme.titleMedium),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Protect your QuizSnap app with a personal PIN.',
+                    style: AppTheme.bodySmall.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

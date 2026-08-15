@@ -215,8 +215,7 @@ class _BackupHistoryScreenState extends ConsumerState<BackupHistoryScreen> {
     if (newDb != null && mounted) {
       // Adopt the new database on the Provider-package side too.
       context.read<DatabaseProvider>().reopenDatabase(newDatabase: newDb);
-      context.read<DatabaseProvider>().refreshDecks();
-      context.read<DatabaseProvider>().refreshAnalytics();
+      context.read<DatabaseProvider>().refreshAll();
 
       ref.invalidate(backupFilesProvider);
       ref.invalidate(backupHistoryProvider);

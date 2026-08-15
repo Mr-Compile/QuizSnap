@@ -4,12 +4,22 @@ import 'package:provider/provider.dart';
 import '../../core/providers/security_provider.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/navigation/app_routes.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
-import 'api_configuration_screen.dart';
-import 'set_pin_screen.dart';
+import '../../shared/widgets/pin_keypad.dart';
+import '../../shared/widgets/dialogs/confirmation_dialog.dart';
+
 import '../../core/services/dialog_service.dart';
 
+/// Modern Security settings screen.
+///
+/// Sections:
+/// * App Protection — PIN Lock toggle with live status
+/// * PIN Settings — Change / Remove PIN (only when a PIN exists)
+/// * App Lock — Lock Now (manual lock)
+/// * API Configuration — separate from the PIN area
+/// * Data Privacy — information only
 class SecuritySettingsScreen extends StatefulWidget {
   const SecuritySettingsScreen({super.key});
 
@@ -46,113 +56,13 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
             children: [
               _buildSecurityStatusCard(context, securityProvider),
               const SizedBox(height: AppTheme.spacing4),
-              _buildSectionCard(
-                context: context,
-                title: 'App Lock',
-                description: 'PIN protection for app access',
-                icon: Icons.lock_outline,
-                iconColor: AppTheme.red600,
-                children: [
-                  SwitchListTile(
-                    title: const Text('PIN Lock'),
-                    subtitle: Text(securityProvider.isPinEnabled
-                        ? 'PIN lock is enabled'
-                        : 'Require PIN to open the app'),
-                    value: securityProvider.isPinEnabled,
-                    onChanged: securityProvider.isLoading
-                        ? null
-                        : (value) async {
-                            if (value) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SetPinScreen(),
-                                ),
-                              );
-                            } else {
-                              await _confirmDisablePin();
-                            }
-                          },
-                  ),
-                  if (securityProvider.isPinEnabled) ...[
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.edit),
-                      title: const Text('Change PIN'),
-                      subtitle: const Text('Update your current PIN'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _showChangePinDialog(),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.lock_clock),
-                      title: const Text('Lock Now'),
-                      subtitle: const Text('Immediately lock the app with PIN'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _confirmLockNow(),
-                    ),
-                  ],
-                ],
-              ),
+              _buildPinProtectionCard(context, securityProvider),
               const SizedBox(height: AppTheme.spacing4),
-              _buildSectionCard(
-                context: context,
-                title: 'API Configuration',
-                description: 'Groq API key for AI features',
-                icon: Icons.api,
-                iconColor: AppTheme.purple600,
-                children: [
-                  Consumer<GroqProvider>(
-                    builder: (context, groqProvider, child) {
-                      return ListTile(
-                        leading: const Icon(Icons.api),
-                        title: const Text('Groq API Key'),
-                        subtitle: Text(groqProvider.isInitialized
-                            ? 'API key is configured'
-                            : 'Configure your Groq API key'),
-                        trailing: groqProvider.isInitialized
-                            ? _buildStatusChip(
-                                context, 'Active', AppTheme.bambooGreen600)
-                            : _buildStatusChip(
-                                context, 'Not Set', AppTheme.orange600),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const ApiConfigurationScreen(),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ],
-              ),
+              _buildAppLockCard(context, securityProvider),
               const SizedBox(height: AppTheme.spacing4),
-              _buildSectionCard(
-                context: context,
-                title: 'Privacy',
-                description: 'Data handling and security practices',
-                icon: Icons.shield_outlined,
-                iconColor: AppTheme.blue600,
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.privacy_tip_outlined),
-                    title: const Text('Data Privacy'),
-                    subtitle: const Text('Learn how we protect your data'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _showPrivacyDialog(),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.info_outline),
-                    title: const Text('Security Information'),
-                    subtitle: const Text('View security features and practices'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _showSecurityInfoDialog(),
-                  ),
-                ],
-              ),
+              _buildApiCard(context),
+              const SizedBox(height: AppTheme.spacing4),
+              _buildPrivacyCard(context),
               const SizedBox(height: AppTheme.spacing4),
               _buildDangerZone(context),
               const SizedBox(height: AppTheme.spacing6),
@@ -196,7 +106,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(statusText, style: AppTheme.titleMedium),
+                  Text('App Protection', style: AppTheme.titleMedium),
                   const SizedBox(height: 4),
                   Text(
                     statusDesc,
@@ -218,17 +128,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  //  Section card builder
+  //  PIN Protection card — toggle + PIN settings
   // ─────────────────────────────────────────────────────────────────────
 
-  Widget _buildSectionCard({
-    required BuildContext context,
-    required String title,
-    required String description,
-    required IconData icon,
-    required Color iconColor,
-    required List<Widget> children,
-  }) {
+  Widget _buildPinProtectionCard(BuildContext context, SecurityProvider provider) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return CustomCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing2),
@@ -248,20 +153,200 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: iconColor.withValues(alpha: 0.12),
+                      color: AppTheme.bambooGreen600.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                     ),
-                    child: Icon(icon, color: iconColor, size: 22),
+                    child: Icon(
+                      Icons.pin_outlined,
+                      color: AppTheme.bambooGreen600,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: AppTheme.spacing3),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(title, style: AppTheme.titleMedium),
+                        Text('PIN Lock', style: AppTheme.titleMedium),
                         const SizedBox(height: 2),
                         Text(
-                          description,
+                          'Protect QuizSnap with a PIN.',
+                          style: AppTheme.bodySmall.copyWith(
+                            color: colorScheme.onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            SwitchListTile(
+              title: const Text('PIN Lock'),
+              subtitle: Text(
+                provider.isPinEnabled
+                    ? '● Enabled'
+                    : '○ Disabled',
+              ),
+              value: provider.isPinEnabled,
+              onChanged: provider.isLoading
+                  ? null
+                  : (value) async {
+                      if (value) {
+                        GoRouter.of(context).push(AppRoutes.setPin);
+                      } else {
+                        await _confirmDisablePin();
+                      }
+                    },
+            ),
+            if (provider.isPinEnabled) ...[
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.edit, color: AppTheme.blue600),
+                title: const Text('Change PIN'),
+                subtitle: const Text('Update your existing PIN'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showChangePinDialog(),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.lock_open,
+                  color: colorScheme.error,
+                ),
+                title: Text(
+                  'Remove PIN',
+                  style: TextStyle(color: colorScheme.error),
+                ),
+                subtitle: const Text('Disable PIN protection'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _confirmRemovePin(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  //  App Lock card — Lock Now
+  // ─────────────────────────────────────────────────────────────────────
+
+  Widget _buildAppLockCard(BuildContext context, SecurityProvider provider) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return CustomCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacing4,
+                AppTheme.spacing3,
+                AppTheme.spacing4,
+                AppTheme.spacing2,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.amber600.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    ),
+                    child: Icon(
+                      Icons.lock_clock,
+                      color: AppTheme.amber600,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacing3),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('App Lock', style: AppTheme.titleMedium),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Manually lock QuizSnap.',
+                          style: AppTheme.bodySmall.copyWith(
+                            color: colorScheme.onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: Icon(
+                provider.isPinEnabled
+                    ? Icons.lock
+                    : Icons.lock_open,
+                color: provider.isPinEnabled ? colorScheme.primary : colorScheme.outline,
+              ),
+              title: const Text('Lock Now'),
+              subtitle: Text(
+                provider.isPinEnabled
+                    ? 'Immediately lock the app with PIN'
+                    : 'Set a PIN before locking QuizSnap',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: provider.isPinEnabled ? _confirmLockNow : _showSetPinRequiredDialog,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  //  API Configuration card
+  // ─────────────────────────────────────────────────────────────────────
+
+  Widget _buildApiCard(BuildContext context) {
+    return CustomCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacing4,
+                AppTheme.spacing3,
+                AppTheme.spacing4,
+                AppTheme.spacing2,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.purple600.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    ),
+                    child: Icon(Icons.api, color: AppTheme.purple600, size: 22),
+                  ),
+                  const SizedBox(width: AppTheme.spacing3),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('API Configuration', style: AppTheme.titleMedium),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Groq API key for AI features',
                           style: AppTheme.bodySmall.copyWith(
                             color: Theme.of(context)
                                 .colorScheme
@@ -276,12 +361,109 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               ),
             ),
             const Divider(height: 1),
-            ...children,
+            Consumer<GroqProvider>(
+              builder: (context, groqProvider, child) {
+                return ListTile(
+                  leading: const Icon(Icons.api),
+                  title: const Text('Groq API Key'),
+                  subtitle: Text(groqProvider.isInitialized
+                      ? 'API key is configured'
+                      : 'Configure your Groq API key'),
+                  trailing: groqProvider.isInitialized
+                      ? _buildStatusChip(
+                          context, 'Active', AppTheme.bambooGreen600)
+                      : _buildStatusChip(
+                          context, 'Not Set', AppTheme.orange600),
+                  onTap: () => GoRouter.of(context).push(AppRoutes.apiConfiguration),
+                );
+              },
+            ),
           ],
         ),
       ),
     );
   }
+
+  // ─────────────────────────────────────────────────────────────────────
+  //  Privacy card
+  // ─────────────────────────────────────────────────────────────────────
+
+  Widget _buildPrivacyCard(BuildContext context) {
+    return CustomCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.spacing2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacing4,
+                AppTheme.spacing3,
+                AppTheme.spacing4,
+                AppTheme.spacing2,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.blue600.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    ),
+                    child: Icon(
+                      Icons.shield_outlined,
+                      color: AppTheme.blue600,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacing3),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Privacy', style: AppTheme.titleMedium),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Data handling and security practices',
+                          style: AppTheme.bodySmall.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const Text('Data Privacy'),
+              subtitle: const Text('Learn how we protect your data'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showPrivacyDialog(),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: const Text('Security Information'),
+              subtitle: const Text('View security features and practices'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showSecurityInfoDialog(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  //  Helpers
+  // ─────────────────────────────────────────────────────────────────────
 
   Widget _buildStatusChip(BuildContext context, String label, Color color) {
     return Container(
@@ -302,7 +484,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  //  Danger Zone — visually separated destructive actions
+  //  Danger Zone
   // ─────────────────────────────────────────────────────────────────────
 
   Widget _buildDangerZone(BuildContext context) {
@@ -378,43 +560,18 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────────
+  //  Action dialogs / screens
+  // ─────────────────────────────────────────────────────────────────────
+
   Future<void> _confirmDisablePin() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await ConfirmationDialog.show(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Disable PIN Lock'),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.rounded2xl),
-        ),
-        contentPadding: const EdgeInsets.all(AppTheme.spacing6),
-        content: const Text('Are you sure you want to disable PIN lock? Your app will no longer be protected.'),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  child: const Text('Cancel'),
-                ),
-              ),
-              const SizedBox(width: AppTheme.spacing4),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                  ),
-                  child: const Text('Disable'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      title: 'Disable PIN Lock',
+      message:
+          'Are you sure you want to disable PIN lock? Your app will no longer be protected.',
+      confirmAction: 'Disable',
+      isDestructive: true,
     );
 
     if (confirmed == true && mounted) {
@@ -427,150 +584,39 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     }
   }
 
-  /// Confirmation dialog for the "Lock Now" action.
-  ///
-  /// Locks the app immediately on confirmation.  The GoRouter redirect
-  /// logic in [main.dart] detects the locked state and routes to the
-  /// PIN lock screen.  The current route is preserved by
-  /// [SecurityProvider.setRouteBeforeLock] so the user returns to the
-  /// same screen after unlock.
-  Future<void> _confirmLockNow() async {
-    final confirmed = await showDialog<bool>(
+  Future<void> _confirmRemovePin() async {
+    final confirmed = await ConfirmationDialog.show(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Lock the app now?'),
+      title: 'Remove PIN',
+      message:
+          'This will disable PIN lock. You can re-enable it at any time.',
+      confirmAction: 'Remove',
+      isDestructive: true,
+    );
+
+    if (confirmed == true && mounted) {
+      final securityProvider = context.read<SecurityProvider>();
+      await securityProvider.disablePin();
+
+      if (!mounted) return;
+
+      await DialogService.showInfo(context, 'PIN removed');
+    }
+  }
+
+  void _showSetPinRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('PIN required'),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.rounded2xl),
         ),
         contentPadding: const EdgeInsets.all(AppTheme.spacing6),
         content: const Text(
-          'The app will be locked immediately and you will need to enter your PIN to continue.',
+          'Set a PIN before locking QuizSnap.',
         ),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  child: const Text('Cancel'),
-                ),
-              ),
-              const SizedBox(width: AppTheme.spacing4),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  icon: const Icon(Icons.lock),
-                  label: const Text('Lock Now'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      // Save the current route so it can be restored after unlock.
-      final securityProvider = context.read<SecurityProvider>();
-      final currentRoute = GoRouterState.of(context).matchedLocation;
-      securityProvider.setRouteBeforeLock(currentRoute);
-      securityProvider.lockApp();
-    }
-  }
-
-  void _showChangePinDialog() {
-    final oldPinController = TextEditingController();
-    final newPinController = TextEditingController();
-    final confirmPinController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Change PIN'),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.rounded2xl),
-        ),
-        contentPadding: const EdgeInsets.all(AppTheme.spacing6),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: oldPinController,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Current PIN',
-                  hintText: '••••',
-                  counterText: '',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Enter current PIN';
-                  }
-                  if (value.length != 4) {
-                    return 'PIN must be 4 digits';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: AppTheme.spacing4),
-              TextFormField(
-                controller: newPinController,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-                decoration: const InputDecoration(
-                  labelText: 'New PIN',
-                  hintText: '••••',
-                  counterText: '',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Enter new PIN';
-                  }
-                  if (value.length != 4) {
-                    return 'PIN must be 4 digits';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: AppTheme.spacing4),
-              TextFormField(
-                controller: confirmPinController,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Confirm New PIN',
-                  hintText: '••••',
-                  counterText: '',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Confirm new PIN';
-                  }
-                  if (value != newPinController.text) {
-                    return 'PINs do not match';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          // Action buttons in one horizontal row: Cancel (outlined, left)
-          // and Change PIN (primary, right).
           Row(
             children: [
               Expanded(
@@ -584,51 +630,47 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               ),
               const SizedBox(width: AppTheme.spacing4),
               Expanded(
-                child: Consumer<SecurityProvider>(
-                  builder: (context, securityProvider, child) {
-                    return FilledButton(
-                      onPressed: securityProvider.isLoading
-                          ? null
-                          : () async {
-                              if (!formKey.currentState!.validate()) return;
-
-                              final success = await securityProvider.changePin(
-                                oldPinController.text,
-                                newPinController.text,
-                              );
-
-                              if (!mounted) return;
-
-                              if (success) {
-                                // ignore: use_build_context_synchronously
-                                Navigator.pop(dialogContext);
-                                if (!mounted) return;
-                                // ignore: use_build_context_synchronously
-                                await DialogService.showSuccess(context, 'PIN changed successfully');
-                              } else {
-                                if (!mounted) return;
-                                // ignore: use_build_context_synchronously
-                                await DialogService.showError(context, securityProvider.errorMessage ?? 'Failed to change PIN');
-                              }
-                            },
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(48),
-                      ),
-                      child: securityProvider.isLoading
-                          ? const SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Change PIN'),
-                    );
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    GoRouter.of(context).push(AppRoutes.setPin);
                   },
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  child: const Text('Set PIN'),
                 ),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _confirmLockNow() async {
+    final confirmed = await ConfirmationDialog.show(
+      context: context,
+      title: 'Lock the app now?',
+      message:
+          'The app will be locked immediately and you will need to enter your PIN to continue.',
+      confirmAction: 'Lock Now',
+    );
+
+    if (confirmed == true && mounted) {
+      final securityProvider = context.read<SecurityProvider>();
+      final currentRoute = GoRouterState.of(context).matchedLocation;
+      securityProvider.setRouteBeforeLock(currentRoute);
+      securityProvider.lockApp();
+    }
+  }
+
+  void _showChangePinDialog() {
+    final key = GlobalKey<_ChangePinDialogState>();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _ChangePinDialog(key: key),
     );
   }
 
@@ -698,7 +740,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              Text('• PIN lock: 4-digit numeric PIN'),
+              Text('• PIN lock: 4–6 digit numeric PIN'),
               Text('• Brute-force protection: 30s lockout after 5 failed attempts'),
               SizedBox(height: 16),
               Text(
@@ -723,57 +765,213 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   }
 
   Future<void> _confirmClearAllSecurityData() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await ConfirmationDialog.show(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear All Security Data'),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.rounded2xl),
-        ),
-        contentPadding: const EdgeInsets.all(AppTheme.spacing6),
-        content: const Text(
-          'This will remove:\n'
-          '• Your PIN\n'
-          '• API keys\n\n'
-          'This action cannot be undone.',
-        ),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  child: const Text('Cancel'),
-                ),
-              ),
-              const SizedBox(width: AppTheme.spacing4),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                  ),
-                  child: const Text('Clear All'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      title: 'Clear All Security Data',
+      message:
+          'This will remove your PIN, API keys, and all security settings. This action cannot be undone.',
+      confirmAction: 'Clear All',
+      isDestructive: true,
     );
 
     if (confirmed == true && mounted) {
       final securityProvider = context.read<SecurityProvider>();
       final groqProvider = context.read<GroqProvider>();
-      
-      securityProvider.clearAllSecurityData();
+
+      await securityProvider.clearAllSecurityData();
       groqProvider.clearApiKey();
-      
-      await DialogService.showSuccess(context, 'All security data cleared');
+
+      if (!mounted) return;
+
+      await DialogService.showSuccess(
+        context,
+        'All security data cleared',
+      );
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  Change PIN dialog with the same modern keypad
+// ─────────────────────────────────────────────────────────────────────
+
+class _ChangePinDialog extends StatefulWidget {
+  const _ChangePinDialog({super.key});
+
+  @override
+  State<_ChangePinDialog> createState() => _ChangePinDialogState();
+}
+
+class _ChangePinDialogState extends State<_ChangePinDialog> {
+  String _oldPin = '';
+  String _newPin = '';
+  String? _errorText;
+  bool _isLoading = false;
+  int _step = 0; // 0 = old, 1 = new, 2 = confirm
+  final _keypadKey = GlobalKey<PinKeypadState>();
+
+  void _onChanged(String value) {
+    if (_errorText != null) {
+      setState(() => _errorText = null);
+    }
+  }
+
+  Future<void> _onSubmit(String value) async {
+    if (_step == 0) {
+      if (value.length < 4) {
+        setState(() => _errorText = 'Enter your current PIN.');
+        return;
+      }
+      setState(() {
+        _oldPin = value;
+        _step = 1;
+      });
+      _keypadKey.currentState?.clear();
+    } else if (_step == 1) {
+      if (value.length < 4) {
+        setState(() => _errorText = 'Your new PIN must contain 4–6 digits.');
+        return;
+      }
+      setState(() {
+        _newPin = value;
+        _step = 2;
+      });
+      _keypadKey.currentState?.clear();
+    } else {
+      if (value != _newPin) {
+        setState(() {
+          _errorText = 'PINs do not match. Please try again.';
+          _step = 1;
+        });
+        _keypadKey.currentState?.clear();
+        return;
+      }
+      await _changePin();
+    }
+  }
+
+  Future<void> _changePin() async {
+    setState(() => _isLoading = true);
+    final securityProvider = context.read<SecurityProvider>();
+    final success = await securityProvider.changePin(_oldPin, _newPin);
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (success) {
+      await DialogService.showSuccess(
+        context,
+        'PIN changed successfully',
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+    } else {
+      setState(() {
+        _errorText = securityProvider.errorMessage ?? 'Failed to change PIN';
+        _step = 0;
+        _oldPin = '';
+        _newPin = '';
+      });
+      _keypadKey.currentState?.clear();
+    }
+  }
+
+  String _titleForStep() {
+    switch (_step) {
+      case 0:
+        return 'Current PIN';
+      case 1:
+        return 'New PIN';
+      case 2:
+        return 'Confirm New PIN';
+    }
+    return '';
+  }
+
+  String _descriptionForStep() {
+    switch (_step) {
+      case 0:
+        return 'Enter your current PIN.';
+      case 1:
+        return 'Enter a 4–6 digit PIN.';
+      case 2:
+        return 'Re-enter your new PIN.';
+    }
+    return '';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return AlertDialog(
+      title: Text(_titleForStep()),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.rounded2xl),
+      ),
+      contentPadding: const EdgeInsets.all(AppTheme.spacing6),
+      content: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 400,
+            minWidth: 280,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _descriptionForStep(),
+                style: AppTheme.bodyMedium.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppTheme.spacing4),
+              PinKeypad(
+                key: _keypadKey,
+                maxLength: 6,
+                minLength: 4,
+                autoSubmit: true,
+                errorText: _errorText,
+                enabled: !_isLoading,
+                onChanged: _onChanged,
+                onSubmit: _onSubmit,
+              ),
+              const SizedBox(height: AppTheme.spacing4),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isLoading ? null : () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacing4),
+                  if (_step > 0)
+                    Expanded(
+                      child: TextButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                                setState(() {
+                                  _step = _step > 0 ? _step - 1 : 0;
+                                });
+                                _keypadKey.currentState?.clear();
+                              },
+                        child: const Text('Back'),
+                      ),
+                    ),
+                ],
+              ),
+              if (_isLoading) ...[
+                const SizedBox(height: AppTheme.spacing4),
+                const CircularProgressIndicator(strokeWidth: 2),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

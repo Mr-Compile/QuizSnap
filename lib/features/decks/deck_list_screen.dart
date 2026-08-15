@@ -187,7 +187,7 @@ class _DeckListScreenState extends State<DeckListScreen> {
               icon: Icon(
                 isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                 color: isBookmarked
-                    ? Theme.of(context).colorScheme.primary
+                    ? AppTheme.amber500
                     : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               onPressed: () async {

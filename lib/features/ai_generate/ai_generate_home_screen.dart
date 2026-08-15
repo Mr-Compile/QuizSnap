@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
-import '../../core/services/dialog_service.dart';
 import '../../core/models/recent_generation.dart';
 import '../../core/repositories/recent_generation_repository.dart';
+import '../../core/navigation/app_routes.dart';
+import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import 'file_picker_bottom_sheet.dart';
 import 'camera_ocr_screen.dart';
-import 'cached_documents_screen.dart';
 import 'recent_generation_details_screen.dart';
-import 'recent_documents_section.dart';
 
 class AiGenerateHomeScreen extends StatefulWidget {
   const AiGenerateHomeScreen({super.key});
@@ -22,14 +22,6 @@ class AiGenerateHomeScreen extends StatefulWidget {
 }
 
 class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
-  final TextEditingController _apiKeyController = TextEditingController();
-
-  @override
-  void dispose() {
-    _apiKeyController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,105 +54,91 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
   }
 
   Widget _buildApiKeySetup(BuildContext context, GroqProvider groqProvider) {
-    return SingleChildScrollView(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.api_outlined,
-                size: 80,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Setup Groq API Key',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Enter your Groq API key to enable AI-powered question generation',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: CustomCard(
+          child: Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingXl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacingLg),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.smart_toy_outlined,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _apiKeyController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'API Key',
-                  hintText: 'gsk_...',
-                  border: const OutlineInputBorder(),
-                  errorText: groqProvider.errorMessage,
+                const SizedBox(height: AppTheme.spacingLg),
+                Text(
+                  'AI setup required',
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                onChanged: (value) {
-                  groqProvider.clearError();
-                },
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: groqProvider.isLoading
-                      ? null
-                      : () async {
-                          final apiKey = _apiKeyController.text.trim();
-                          
-                          if (apiKey.isEmpty) {
-                            groqProvider.clearError();
-                            DialogService.showError(context, 'Please enter an API key');
-                            return;
-                          }
-
-                          final success = await groqProvider.initialize(apiKey);
-                          if (!success) {
-                            if (context.mounted) {
-                              await DialogService.showError(
-                                context,
-                                groqProvider.errorMessage ?? 'Failed to initialize',
-                              );
-                            }
-                          }
-                        },
-                  child: groqProvider.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Connect'),
+                const SizedBox(height: AppTheme.spacingMd),
+                Text(
+                  'QuizSnap needs an AI API key before it can generate questions.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.7),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              if (groqProvider.errorMessage != null) ...[
+                const SizedBox(height: AppTheme.spacingSm),
+                Text(
+                  'If you do not have an API key, contact your system administrator '
+                  'or the person responsible for configuring QuizSnap.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingXl),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextButton(
-                      onPressed: () {
-                        groqProvider.retryInitialization();
-                      },
-                      child: const Text('Retry from saved key'),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _navigateToApiConfig(context),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                        ),
+                        child: const Text('Later'),
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacingMd),
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton.icon(
+                        icon: const Icon(Icons.key),
+                        label: const Text('Configure API Key'),
+                        onPressed: () => _navigateToApiConfig(context),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
               ],
-              TextButton(
-                onPressed: () {
-                  _showApiKeyHelpDialog(context);
-                },
-                child: const Text('How to get an API key?'),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  void _navigateToApiConfig(BuildContext context) {
+    GoRouter.of(context).push(AppRoutes.apiConfiguration);
   }
 
   Widget _buildImportOptions(BuildContext context, GroqProvider groqProvider) {
@@ -223,13 +201,6 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                   ),
                   _buildImportCard(
                     context,
-                    title: 'Cached Documents',
-                    icon: Icons.folder_open,
-                    color: Theme.of(context).colorScheme.tertiary,
-                    onTap: () => _showCachedDocuments(context),
-                  ),
-                  _buildImportCard(
-                    context,
                     title: 'Camera OCR',
                     icon: Icons.camera_alt,
                     color: const Color(0xFF22C55E), // Green
@@ -239,8 +210,6 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
               );
             },
           ),
-          const SizedBox(height: 24),
-          const RecentDocumentsSection(),
           const SizedBox(height: 24),
           Text(
             'Recent Generations',
@@ -401,27 +370,6 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
       MaterialPageRoute(
         builder: (context) => RecentGenerationDetailsScreen(generation: gen),
       ),
-    );
-  }
-
-  void _showCachedDocuments(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const CachedDocumentsScreen(),
-      ),
-    );
-  }
-
-  void _showApiKeyHelpDialog(BuildContext context) {
-    DialogService.showInfo(
-      context,
-      '1. Visit console.groq.com\n'
-      '2. Sign up or log in to your account\n'
-      '3. Navigate to the API Keys section\n'
-      '4. Click "Create API Key"\n'
-      '5. Copy your API key and paste it here\n\n'
-      'Your API key is stored securely on your device.',
-      title: 'How to get a Groq API Key',
     );
   }
 }

@@ -142,7 +142,11 @@ class _CreateFlashcardScreenState extends State<CreateFlashcardScreen>
       db.refreshAll();
 
       if (mounted) {
-        DialogService.showSuccess(context, 'Flashcard created successfully');
+        // Await the success dialog before navigating so it doesn't get
+        // dismissed immediately by the pop.
+        await DialogService.showSuccess(context, 'Flashcard created successfully');
+      }
+      if (mounted) {
         Navigator.of(context).pop(true);
       }
     } catch (e) {

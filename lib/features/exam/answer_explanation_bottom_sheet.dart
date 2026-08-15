@@ -43,16 +43,6 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
     try {
       final examProvider = context.read<ExamProvider>();
 
-      // Check if explanation is already cached
-      final cached = await examProvider.getExplanation(widget.question.id);
-      if (cached != null) {
-        setState(() {
-          _explanation = cached;
-          _isLoading = false;
-        });
-        return;
-      }
-
       // AI explanation requires connectivity - guard before the request.
       final online = await ConnectivityGuard.isOnline();
       if (!mounted) return;

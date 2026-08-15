@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/deck_bookmark_provider.dart';
 import '../../core/providers/study_session_controller.dart';
 import '../../core/services/study_session_persistence.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -55,6 +57,8 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
                     _buildContinueSession(context),
                     const SizedBox(height: AppTheme.spacingLg),
                     _buildQuickActions(context, stats),
+                    const SizedBox(height: AppTheme.spacingLg),
+                    _buildBookmarkedDecks(context),
                     const SizedBox(height: AppTheme.spacingLg),
                     _buildStudyModes(context),
                   ],
@@ -285,6 +289,165 @@ class _StudyHomeScreenState extends State<StudyHomeScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Shows bookmarked decks from [DeckBookmarkProvider] so that decks
+  /// bookmarked in the Library / DeckDetails appear here immediately.
+  Widget _buildBookmarkedDecks(BuildContext context) {
+    final bookmarkColor = AppTheme.amber500;
+
+    return Consumer<DeckBookmarkProvider>(
+      builder: (context, bookmarkProvider, _) {
+        final bookmarkedIds = bookmarkProvider.bookmarkedIds;
+
+        if (bookmarkedIds.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return FutureBuilder(
+          future: _loadBookmarkedDecks(context, bookmarkedIds.toList()),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox.shrink();
+            }
+
+            final decks = snapshot.data ?? [];
+            if (decks.isEmpty) {
+              return const SizedBox.shrink();
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bookmarked Decks',
+                  style: AppTheme.titleLarge,
+                ),
+                const SizedBox(height: AppTheme.spacingSm),
+                Text(
+                  '${decks.length} bookmarked deck${decks.length == 1 ? '' : 's'}',
+                  style: AppTheme.bodySmall.copyWith(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                ...decks.map((deck) => _buildBookmarkedDeckCard(
+                      context,
+                      deck,
+                      bookmarkColor,
+                    )),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<List<dynamic>> _loadBookmarkedDecks(
+    BuildContext context,
+    List<int> ids,
+  ) async {
+    final db = context.read<DatabaseProvider>();
+    final allDecks = await db.deckRepository.getAllDecks();
+    final idSet = ids.toSet();
+    return allDecks.where((d) => idSet.contains(d.id)).toList();
+  }
+
+  Widget _buildBookmarkedDeckCard(
+    BuildContext context,
+    dynamic deck,
+    Color bookmarkColor,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+      child: CustomCard(
+        onTap: () => _startDeckStudy(context, deck.id, deck.name),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Color(
+                  int.parse(deck.color.replaceFirst('#', '0xFF')),
+                ),
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              ),
+              child: Icon(
+                Icons.style,
+                color: Theme.of(context).colorScheme.onPrimary,
+              ),
+            ),
+            const SizedBox(width: AppTheme.spacingMd),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    deck.name,
+                    style: AppTheme.labelLarge,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: AppTheme.spacingXs),
+                  Text(
+                    '${deck.cardCount} cards',
+                    style: AppTheme.bodySmall.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.bookmark,
+              color: bookmarkColor,
+              size: 20,
+            ),
+            const SizedBox(width: AppTheme.spacingSm),
+            Icon(
+              Icons.chevron_right,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _startDeckStudy(BuildContext context, int deckId, String deckName) async {
+    final db = context.read<DatabaseProvider>();
+    final flashcards = await db.flashcardRepository.getFlashcardsByDeck(deckId);
+    if (flashcards.isEmpty) {
+      if (context.mounted) {
+        await DialogService.showInfo(
+          context,
+          'This deck has no flashcards yet. Add some cards before studying.',
+          title: 'No Flashcards',
+        );
+      }
+      return;
+    }
+    if (!context.mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FlashcardStudySessionScreen(
+          flashcards: flashcards,
+          deckId: deckId,
+          deckName: deckName,
+        ),
+      ),
     );
   }
 

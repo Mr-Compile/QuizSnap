@@ -304,12 +304,6 @@ class ExamProvider with ChangeNotifier {
   }
 
   Future<String> generateExplanation(ExamQuestion question) async {
-    // Check cache first
-    final cached = await getExplanation(question.id);
-    if (cached != null) {
-      return cached;
-    }
-
     if (_groqService == null || !_groqService.isInitialized) {
       throw Exception('AI service not available');
     }
@@ -330,13 +324,6 @@ class ExamProvider with ChangeNotifier {
         correctAnswer: question.correctAnswer ?? '',
         wrongAnswers: wrongAnswers,
         model: _groqService.currentModel,
-      );
-
-      // Cache the explanation
-      await cacheExplanation(
-        questionId: question.id,
-        explanation: explanation,
-        question: question,
       );
 
       _isLoading = false;

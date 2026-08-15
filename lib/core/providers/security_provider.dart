@@ -72,6 +72,7 @@ class SecurityProvider with ChangeNotifier {
   /// route and if no route has been saved yet (prevents overwriting).
   void setRouteBeforeLock(String route) {
     if (route == '/settings/pin-lock') return;
+    if (_routeBeforeLock != null) return;
     _routeBeforeLock = route;
     debugPrint('[SecurityProvider] routeBeforeLock saved: $route');
   }
@@ -134,8 +135,8 @@ class SecurityProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      if (pin.length != 4) {
-        _errorMessage = 'PIN must be 4 digits';
+      if (!_isValidPinLength(pin)) {
+        _errorMessage = 'Your PIN must contain 4–6 digits.';
         _isLoading = false;
         notifyListeners();
         return false;
@@ -144,7 +145,11 @@ class SecurityProvider with ChangeNotifier {
       await _secureStorage.storePin(pin);
       await _secureStorage.setPinEnabled(true);
       _isPinEnabled = true;
-      _isAppLocked = true;
+      // Do NOT lock the app here — setting a PIN enables protection
+      // for future locks (Lock Now, app resume, session timeout).
+      // Locking immediately caused a conflict with the success dialog
+      // and prevented the user from seeing the "Enabled" state on the
+      // Security screen.
       _isInitialized = true;
       _isLoading = false;
       notifyListeners();
@@ -155,6 +160,11 @@ class SecurityProvider with ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  /// Validates that [pin] is 4–6 numeric digits.
+  bool _isValidPinLength(String pin) {
+    return pin.length >= 4 && pin.length <= 6 && RegExp(r'^[0-9]+$').hasMatch(pin);
   }
 
   Future<bool> verifyPin(String pin) async {
@@ -268,8 +278,8 @@ class SecurityProvider with ChangeNotifier {
       }
 
       // Set new PIN
-      if (newPin.length != 4) {
-        _errorMessage = 'PIN must be 4 digits';
+      if (!_isValidPinLength(newPin)) {
+        _errorMessage = 'Your PIN must contain 4–6 digits.';
         _isLoading = false;
         notifyListeners();
         return false;

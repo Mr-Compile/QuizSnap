@@ -248,12 +248,6 @@ class ManualGuideScreen extends StatelessWidget {
           color: AppTheme.amber600,
           onTap: () => GoRouter.of(context).go(AppRoutes.decks),
         ));
-        links.add(_DeepLink(
-          label: 'Cached Explanations',
-          icon: Icons.lightbulb_outline,
-          color: AppTheme.amber600,
-          onTap: () => GoRouter.of(context).push(AppRoutes.cachedExplanations),
-        ));
         break;
       case 'ai-generate':
         links.add(_DeepLink(

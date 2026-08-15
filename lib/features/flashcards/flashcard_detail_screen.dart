@@ -231,6 +231,7 @@ class _FlashcardDetailScreenState extends State<FlashcardDetailScreen> {
       await db.flashcardRepository.updateFlashcard(
         card.copyWith(isFavorite: !card.isFavorite),
       );
+      db.refreshAll();
       if (mounted) {
         await DialogService.showSuccess(context, 
           card.isFavorite ? 'Bookmark removed' : 'Flashcard bookmarked',

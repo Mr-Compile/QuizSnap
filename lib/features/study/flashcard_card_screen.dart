@@ -579,6 +579,7 @@ class _FlashcardCardScreenState extends State<FlashcardCardScreen> {
       final dbProvider = context.read<DatabaseProvider>();
       final updatedCard = flashcard.copyWith(isFavorite: !flashcard.isFavorite);
       await dbProvider.flashcardRepository.updateFlashcard(updatedCard);
+      dbProvider.refreshAll();
       
       if (mounted) {
         setState(() {

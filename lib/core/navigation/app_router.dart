@@ -21,7 +21,6 @@ import '../../features/exam/exam_setup_screen.dart';
 import '../../features/exam/countdown_screen.dart';
 import '../../features/exam/exam_question_screen.dart';
 import '../../features/exam/exam_result_screen.dart';
-import '../../features/exam/cached_explanations_screen.dart';
 import '../../features/ai_generate/ai_generate_home_screen.dart';
 import '../../features/ai_generate/ai_generation_config_screen.dart';
 import '../../features/ai_generate/camera_ocr_screen.dart';
@@ -151,7 +150,12 @@ class AppRouter {
         routes: [
           GoRoute(
             path: 'create',
-            builder: (context, state) => const CreateDeckScreen(),
+            builder: (context, state) {
+              final folderId = int.tryParse(
+                state.uri.queryParameters['folderId'] ?? '',
+              );
+              return CreateDeckScreen(initialFolderId: folderId);
+            },
           ),
           GoRoute(
             path: ':deckId',
@@ -359,11 +363,6 @@ class AppRouter {
           return ExamResultScreen(examId: extra.exam.id);
         },
       ),
-      GoRoute(
-        path: AppRoutes.cachedExplanations,
-        builder: (context, state) => const CachedExplanationsScreen(),
-      ),
-
       // Analytics routes
       GoRoute(
         path: AppRoutes.analytics,

@@ -49,6 +49,16 @@ class _MoveDeckToFolderDialogState extends State<MoveDeckToFolderDialog> {
 
             final folders = snapshot.data ?? [];
 
+            if (folders.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'No folders available. Create a folder first.',
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }
+
             return RadioGroup<int?>(
               groupValue: _selectedFolderId,
               onChanged: (value) {
@@ -59,10 +69,6 @@ class _MoveDeckToFolderDialogState extends State<MoveDeckToFolderDialog> {
               child: ListView(
                 shrinkWrap: true,
                 children: [
-                  RadioListTile<int?>(
-                    title: const Text('No Folder'),
-                    value: null,
-                  ),
                   ...folders.map((folder) {
                     return RadioListTile<int?>(
                       title: Text(folder.name),
@@ -89,6 +95,12 @@ class _MoveDeckToFolderDialogState extends State<MoveDeckToFolderDialog> {
   }
 
   Future<void> _move(int? folderId) async {
+    // Folder-first: a deck must always belong to a folder.
+    if (folderId == null) {
+      await DialogService.showError(context, 'Please select a folder.');
+      return;
+    }
+
     if (folderId == _selectedFolderId) {
       Navigator.of(context).pop();
       return;
@@ -99,6 +111,8 @@ class _MoveDeckToFolderDialogState extends State<MoveDeckToFolderDialog> {
     final dbProvider = context.read<DatabaseProvider>();
     try {
       await dbProvider.deckRepository.moveDeckToFolder(widget.deckId, folderId);
+      // Trigger dependent consumers (LibraryScreen, FolderDetailsScreen) to rebuild.
+      dbProvider.refreshAll();
       if (mounted) {
         await DialogService.showSuccess(context, 'Deck moved successfully');
         if (mounted) Navigator.of(context).pop(true);

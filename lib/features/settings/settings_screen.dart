@@ -402,7 +402,7 @@ class SettingsScreen extends StatelessWidget {
               const Text('• Spaced repetition learning'),
               const Text('• Study analytics and insights'),
               const Text('• Export and backup options'),
-              const Text('• Secure PIN lock and biometrics'),
+              const Text('• Secure PIN lock'),
             ],
           ),
         ),

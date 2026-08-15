@@ -54,7 +54,7 @@ class _EditFlashcardScreenState extends State<EditFlashcardScreen>
       }
     } catch (e) {
       if (mounted) {
-        DialogService.showError(context, 'Error loading flashcard: $e');
+        await DialogService.showError(context, 'Error loading flashcard: $e');
         if (mounted) Navigator.of(context).pop();
       }
     }

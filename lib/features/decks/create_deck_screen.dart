@@ -12,7 +12,13 @@ import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 
 class CreateDeckScreen extends StatefulWidget {
-  const CreateDeckScreen({super.key});
+  /// Optional pre-selected folder ID (e.g. when creating from inside a folder).
+  final int? initialFolderId;
+
+  const CreateDeckScreen({
+    super.key,
+    this.initialFolderId,
+  });
 
   @override
   State<CreateDeckScreen> createState() => _CreateDeckScreenState();
@@ -22,13 +28,24 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  int? _selectedFolderId;
+  late int? _selectedFolderId;
   String _selectedColor = '#4CAF50';
-  
-  final String _initialName = '';
-  final String _initialDescription = '';
-  final int? _initialFolderId = null;
-  final String _initialColor = '#4CAF50';
+  bool _isLoading = false;
+
+  late final String _initialName;
+  late final String _initialDescription;
+  late final int? _initialFolderId;
+  late final String _initialColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFolderId = widget.initialFolderId;
+    _initialName = '';
+    _initialDescription = '';
+    _initialFolderId = widget.initialFolderId;
+    _initialColor = '#4CAF50';
+  }
 
   @override
   bool get hasUnsavedChanges {
@@ -110,25 +127,43 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
                         DropdownButtonFormField<int>(
                           initialValue: _selectedFolderId,
                           decoration: const InputDecoration(
-                            labelText: 'Folder (optional)',
+                            labelText: 'Folder (required)',
                             hintText: 'Select a folder',
                           ),
                           items: snapshot.hasData
-                              ? [
-                                  const DropdownMenuItem<int>(
-                                    value: null,
-                                    child: Text('No Folder'),
-                                  ),
-                                  ...snapshot.data!.map((folder) {
-                                    return DropdownMenuItem<int>(
-                                      value: folder.id,
-                                      child: Text(folder.name),
-                                    );
-                                  }),
-                                ]
+                              ? snapshot.data!.map((folder) {
+                                  return DropdownMenuItem<int>(
+                                    value: folder.id,
+                                    child: Text(folder.name),
+                                  );
+                                }).toList()
                               : null,
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Please select a folder';
+                            }
+                            return null;
+                          },
                           onChanged: (value) => setState(() => _selectedFolderId = value),
                         ),
+                        if (snapshot.hasData && snapshot.data!.isEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(top: AppTheme.spacingSm),
+                            child: Text(
+                              'No folders yet. Create a folder first to organize your decks.',
+                              style: AppTheme.bodySmall.copyWith(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingSm),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.create_new_folder_outlined),
+                            label: const Text('Create Folder'),
+                            onPressed: () =>
+                                GoRouter.of(context).push(AppRoutes.createFolder),
+                          ),
+                        ],
                         const SizedBox(height: AppTheme.spacingLg),
                         Text(
                           'Color',
@@ -172,8 +207,9 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
                         const SizedBox(height: AppTheme.spacingXl),
                         CustomButton(
                           text: 'Create Deck',
-                          onPressed: _createDeck,
+                          onPressed: _isLoading ? null : _createDeck,
                           fullWidth: true,
+                          isLoading: _isLoading,
                         ),
                       ],
                     ),
@@ -192,6 +228,14 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
       return;
     }
 
+    // Folder-first: a deck must belong to a folder.
+    if (_selectedFolderId == null) {
+      await DialogService.showError(context, 'Please select a folder for this deck.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
     final dbProvider = context.read<DatabaseProvider>();
 
     try {
@@ -201,7 +245,7 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
           description: _descriptionController.text.trim().isEmpty
               ? const drift.Value(null)
               : drift.Value(_descriptionController.text.trim()),
-          folderId: _selectedFolderId != null ? drift.Value(_selectedFolderId!) : const drift.Value(null),
+          folderId: drift.Value(_selectedFolderId!),
           color: drift.Value(_selectedColor),
         ),
       );
@@ -221,6 +265,10 @@ class _CreateDeckScreenState extends State<CreateDeckScreen> with BackButtonHand
     } catch (e) {
       if (mounted) {
         await DialogService.showError(context, 'Error creating deck: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }

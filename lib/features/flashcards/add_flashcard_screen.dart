@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:drift/drift.dart' as drift;
 import '../../core/providers/database_provider.dart';
 import '../../core/services/dialog_service.dart';
-import '../../core/database/database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/back_button_handler.dart';
 import '../../shared/widgets/app_bar.dart';
-import '../../shared/widgets/custom_button.dart';
+import '../../shared/widgets/flashcard_question_form.dart';
 
+/// Manual flashcard creation screen launched from DeckDetailsScreen.
+///
+/// Uses the shared [FlashcardQuestionForm] so all three question types
+/// (Identification, Enumeration, Multiple Choice) are supported with
+/// type-specific fields — identical to [CreateFlashcardScreen].
 class AddFlashcardScreen extends StatefulWidget {
   final int deckId;
 
@@ -21,248 +24,136 @@ class AddFlashcardScreen extends StatefulWidget {
   State<AddFlashcardScreen> createState() => _AddFlashcardScreenState();
 }
 
-class _AddFlashcardScreenState extends State<AddFlashcardScreen> with BackButtonHandlerMixin {
-  final _formKey = GlobalKey<FormState>();
-  final _questionController = TextEditingController();
-  final _answerController = TextEditingController();
-  final _tagsController = TextEditingController();
+class _AddFlashcardScreenState extends State<AddFlashcardScreen>
+    with BackButtonHandlerMixin {
   bool _isLoading = false;
-  List<String> _selectedTags = [];
+  final GlobalKey<FlashcardQuestionFormState> _formKey = GlobalKey();
 
   @override
-  bool get hasUnsavedChanges {
-    return _questionController.text.trim().isNotEmpty || 
-           _answerController.text.trim().isNotEmpty ||
-           _tagsController.text.trim().isNotEmpty;
-  }
-
-  @override
-  void dispose() {
-    _questionController.dispose();
-    _answerController.dispose();
-    _tagsController.dispose();
-    super.dispose();
-  }
+  bool get hasUnsavedChanges =>
+      _formKey.currentState?.hasUnsavedChanges ?? false;
 
   @override
   Widget build(BuildContext context) {
     return buildWithBackButtonHandler(
       Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: const CustomAppBar(
           title: 'Add Flashcard',
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppTheme.spacingLg),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Deck selector (if needed for standalone creation)
-                _buildDeckSelector(),
-                const SizedBox(height: AppTheme.spacingLg),
-                
-                TextFormField(
-                  controller: _questionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Question',
-                    hintText: 'Enter the question',
-                  ),
-                  maxLines: 3,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a question';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: AppTheme.spacingLg),
-                TextFormField(
-                  controller: _answerController,
-                  decoration: const InputDecoration(
-                    labelText: 'Answer',
-                    hintText: 'Enter the answer',
-                  ),
-                  maxLines: 5,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter an answer';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: AppTheme.spacingLg),
-                
-                // Tags field
-                TextFormField(
-                  controller: _tagsController,
-                  decoration: InputDecoration(
-                    labelText: 'Tags',
-                    hintText: 'Enter tags separated by commas',
-                    suffixIcon: _selectedTags.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              setState(() {
-                                _selectedTags.clear();
-                                _tagsController.clear();
-                              });
-                            },
-                          )
-                        : null,
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedTags = value
-                          .split(',')
-                          .map((tag) => tag.trim())
-                          .where((tag) => tag.isNotEmpty)
-                          .toList();
-                    });
-                  },
-                ),
-                
-                if (_selectedTags.isNotEmpty) ...[
-                  const SizedBox(height: AppTheme.spacingSm),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _selectedTags.map((tag) {
-                      return Chip(
-                        label: Text(tag),
-                        onDeleted: () {
-                          setState(() {
-                            _selectedTags.remove(tag);
-                            _tagsController.text = _selectedTags.join(', ');
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ],
-                
-                const SizedBox(height: AppTheme.spacingXl),
-                CustomButton(
-                  text: 'Add Flashcard',
-                  onPressed: _isLoading ? null : _addFlashcard,
-                  fullWidth: true,
-                  isLoading: _isLoading,
-                ),
-              ],
-            ),
+          padding: EdgeInsets.only(
+            left: AppTheme.spacingLg,
+            right: AppTheme.spacingLg,
+            top: AppTheme.spacingLg,
+            bottom:
+                MediaQuery.of(context).viewInsets.bottom + AppTheme.spacingLg,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildDeckHeader(),
+              const SizedBox(height: AppTheme.spacingLg),
+              FlashcardQuestionForm(
+                key: _formKey,
+                submitLabel: 'Add Flashcard',
+                isSaving: _isLoading,
+                onSubmit: _addFlashcard,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDeckSelector() {
-    // If deckId is provided, show deck info instead of selector
-    return FutureBuilder<Deck>(
-      future: context.read<DatabaseProvider>().deckRepository.getDeckById(widget.deckId),
+  Widget _buildDeckHeader() {
+    return FutureBuilder(
+      future: _getDeck(),
       builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          final deck = snapshot.data!;
-          return Container(
-            padding: const EdgeInsets.all(AppTheme.spacingMd),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.style,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: AppTheme.spacingSm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Adding to deck',
-                        style: AppTheme.labelSmall.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        ),
+        final name = snapshot.data?.name ?? 'Selected deck';
+
+        return Container(
+          padding: const EdgeInsets.all(AppTheme.spacingMd),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.style,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: AppTheme.spacingSm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Adding to deck',
+                      style: AppTheme.labelSmall.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
-                      Text(
-                        deck.name,
-                        style: AppTheme.labelLarge.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        ),
+                    ),
+                    Text(
+                      name,
+                      style: AppTheme.labelLarge.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        }
-        return const SizedBox.shrink();
+              ),
+            ],
+          ),
+        );
       },
     );
   }
 
-  void _addFlashcard() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
+  Future<dynamic> _getDeck() async {
+    final db = context.read<DatabaseProvider>();
+    try {
+      return await db.deckRepository.getDeckById(widget.deckId);
+    } catch (_) {
+      return null;
     }
+  }
 
+  Future<void> _addFlashcard(FlashcardFormData data) async {
     setState(() => _isLoading = true);
 
-    final dbProvider = context.read<DatabaseProvider>();
-    
+    final db = context.read<DatabaseProvider>();
     try {
-      // Get the current max order for this deck
-      final flashcards = await dbProvider.flashcardRepository.getFlashcardsByDeck(widget.deckId);
-      final maxOrder = flashcards.isEmpty ? 0 : flashcards.map((f) => f.order).reduce((a, b) => a > b ? a : b);
-      
-      final flashcardId = await dbProvider.flashcardRepository.createFlashcard(
-        FlashcardsCompanion(
-          question: drift.Value(_questionController.text.trim()),
-          answer: drift.Value(_answerController.text.trim()),
-          deckId: drift.Value(widget.deckId),
-          order: drift.Value(maxOrder + 1),
+      final flashcards =
+          await db.flashcardRepository.getFlashcardsByDeck(widget.deckId);
+      final maxOrder = flashcards.isEmpty
+          ? 0
+          : flashcards.map((f) => f.order).reduce((a, b) => a > b ? a : b);
+
+      await db.flashcardRepository.createFlashcard(
+        data.toCompanion(
+          deckId: widget.deckId,
+          order: maxOrder + 1,
         ),
       );
 
-      // Handle tags
-      if (_selectedTags.isNotEmpty) {
-        for (final tagName in _selectedTags) {
-          // Get or create tag
-          final existingTags = await dbProvider.tagRepository.getAllTags();
-          Tag? tag;
-          try {
-            tag = existingTags.firstWhere((t) => t.name == tagName);
-          } catch (e) {
-            tag = null;
-          }
-          
-          if (tag == null) {
-            // Create new tag
-            final tagId = await dbProvider.database.createTag(TagsCompanion(
-              name: drift.Value(tagName),
-              color: drift.Value('#4CAF50'),
-            ));
-            tag = Tag(id: tagId, name: tagName, color: '#4CAF50', createdAt: DateTime.now(), updatedAt: DateTime.now());
-          }
-          
-          // Associate tag with flashcard
-          await dbProvider.database.addTagToFlashcard(flashcardId, tag.id);
-        }
-      }
-
-      // Update deck card count
-      await dbProvider.deckRepository.updateDeckCardCount(widget.deckId);
+      await db.deckRepository.updateDeckCardCount(widget.deckId);
+      db.refreshAll();
 
       if (mounted) {
-        DialogService.showSuccess(context, 'Flashcard added successfully');
-        Navigator.of(context).pop();
+        // Await the success dialog before navigating so it doesn't get
+        // dismissed immediately by the pop.
+        await DialogService.showSuccess(
+            context, 'Flashcard added successfully');
+      }
+      if (mounted) {
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
-        DialogService.showError(context, 'Error adding flashcard: $e');
+        await DialogService.showError(context, 'Error adding flashcard: $e');
       }
     } finally {
       if (mounted) {

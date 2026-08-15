@@ -211,7 +211,7 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
                 icon: Icon(
                   isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                   color: isBookmarked
-                      ? Theme.of(context).colorScheme.primary
+                      ? AppTheme.amber500
                       : null,
                 ),
                 onPressed: () async {
@@ -636,7 +636,7 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
       if (!context.mounted) return;
       try {
         await dbProvider.deckRepository.deleteDeck(widget.deckId);
-        dbProvider.refreshDecks();
+        dbProvider.refreshAll();
         if (context.mounted) {
           context.read<TrashProvider>().load();
         }

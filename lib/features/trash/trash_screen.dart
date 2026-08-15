@@ -503,6 +503,8 @@ class _TrashScreenState extends State<TrashScreen> {
     if (confirmed && mounted) {
       try {
         await provider.restoreAll();
+        // Refresh all dependent screens after bulk restore.
+        if (mounted) context.read<DatabaseProvider>().refreshAll();
         if (mounted) {
           DialogService.showSuccess(context, 'All items were restored successfully.', title: 'Restored');
           setState(() {});
@@ -543,6 +545,8 @@ class _TrashScreenState extends State<TrashScreen> {
   void _restoreFolder(BuildContext context, int id) {
     final db = context.read<DatabaseProvider>();
     db.folderRepository.restoreFolder(id).then((_) {
+      // Refresh all dependent screens (Library, FolderDetails).
+      db.refreshAll();
       if (context.mounted) {
         DialogService.showSuccess(context, 'Folder restored');
         setState(() {});
@@ -581,7 +585,10 @@ class _TrashScreenState extends State<TrashScreen> {
 
   void _restoreDeck(BuildContext context, int id) {
     final provider = context.read<TrashProvider>();
+    final db = context.read<DatabaseProvider>();
     provider.restoreDeck(id).then((_) {
+      // Refresh all dependent screens (Library, FolderDetails).
+      db.refreshAll();
       if (context.mounted) {
         DialogService.showSuccess(context, 'Deck restored');
         setState(() {});
@@ -620,7 +627,10 @@ class _TrashScreenState extends State<TrashScreen> {
 
   void _restoreFlashcard(BuildContext context, int id) {
     final provider = context.read<TrashProvider>();
+    final db = context.read<DatabaseProvider>();
     provider.restoreFlashcard(id).then((_) {
+      // Refresh all dependent screens (DeckDetails).
+      db.refreshAll();
       if (context.mounted) {
         DialogService.showSuccess(context, 'Flashcard restored');
         setState(() {});

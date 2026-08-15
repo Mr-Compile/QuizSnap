@@ -413,6 +413,7 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
     );
 
     if (confirmed == true && mounted) {
+      if (!mounted) return;
       await _executeRestore(options);
     }
   }
@@ -427,31 +428,35 @@ class _ImportPreviewScreenState extends ConsumerState<ImportPreviewScreen> {
           );
 
       if (mounted) {
-        if (result != null && result.success) {
-          // Refresh all providers so UI updates immediately
-          ref.invalidate(backupHistoryProvider);
-          ref.invalidate(recentBackupsProvider);
-          ref.invalidate(backupScheduleProvider);
-          context.read<DatabaseProvider>().refreshDecks();
-          context.read<DatabaseProvider>().refreshAnalytics();
+      if (result != null && result.success) {
+        setState(() => _isLoading = false);
 
-          Navigator.pop(context, true);
-          if (mounted) {
-            await DialogService.showSuccess(
-              context,
-              'Your data has been restored successfully.',
-              title: 'Restore Complete',
-            );
-          }
-        } else {
-          setState(() => _isLoading = false);
-          await DialogService.showError(
+        // Refresh all providers so UI updates immediately.
+        ref.invalidate(backupHistoryProvider);
+        ref.invalidate(recentBackupsProvider);
+        ref.invalidate(backupScheduleProvider);
+        context.read<DatabaseProvider>().refreshAll();
+
+        if (mounted) {
+          // Show success dialog BEFORE popping so the context is valid.
+          await DialogService.showSuccess(
             context,
-            'The restore could not be completed. Please try again.',
-            title: 'Restore Failed',
+            'Your data has been restored successfully.',
+            title: 'Restore Complete',
           );
         }
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
+      } else {
+        setState(() => _isLoading = false);
+        await DialogService.showError(
+          context,
+          'The restore could not be completed. Please try again.',
+          title: 'Restore Failed',
+        );
       }
+    }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
