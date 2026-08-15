@@ -73,4 +73,18 @@ class FlashcardSelectionProvider with ChangeNotifier {
     _isSelectionMode = false;
     notifyListeners();
   }
+
+  /// Silently resets all selection state **without** notifying listeners.
+  ///
+  /// This is intended for use inside [State.dispose] of widgets that
+  /// consume this provider via [Consumer].  Calling [clear] (which
+  /// notifies) during dispose triggers a "notification during _unmount"
+  /// exception because the [Consumer] element is mid-teardown.
+  /// [reset] leaves the provider in a clean state for the next screen
+  /// without scheduling rebuilds on a dying widget tree.
+  void reset() {
+    _activeDeckId = null;
+    _selectedIds.clear();
+    _isSelectionMode = false;
+  }
 }

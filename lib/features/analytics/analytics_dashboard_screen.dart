@@ -39,7 +39,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             future: dbProvider.analyticsRepository.getAnalyticsSummary(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const ListSkeleton();
+                return const DashboardSkeleton();
               }
 
               if (snapshot.hasError) {

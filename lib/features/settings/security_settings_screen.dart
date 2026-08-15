@@ -817,9 +817,12 @@ class _ChangePinDialogState extends State<_ChangePinDialog> {
   }
 
   Future<void> _onSubmit(String value) async {
+    final securityProvider = context.read<SecurityProvider>();
     if (_step == 0) {
-      if (value.length < 4) {
-        setState(() => _errorText = 'Enter your current PIN.');
+      // Current PIN step — validate against the configured PIN length.
+      final requiredLength = securityProvider.pinLength;
+      if (value.length != requiredLength) {
+        setState(() => _errorText = 'Enter your $requiredLength-digit current PIN.');
         return;
       }
       setState(() {
@@ -828,7 +831,7 @@ class _ChangePinDialogState extends State<_ChangePinDialog> {
       });
       _keypadKey.currentState?.clear();
     } else if (_step == 1) {
-      if (value.length < 4) {
+      if (value.length < 4 || value.length > 6) {
         setState(() => _errorText = 'Your new PIN must contain 4–6 digits.');
         return;
       }
@@ -930,14 +933,41 @@ class _ChangePinDialogState extends State<_ChangePinDialog> {
               const SizedBox(height: AppTheme.spacing4),
               PinKeypad(
                 key: _keypadKey,
-                maxLength: 6,
-                minLength: 4,
-                autoSubmit: true,
+                maxLength: _step == 0
+                    ? context.read<SecurityProvider>().pinLength
+                    : 6,
+                minLength: _step == 0
+                    ? context.read<SecurityProvider>().pinLength
+                    : 4,
+                dotCount: _step == 0
+                    ? context.read<SecurityProvider>().pinLength
+                    : 6,
+                autoSubmit: _step == 0,
                 errorText: _errorText,
                 enabled: !_isLoading,
                 onChanged: _onChanged,
                 onSubmit: _onSubmit,
               ),
+              const SizedBox(height: AppTheme.spacing4),
+              // Continue button — enabled when the current step's
+              // minimum length requirement is met.  For step 0 (current
+              // PIN), this is the configured PIN length; for steps 1-2
+              // (new PIN), it's 4 digits.
+              if (_step > 0)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () => _onSubmit(_keypadKey.currentState?.currentPin ?? ''),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    child: Text(
+                      _step == 2 ? 'Save' : 'Continue',
+                    ),
+                  ),
+                ),
               const SizedBox(height: AppTheme.spacing4),
               Row(
                 children: [

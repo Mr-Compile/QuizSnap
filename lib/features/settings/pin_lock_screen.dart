@@ -124,6 +124,14 @@ class _PinLockScreenState extends State<PinLockScreen> {
       return;
     }
 
+    // Validate against the configured PIN length — a 4-digit PIN must
+    // be unlockable with exactly 4 digits, not forced to 6.
+    final requiredLength = securityProvider.pinLength;
+    if (pin.length != requiredLength) {
+      setState(() => _errorText = 'Your PIN must be $requiredLength digits.');
+      return;
+    }
+
     bool success = false;
     try {
       success = await securityProvider.verifyPin(pin);
@@ -267,11 +275,13 @@ class _PinLockScreenState extends State<PinLockScreen> {
 
                     const SizedBox(height: AppTheme.spacing8),
 
-                    // PIN keypad
+                    // PIN keypad — uses the configured PIN length so a
+                    // 4-digit PIN shows 4 dots and auto-submits at 4.
                     PinKeypad(
                       key: _keypadKey,
-                      maxLength: 6,
-                      minLength: 4,
+                      maxLength: securityProvider.pinLength,
+                      minLength: securityProvider.pinLength,
+                      dotCount: securityProvider.pinLength,
                       autoSubmit: true,
                       errorText: _errorText,
                       enabled: !inLockout && !securityProvider.isLoading,

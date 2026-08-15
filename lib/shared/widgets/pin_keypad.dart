@@ -33,6 +33,12 @@ class PinKeypad extends StatefulWidget {
   /// are entered. Set to false when a separate "Continue" button is used.
   final bool autoSubmit;
 
+  /// Number of dot indicators to render.  Defaults to [maxLength].
+  /// Set this when the visual dot count should match the configured
+  /// PIN length exactly (e.g. the lock screen showing 4 dots for a
+  /// 4-digit PIN even though the keypad allows up to 6).
+  final int? dotCount;
+
   /// When non-null, shows an error message below the dots and triggers
   /// a shake animation. Pass null to clear the error.
   final String? errorText;
@@ -50,6 +56,7 @@ class PinKeypad extends StatefulWidget {
     this.maxLength = 6,
     this.minLength = 4,
     this.autoSubmit = false,
+    this.dotCount,
     this.errorText,
     this.enabled = true,
     this.label,
@@ -63,6 +70,10 @@ class PinKeypadState extends State<PinKeypad>
     with SingleTickerProviderStateMixin {
   String _pin = '';
   late final AnimationController _shakeController;
+
+  /// The current entered PIN value (read-only access for parent
+  /// widgets that need to check the length before submission).
+  String get currentPin => _pin;
 
   @override
   void initState() {
@@ -184,10 +195,11 @@ class PinKeypadState extends State<PinKeypad>
   Widget _buildDots(ColorScheme colorScheme, Color errorColor) {
     final isError = widget.errorText != null;
     final activeColor = isError ? errorColor : colorScheme.primary;
+    final dots = widget.dotCount ?? widget.maxLength;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(widget.maxLength, (index) {
+      children: List.generate(dots, (index) {
         final filled = index < _pin.length;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacing2),

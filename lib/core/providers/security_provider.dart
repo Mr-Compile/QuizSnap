@@ -11,6 +11,7 @@ class SecurityProvider with ChangeNotifier {
   bool _isLoading = false;
   bool _lockScreenVisible = false;
   bool _isInitialized = false;
+  int _pinLength = 6; // Configured PIN length (4, 5, or 6); default 6
   DateTime? _lastUnlockTime;
   DateTime? _lastActivityTime;
   String? _errorMessage;
@@ -42,6 +43,10 @@ class SecurityProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get lockScreenVisible => _lockScreenVisible;
   bool get isInitialized => _isInitialized;
+  /// The configured PIN length (4, 5, or 6).  The lock screen uses this
+  /// to display the correct number of dots and to know when to
+  /// auto-submit.  Defaults to 6 for backward compatibility.
+  int get pinLength => _pinLength;
   DateTime? get lastUnlockTime => _lastUnlockTime;
   DateTime? get lastActivityTime => _lastActivityTime;
   String? get errorMessage => _errorMessage;
@@ -102,6 +107,7 @@ class SecurityProvider with ChangeNotifier {
     try {
       _isPinEnabled = await _secureStorage.isPinEnabled();
       _isAppLocked = _isPinEnabled;
+      _pinLength = await _secureStorage.getPinLength();
       _lastActivityTime = DateTime.now();
 
       // Load persisted brute-force protection state so lockout survives
@@ -145,6 +151,7 @@ class SecurityProvider with ChangeNotifier {
       await _secureStorage.storePin(pin);
       await _secureStorage.setPinEnabled(true);
       _isPinEnabled = true;
+      _pinLength = pin.length;
       // Do NOT lock the app here — setting a PIN enables protection
       // for future locks (Lock Now, app resume, session timeout).
       // Locking immediately caused a conflict with the success dialog
@@ -286,6 +293,7 @@ class SecurityProvider with ChangeNotifier {
       }
 
       await _secureStorage.storePin(newPin);
+      _pinLength = newPin.length;
       _isLoading = false;
       notifyListeners();
       return true;
@@ -309,6 +317,7 @@ class SecurityProvider with ChangeNotifier {
       _isAppLocked = false;
       _isSessionLocked = false;
       _isInitialized = true;
+      _pinLength = 6;
       _failedAttempts = 0;
       _isInLockout = false;
       _lockoutEndTime = null;
@@ -433,6 +442,7 @@ class SecurityProvider with ChangeNotifier {
       _isAppLocked = false;
       _isSessionLocked = false;
       _isInitialized = true;
+      _pinLength = 6;
       _failedAttempts = 0;
       _isInLockout = false;
       _lockoutEndTime = null;

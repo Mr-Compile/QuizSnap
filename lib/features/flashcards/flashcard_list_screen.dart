@@ -49,7 +49,11 @@ class _FlashcardListScreenState extends State<FlashcardListScreen> {
 
   @override
   void dispose() {
-    _selection.clear();
+    // Use reset() (silent, no notifyListeners) instead of clear().
+    // clear() calls notifyListeners() which throws "notification during
+    // _unmount" because the Consumer<FlashcardSelectionProvider> is
+    // mid-teardown when dispose() runs.
+    _selection.reset();
     super.dispose();
   }
 

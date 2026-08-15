@@ -17,6 +17,7 @@ class SecureStorageService {
   static const String _quotaAuthEnabledKey = 'quota_auth_enabled';
   static const String _pinFailedAttemptsKey = 'pin_failed_attempts';
   static const String _pinLockoutEndTimeKey = 'pin_lockout_end_time';
+  static const String _pinLengthKey = 'pin_length';
 
   // Default quota authorization password. Centralized here to avoid
   // duplicating it across the UI. Hashed before storage.
@@ -56,14 +57,28 @@ class SecureStorageService {
   Future<void> storePin(String pin) async {
     final hashedPin = _hashPin(pin);
     await _storage.write(key: _appPinKey, value: hashedPin);
+    // Persist the PIN length so the lock screen knows exactly how many
+    // digits to expect (supports 4, 5, or 6 digit PINs).
+    await _storage.write(key: _pinLengthKey, value: pin.length.toString());
   }
 
   Future<String?> getPin() async {
     return await _storage.read(key: _appPinKey);
   }
 
+  /// Returns the configured PIN length (4, 5, or 6).
+  /// Defaults to 6 for backward compatibility with PINs set before
+  /// the length was persisted.
+  Future<int> getPinLength() async {
+    final value = await _storage.read(key: _pinLengthKey);
+    final length = int.tryParse(value ?? '');
+    if (length == null || length < 4 || length > 6) return 6;
+    return length;
+  }
+
   Future<void> clearPin() async {
     await _storage.delete(key: _appPinKey);
+    await _storage.delete(key: _pinLengthKey);
   }
 
   Future<bool> verifyPin(String inputPin) async {

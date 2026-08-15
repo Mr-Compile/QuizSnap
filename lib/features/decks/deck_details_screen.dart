@@ -15,7 +15,6 @@ import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_skeleton.dart';
-import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/confirmation_dialog.dart';
 import '../../shared/widgets/selectable_flashcard_tile.dart';
 import 'deck_details_tablet_layout.dart';
@@ -71,7 +70,11 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
 
   @override
   void dispose() {
-    _selection.clear();
+    // Use reset() (silent, no notifyListeners) instead of clear().
+    // clear() calls notifyListeners() which throws "notification during
+    // _unmount" because the Consumer<FlashcardSelectionProvider> is
+    // mid-teardown when dispose() runs.
+    _selection.reset();
     super.dispose();
   }
 
@@ -265,23 +268,20 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
           future: dbProvider.deckRepository.getDeckById(widget.deckId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CardSkeleton();
+              return const DeckDetailsSkeleton();
             }
 
             if (snapshot.hasError) {
-              return ErrorState(
-                message: snapshot.error.toString(),
-                onRetry: () => setState(() {}),
-              );
+              // getDeckById() throws if the deck was soft-deleted or
+              // doesn't exist.  Show a friendly not-found state instead
+              // of a raw exception.
+              return _buildDeckNotFoundState(context);
             }
 
             final deck = snapshot.data;
 
             if (deck == null) {
-              return const EmptyState(
-                icon: Icons.error_outline,
-                title: 'Deck not found',
-              );
+              return _buildDeckNotFoundState(context);
             }
 
             return SingleChildScrollView(
@@ -387,7 +387,7 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
                     future: dbProvider.flashcardRepository.getFlashcardsByDeck(widget.deckId),
                     builder: (context, flashcardSnapshot) {
                       if (flashcardSnapshot.connectionState == ConnectionState.waiting) {
-                        return const ListSkeleton(itemCount: 3);
+                        return const _FlashcardListSkeleton(itemCount: 3);
                       }
 
                       final flashcards = flashcardSnapshot.data ?? [];
@@ -685,5 +685,94 @@ class _DeckDetailsScreenState extends State<DeckDetailsScreen> {
         ),
       ),
     ).then((_) => setState(() {}));
+  }
+
+  /// Friendly not-found state shown when the deck was deleted or doesn't
+  /// exist.  Provides a back button instead of exposing a raw exception.
+  Widget _buildDeckNotFoundState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: AppTheme.spacingMd),
+            Text(
+              'Deck not found',
+              style: AppTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppTheme.spacingSm),
+            Text(
+              'This deck may have been deleted or moved to Trash.',
+              style: AppTheme.bodyMedium.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppTheme.spacingLg),
+            FilledButton.icon(
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  GoRouter.of(context).go(AppRoutes.decks);
+                }
+              },
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Go Back'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Skeleton for the flashcard list within Deck Details.
+/// Approximates the SelectableFlashcardTile layout: checkbox + question + answer.
+class _FlashcardListSkeleton extends StatelessWidget {
+  final int itemCount;
+
+  const _FlashcardListSkeleton({this.itemCount = 3});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: List.generate(itemCount, (index) => _buildItem(context)),
+    );
+  }
+
+  Widget _buildItem(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.spacing4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LoadingSkeleton(height: 24, width: 24, borderRadius: BorderRadius.circular(4)),
+              const SizedBox(width: AppTheme.spacingMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LoadingSkeleton(height: 16, width: double.infinity),
+                    const SizedBox(height: AppTheme.spacingXs),
+                    LoadingSkeleton(height: 14, width: 200),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

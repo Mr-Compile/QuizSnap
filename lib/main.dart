@@ -33,6 +33,7 @@ import 'core/providers/focus_mode_provider.dart';
 import 'core/navigation/app_router.dart';
 import 'shared/widgets/activity_detector.dart';
 import 'shared/widgets/dialogs/inactivity_warning_dialog.dart';
+import 'shared/widgets/dialogs/app_lock_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -223,6 +224,7 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
             TrashService(
               deckRepository: context.read<DatabaseProvider>().deckRepository,
               flashcardRepository: context.read<DatabaseProvider>().flashcardRepository,
+              folderRepository: context.read<DatabaseProvider>().folderRepository,
             ),
             dbEpoch: context.read<DatabaseProvider>().dbEpoch,
           ),
@@ -233,6 +235,7 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
                 TrashService(
                   deckRepository: dbProvider.deckRepository,
                   flashcardRepository: dbProvider.flashcardRepository,
+                  folderRepository: dbProvider.folderRepository,
                 ),
                 dbEpoch: dbProvider.dbEpoch,
               );
@@ -281,8 +284,10 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
             routerConfig: AppRouter.router,
             builder: (context, child) {
               return ActivityDetector(
-                child: _SessionWarningHandler(
-                  child: child!,
+                child: _AppLockHandler(
+                  child: _SessionWarningHandler(
+                    child: child!,
+                  ),
                 ),
               );
             },
@@ -410,4 +415,80 @@ Future<void> _checkAndPerformAutoBackup(AppDatabase database) async {
   } catch (e) {
     debugPrint('[AutoBackup] Failed to perform automatic backup: $e');
   }
+}
+
+/// Watches [SecurityProvider.isLocked] and shows a non-dismissible
+/// [AppLockDialog] modal overlay when the app is locked.
+///
+/// This replaces the previous GoRouter redirect to a full-screen
+/// [PinLockScreen].  The dialog approach keeps the underlying
+/// application visually intact but blocks interaction until the user
+/// enters the correct PIN.
+///
+/// This widget must be inside the [MaterialApp.router] builder so its
+/// context has access to the root navigator for showing dialogs.
+class _AppLockHandler extends StatefulWidget {
+  final Widget child;
+
+  const _AppLockHandler({required this.child});
+
+  @override
+  State<_AppLockHandler> createState() => _AppLockHandlerState();
+}
+
+class _AppLockHandlerState extends State<_AppLockHandler> {
+  SecurityProvider? _securityProvider;
+  bool _dialogShown = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _securityProvider ??= context.read<SecurityProvider>();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _securityProvider?.addListener(_onSecurityChanged);
+      // Check initial state — the app may start locked.
+      _onSecurityChanged();
+    });
+  }
+
+  @override
+  void dispose() {
+    _securityProvider?.removeListener(_onSecurityChanged);
+    super.dispose();
+  }
+
+  void _onSecurityChanged() {
+    final provider = _securityProvider;
+    if (provider == null || !mounted) return;
+
+    if (provider.isLocked && !_dialogShown) {
+      _dialogShown = true;
+      // Mark the lock screen as visible so lockApp()/lockSession()
+      // guards prevent stacking duplicate lock requests.
+      provider.setLockScreenVisible(true);
+      _showLockDialog();
+    } else if (!provider.isLocked && _dialogShown) {
+      // Unlock happened (e.g. via verifyPin from the dialog itself).
+      // The dialog pops itself on success, so we just reset the flag.
+      _dialogShown = false;
+      provider.setLockScreenVisible(false);
+    }
+  }
+
+  void _showLockDialog() {
+    debugPrint('[AppLockHandler] showing lock dialog');
+    AppLockDialog.show(context).then((_) {
+      _dialogShown = false;
+      _securityProvider?.setLockScreenVisible(false);
+      debugPrint('[AppLockHandler] lock dialog dismissed');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

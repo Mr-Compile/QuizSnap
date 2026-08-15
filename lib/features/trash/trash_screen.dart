@@ -173,21 +173,20 @@ class _TrashScreenState extends State<TrashScreen> {
   }
 
   Widget _buildFolderTrash() {
-    return FutureBuilder(
-      future: context.read<DatabaseProvider>().folderRepository.getDeletedFolders(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const ListSkeleton();
+    return Consumer<TrashProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return const TrashListSkeleton();
         }
 
-        if (snapshot.hasError) {
+        if (provider.error != null) {
           return ErrorState(
-            message: snapshot.error.toString(),
-            onRetry: () => setState(() {}),
+            message: provider.error!,
+            onRetry: () { provider.load(); },
           );
         }
 
-        final allFolders = snapshot.data ?? [];
+        final allFolders = provider.deletedFolders;
         final folders = _searchQuery.isEmpty
             ? allFolders
             : allFolders
@@ -205,7 +204,7 @@ class _TrashScreenState extends State<TrashScreen> {
         }
 
         return RefreshIndicator(
-          onRefresh: () async => setState(() {}),
+          onRefresh: () => provider.load(),
           child: ListView.builder(
             itemCount: folders.length,
             itemBuilder: (context, index) {
@@ -279,7 +278,7 @@ class _TrashScreenState extends State<TrashScreen> {
     return Consumer<TrashProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return const ListSkeleton();
+          return const TrashListSkeleton();
         }
 
         if (provider.error != null) {
@@ -381,7 +380,7 @@ class _TrashScreenState extends State<TrashScreen> {
     return Consumer<TrashProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return const ListSkeleton();
+          return const TrashListSkeleton();
         }
 
         if (provider.error != null) {
@@ -543,13 +542,13 @@ class _TrashScreenState extends State<TrashScreen> {
   }
 
   void _restoreFolder(BuildContext context, int id) {
+    final provider = context.read<TrashProvider>();
     final db = context.read<DatabaseProvider>();
-    db.folderRepository.restoreFolder(id).then((_) {
+    provider.restoreFolder(id).then((_) {
       // Refresh all dependent screens (Library, FolderDetails).
       db.refreshAll();
       if (context.mounted) {
         DialogService.showSuccess(context, 'Folder restored');
-        setState(() {});
       }
     }).catchError((e) {
       if (context.mounted) {
@@ -559,7 +558,7 @@ class _TrashScreenState extends State<TrashScreen> {
   }
 
   void _permanentlyDeleteFolder(BuildContext context, int id) async {
-    final db = context.read<DatabaseProvider>();
+    final provider = context.read<TrashProvider>();
     final confirmed = await ConfirmationDialog.show(
       context: context,
       title: 'Permanently Delete',
@@ -570,10 +569,9 @@ class _TrashScreenState extends State<TrashScreen> {
 
     if (confirmed && mounted) {
       try {
-        await db.folderRepository.permanentlyDeleteFolder(id);
+        await provider.permanentlyDeleteFolder(id);
         if (context.mounted) {
           DialogService.showSuccess(context, 'Folder permanently deleted');
-          setState(() {});
         }
       } catch (e) {
         if (context.mounted) {

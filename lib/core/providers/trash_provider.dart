@@ -4,14 +4,15 @@ import '../services/trash_service.dart';
 
 /// View-level provider for the Trash screen.
 ///
-/// Loads deleted decks and flashcards and exposes bulk restore/empty
-/// operations with loading and error states.
+/// Loads deleted folders, decks, and flashcards and exposes bulk
+/// restore/empty operations with loading and error states.
 class TrashProvider with ChangeNotifier {
   final TrashService _trashService;
   final int _dbEpoch;
 
   bool _isLoading = false;
   String? _error;
+  List<Folder> _deletedFolders = [];
   List<Deck> _deletedDecks = [];
   List<Flashcard> _deletedFlashcards = [];
 
@@ -21,6 +22,7 @@ class TrashProvider with ChangeNotifier {
 
   bool get isLoading => _isLoading;
   String? get error => _error;
+  List<Folder> get deletedFolders => _deletedFolders;
   List<Deck> get deletedDecks => _deletedDecks;
   List<Flashcard> get deletedFlashcards => _deletedFlashcards;
 
@@ -30,10 +32,25 @@ class TrashProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      _deletedFolders = await _trashService.getDeletedFolders();
       _deletedDecks = await _trashService.getDeletedDecks();
       _deletedFlashcards = await _trashService.getDeletedFlashcards();
       _isLoading = false;
       notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> restoreFolder(int id) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _trashService.restoreFolder(id);
+      await load();
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
@@ -61,6 +78,20 @@ class TrashProvider with ChangeNotifier {
 
     try {
       await _trashService.restoreFlashcard(id);
+      await load();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> permanentlyDeleteFolder(int id) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _trashService.permanentlyDeleteFolder(id);
       await load();
     } catch (e) {
       _error = e.toString();
@@ -103,6 +134,7 @@ class TrashProvider with ChangeNotifier {
 
     try {
       await _trashService.emptyTrash();
+      _deletedFolders = [];
       _deletedDecks = [];
       _deletedFlashcards = [];
       _isLoading = false;
@@ -120,6 +152,7 @@ class TrashProvider with ChangeNotifier {
 
     try {
       await _trashService.restoreAll();
+      _deletedFolders = [];
       _deletedDecks = [];
       _deletedFlashcards = [];
       _isLoading = false;

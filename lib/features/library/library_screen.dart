@@ -115,7 +115,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         future: _dataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const ListSkeleton();
+            return const LibrarySkeleton();
           }
 
           if (snapshot.hasError) {

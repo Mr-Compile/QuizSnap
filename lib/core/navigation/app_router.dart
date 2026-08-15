@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import '../../features/main/main_screen.dart';
 import '../../features/library/library_screen.dart';
 import '../../features/decks/deck_details_screen.dart';
@@ -107,27 +106,14 @@ class AppRouter {
     refreshListenable: _refreshNotifier,
     errorBuilder: (context, state) => const NotFoundScreen(),
     redirect: (context, state) {
-      // Security check - redirect to PIN lock if app or session is locked.
-      // Guard: don't redirect while an unlock transaction is in progress
-      // (verifyPin sets isUnlocking=true before clearing isLocked).
-      final securityProvider = context.read<SecurityProvider>();
-      if (securityProvider.isUnlocking) {
-        // Unlock in progress — don't interfere with navigation.
-        return null;
-      }
-      // Guard: don't redirect if the lock screen is already visible
-      // (prevents duplicate navigation when both lock systems fire).
-      if (securityProvider.lockScreenVisible) {
-        return null;
-      }
-      if (securityProvider.isLocked && state.uri.path != AppRoutes.pinLock) {
-        // Save the route the user was on so it can be restored after unlock.
-        securityProvider.setRouteBeforeLock(state.uri.path);
-        debugPrint('[AppRouter] redirect to pin-lock from ${state.uri.path} '
-            '(appLocked=${securityProvider.isAppLocked}, '
-            'sessionLocked=${securityProvider.isSessionLocked})');
-        return AppRoutes.pinLock;
-      }
+      // App lock is now handled by a modal dialog overlay (AppLockDialog)
+      // shown from the MaterialApp.router builder in main.dart, NOT by a
+      // GoRouter redirect.  This keeps the underlying application visually
+      // intact while blocking interaction until the user unlocks.
+      //
+      // We intentionally do NOT redirect to /settings/pin-lock here.
+      // The dialog approach prevents the "visually disconnected" full-screen
+      // card that the previous route-based lock produced.
       return null;
     },
     routes: [

@@ -2,55 +2,86 @@ import 'package:flutter/foundation.dart';
 import '../database/database.dart';
 import '../repositories/deck_repository.dart';
 import '../repositories/flashcard_repository.dart';
+import '../repositories/folder_repository.dart';
 
 /// High-level operations for the Trash system.
 ///
-/// This service coordinates soft-deleted decks and flashcards and ensures
-/// referential integrity when restoring or permanently deleting trash.
+/// This service coordinates soft-deleted folders, decks, and flashcards
+/// and ensures referential integrity when restoring or permanently
+/// deleting trash.
 class TrashService {
-  final DeckRepository _deckRepository;
-  final FlashcardRepository _flashcardRepository;
+  final DeckRepository deckRepository;
+  final FlashcardRepository flashcardRepository;
+  final FolderRepository? folderRepository;
 
   TrashService({
-    required this._deckRepository,
-    required this._flashcardRepository,
+    required this.deckRepository,
+    required this.flashcardRepository,
+    this.folderRepository,
   });
 
-  Future<List<Deck>> getDeletedDecks() => _deckRepository.getDeletedDecks();
+  Future<List<Deck>> getDeletedDecks() => deckRepository.getDeletedDecks();
 
   Future<List<Flashcard>> getDeletedFlashcards() =>
-      _flashcardRepository.getDeletedFlashcards();
+      flashcardRepository.getDeletedFlashcards();
+
+  Future<List<Folder>> getDeletedFolders() async {
+    if (folderRepository == null) return [];
+    return folderRepository!.getDeletedFolders();
+  }
 
   Future<void> restoreDeck(int id) async {
-    await _deckRepository.restoreDeck(id);
+    await deckRepository.restoreDeck(id);
   }
 
   Future<void> restoreFlashcard(int id) async {
-    await _flashcardRepository.restoreFlashcard(id);
+    await flashcardRepository.restoreFlashcard(id);
+  }
+
+  Future<void> restoreFolder(int id) async {
+    if (folderRepository == null) return;
+    await folderRepository!.restoreFolder(id);
   }
 
   Future<void> permanentlyDeleteDeck(int id) async {
-    await _deckRepository.permanentlyDeleteDeck(id);
+    await deckRepository.permanentlyDeleteDeck(id);
   }
 
   Future<void> permanentlyDeleteFlashcard(int id) async {
-    await _flashcardRepository.permanentlyDeleteFlashcard(id);
+    await flashcardRepository.permanentlyDeleteFlashcard(id);
+  }
+
+  Future<void> permanentlyDeleteFolder(int id) async {
+    if (folderRepository == null) return;
+    await folderRepository!.permanentlyDeleteFolder(id);
   }
 
   Future<void> emptyTrash() async {
-    final deletedDecks = await _deckRepository.getDeletedDecks();
+    // Folders
+    if (folderRepository != null) {
+      final deletedFolders = await folderRepository!.getDeletedFolders();
+      for (final folder in deletedFolders) {
+        try {
+          await folderRepository!.permanentlyDeleteFolder(folder.id);
+        } catch (e) {
+          debugPrint('Error deleting folder ${folder.id}: $e');
+        }
+      }
+    }
+
+    final deletedDecks = await deckRepository.getDeletedDecks();
     for (final deck in deletedDecks) {
       try {
-        await _deckRepository.permanentlyDeleteDeck(deck.id);
+        await deckRepository.permanentlyDeleteDeck(deck.id);
       } catch (e) {
         debugPrint('Error deleting deck ${deck.id}: $e');
       }
     }
 
-    final deletedFlashcards = await _flashcardRepository.getDeletedFlashcards();
+    final deletedFlashcards = await flashcardRepository.getDeletedFlashcards();
     for (final card in deletedFlashcards) {
       try {
-        await _flashcardRepository.permanentlyDeleteFlashcard(card.id);
+        await flashcardRepository.permanentlyDeleteFlashcard(card.id);
       } catch (e) {
         debugPrint('Error deleting flashcard ${card.id}: $e');
       }
@@ -58,19 +89,31 @@ class TrashService {
   }
 
   Future<void> restoreAll() async {
-    final deletedDecks = await _deckRepository.getDeletedDecks();
+    // Folders
+    if (folderRepository != null) {
+      final deletedFolders = await folderRepository!.getDeletedFolders();
+      for (final folder in deletedFolders) {
+        try {
+          await folderRepository!.restoreFolder(folder.id);
+        } catch (e) {
+          debugPrint('Error restoring folder ${folder.id}: $e');
+        }
+      }
+    }
+
+    final deletedDecks = await deckRepository.getDeletedDecks();
     for (final deck in deletedDecks) {
       try {
-        await _deckRepository.restoreDeck(deck.id);
+        await deckRepository.restoreDeck(deck.id);
       } catch (e) {
         debugPrint('Error restoring deck ${deck.id}: $e');
       }
     }
 
-    final deletedFlashcards = await _flashcardRepository.getDeletedFlashcards();
+    final deletedFlashcards = await flashcardRepository.getDeletedFlashcards();
     for (final card in deletedFlashcards) {
       try {
-        await _flashcardRepository.restoreFlashcard(card.id);
+        await flashcardRepository.restoreFlashcard(card.id);
       } catch (e) {
         debugPrint('Error restoring flashcard ${card.id}: $e');
       }

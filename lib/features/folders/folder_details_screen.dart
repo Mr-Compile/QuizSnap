@@ -10,6 +10,7 @@ import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
+import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/search_bar.dart';
 import 'rename_folder_dialog.dart';
 
@@ -100,7 +101,7 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
         future: _dataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const FolderDetailsSkeleton();
           }
 
           if (snapshot.hasError) {

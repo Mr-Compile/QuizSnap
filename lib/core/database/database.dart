@@ -196,22 +196,27 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateFolder(Folder folder) => update(folders).replace(folder);
 
   Future<bool> deleteFolder(int id) async {
-    // Unassign active decks so they don't reference a deleted folder.
-    await (update(decks)
-          ..where((tbl) => tbl.folderId.equals(id))
-          ..where((tbl) => tbl.deletedAt.isNull()))
-        .write(DecksCompanion(
-          folderId: const Value(null),
-          updatedAt: Value(DateTime.now()),
-        ));
-
+    // Soft-delete the folder.  We intentionally do NOT unassign decks
+    // (set folderId = null) here, because:
+    //   1. The Library screen only shows active folders (deletedAt IS NULL),
+    //      so a soft-deleted folder disappears from normal lists.
+    //   2. Its decks keep their folderId, so they don't become orphan
+    //      "unfiled" decks that the folder-first Library can't display.
+    //   3. When the folder is restored, the decks automatically belong
+    //      to it again — no manual reassignment needed.
+    // Decks are only unassigned in permanentlyDeleteFolder().
     final folder = await getFolderById(id);
     final updatedFolder = folder.copyWith(deletedAt: Value(DateTime.now()));
     return await update(folders).replace(updatedFolder);
   }
 
   Future<bool> restoreFolder(int id) async {
-    final folder = await getFolderById(id);
+    // NOTE: We intentionally do NOT use getFolderById() here because
+    // that method filters deletedAt.isNull(), which would throw for
+    // a soft-deleted folder.  Instead we select by id only.
+    final folder = await (select(folders)
+          ..where((tbl) => tbl.id.equals(id)))
+        .getSingle();
     final updatedFolder = folder.copyWith(deletedAt: const Value(null));
     return await update(folders).replace(updatedFolder);
   }
