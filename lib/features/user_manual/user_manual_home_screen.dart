@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import '../../core/navigation/app_routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -10,7 +8,8 @@ import 'manual_widgets.dart';
 import 'manual_guide_screen.dart';
 
 /// The User Manual home screen — a searchable dashboard of all guide
-/// sections with quick-access cards and deep links to real app screens.
+/// sections. All navigation to real app screens is handled by the
+/// application's existing bottom navigation and settings routing.
 class UserManualHomeScreen extends StatefulWidget {
   const UserManualHomeScreen({super.key});
 
@@ -90,8 +89,6 @@ class _UserManualHomeScreenState extends State<UserManualHomeScreen> {
         _buildSearchBar(),
         const SizedBox(height: AppTheme.spacing6),
         _buildQuickAccessGrid(),
-        const SizedBox(height: AppTheme.spacing6),
-        _buildDeepLinksSection(),
         const SizedBox(height: AppTheme.spacing6),
         _buildFooter(),
       ],
@@ -193,83 +190,6 @@ class _UserManualHomeScreenState extends State<UserManualHomeScreen> {
     );
   }
 
-  Widget _buildDeepLinksSection() {
-    return CustomCard(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacing4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.bolt_outlined,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 22,
-                ),
-                const SizedBox(width: AppTheme.spacing3),
-                Text('Quick Actions', style: AppTheme.titleMedium),
-              ],
-            ),
-            const SizedBox(height: AppTheme.spacing2),
-            Text(
-              'Jump directly to key app screens',
-              style: AppTheme.bodySmall.copyWith(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: AppTheme.spacing4),
-            ManualDeepLinkButton(
-              label: 'Open Library',
-              icon: Icons.library_books_outlined,
-              color: AppTheme.blue600,
-              onTap: () => GoRouter.of(context).go('${AppRoutes.home}?tab=1'),
-            ),
-            const SizedBox(height: AppTheme.spacing2),
-            ManualDeepLinkButton(
-              label: 'Open Study',
-              icon: Icons.school_outlined,
-              color: AppTheme.emerald600,
-              onTap: () => GoRouter.of(context).go('${AppRoutes.home}?tab=2'),
-            ),
-            const SizedBox(height: AppTheme.spacing2),
-            ManualDeepLinkButton(
-              label: 'Open AI Generate',
-              icon: Icons.auto_awesome_outlined,
-              color: AppTheme.purple600,
-              onTap: () => GoRouter.of(context).go('${AppRoutes.home}?tab=3'),
-            ),
-            const SizedBox(height: AppTheme.spacing2),
-            ManualDeepLinkButton(
-              label: 'Open Backup & Restore',
-              icon: Icons.backup_outlined,
-              color: AppTheme.blue600,
-              onTap: () => GoRouter.of(context)
-                  .push(AppRoutes.backupRestoreEnhanced),
-            ),
-            const SizedBox(height: AppTheme.spacing2),
-            ManualDeepLinkButton(
-              label: 'Open Security Settings',
-              icon: Icons.security_outlined,
-              color: AppTheme.red600,
-              onTap: () => GoRouter.of(context).push(AppRoutes.security),
-            ),
-            const SizedBox(height: AppTheme.spacing2),
-            ManualDeepLinkButton(
-              label: 'Open Analytics Dashboard',
-              icon: Icons.dashboard_outlined,
-              color: AppTheme.indigo600,
-              onTap: () => GoRouter.of(context).go('${AppRoutes.home}?tab=0'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildFooter() {
     return Center(
       child: Column(
@@ -307,7 +227,7 @@ class _UserManualHomeScreenState extends State<UserManualHomeScreen> {
             icon: Icons.search_off,
             title: 'No results found',
             subtitle:
-                'Try different keywords or browse the quick access cards above.',
+                'Try different keywords or browse the sections above.',
             action: TextButton(
               onPressed: _clearSearch,
               child: const Text('Clear search'),

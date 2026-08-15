@@ -112,7 +112,15 @@ class _ApiConfigurationScreenState extends State<ApiConfigurationScreen> {
     if (confirmed == true && mounted) {
       final groqProvider = context.read<GroqProvider>();
       groqProvider.clearApiKey();
-      
+
+      // Clear the local masked key so the UI immediately reflects the
+      // cleared state without requiring navigation away and back.
+      setState(() {
+        _maskedApiKey = null;
+        _hasChanges = false;
+        _apiKeyController.clear();
+      });
+
       await DialogService.showSuccess(context, 'API key cleared');
     }
   }

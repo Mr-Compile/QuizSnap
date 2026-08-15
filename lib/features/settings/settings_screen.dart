@@ -5,6 +5,8 @@ import '../../core/theme/app_theme.dart';
 import '../../core/providers/ai_quota_provider.dart';
 import '../../core/providers/security_provider.dart';
 import '../../core/providers/groq_provider.dart';
+import '../../core/providers/database_provider.dart';
+import '../../core/services/dialog_service.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -32,6 +34,8 @@ class SettingsScreen extends StatelessWidget {
           _buildAiFeatures(context),
           const SizedBox(height: AppTheme.spacing4),
           _buildDataManagement(context),
+          const SizedBox(height: AppTheme.spacing4),
+          _buildDangerZone(context),
           const SizedBox(height: AppTheme.spacing4),
           _buildSecurityPrivacy(context),
           const SizedBox(height: AppTheme.spacing4),
@@ -264,6 +268,173 @@ class SettingsScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  //  Danger Zone
+  // ─────────────────────────────────────────────────────────────────────
+
+  Widget _buildDangerZone(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return CustomCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppTheme.spacing2,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spacing4,
+                AppTheme.spacing3,
+                AppTheme.spacing4,
+                AppTheme.spacing2,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    ),
+                    child: Icon(
+                      Icons.warning_amber_rounded,
+                      color: colorScheme.error,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacing3),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Danger Zone',
+                          style: AppTheme.titleMedium,
+                        ),
+                        Text(
+                          'Actions here permanently affect your QuizSnap data.',
+                          style: AppTheme.bodySmall.copyWith(
+                            color: colorScheme.onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.delete_forever,
+                color: colorScheme.error,
+              ),
+              title: Text(
+                'Clear All Data',
+                style: AppTheme.bodyLarge.copyWith(
+                  color: colorScheme.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                'Delete all decks, folders, flashcards, study history, exam history, analytics data, bookmarks, and other user-created records.',
+                style: AppTheme.bodySmall.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              onTap: () => _confirmClearAllData(context),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacing4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmClearAllData(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: Theme.of(context).colorScheme.error,
+          size: 32,
+        ),
+        title: const Text('Clear all data?'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'This will permanently delete your QuizSnap data.',
+              ),
+              const SizedBox(height: 12),
+              const Text('This includes:'),
+              const SizedBox(height: 8),
+              const Text('• Decks'),
+              const Text('• Folders'),
+              const Text('• Flashcards'),
+              const Text('• Study history'),
+              const Text('• Exam history'),
+              const Text('• Analytics'),
+              const Text('• Bookmarks'),
+              const Text('• Other user-created records'),
+              const SizedBox(height: 12),
+              Text(
+                'This action cannot be undone.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            child: const Text('Clear All Data'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      final db = context.read<DatabaseProvider>();
+      await db.clearAllData();
+      if (!context.mounted) return;
+      await DialogService.showSuccess(
+        context,
+        'Your QuizSnap data has been removed successfully.',
+        title: 'Data cleared',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        await DialogService.showError(
+          context,
+          'QuizSnap could not clear your data. Your existing information has not been intentionally removed.',
+          title: 'Unable to clear data',
+          primaryAction: 'OK',
+        );
+      }
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────

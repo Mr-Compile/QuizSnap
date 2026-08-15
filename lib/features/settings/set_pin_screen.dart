@@ -23,6 +23,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
   /// 0 = enter PIN, 1 = confirm PIN
   int _step = 0;
   String _firstPin = '';
+  String _currentPin = '';
   String? _errorText;
   final _keypadKey = GlobalKey<PinKeypadState>();
 
@@ -32,9 +33,10 @@ class _SetPinScreenState extends State<SetPinScreen> {
   }
 
   void _onPinChanged(String pin) {
-    if (_errorText != null) {
-      setState(() => _errorText = null);
-    }
+    setState(() {
+      _currentPin = pin;
+      if (_errorText != null) _errorText = null;
+    });
   }
 
   void _onPinSubmitted(String pin) {
@@ -48,6 +50,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
       setState(() {
         _firstPin = pin;
         _step = 1;
+        _currentPin = '';
         _errorText = null;
       });
       _keypadKey.currentState?.clear();
@@ -58,6 +61,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
           _errorText = 'PINs do not match. Please try again.';
           _step = 0;
           _firstPin = '';
+          _currentPin = '';
         });
         _keypadKey.currentState?.clear();
       } else {
@@ -88,6 +92,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
             'Something went wrong. Please try again.';
         _step = 0;
         _firstPin = '';
+        _currentPin = '';
       });
       _keypadKey.currentState?.clear();
     }
@@ -101,6 +106,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
     setState(() {
       _step = 0;
       _firstPin = '';
+      _currentPin = '';
       _errorText = null;
     });
     _keypadKey.currentState?.clear();
@@ -123,11 +129,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Status card
-              _buildStatusCard(context, colorScheme),
-              const SizedBox(height: AppTheme.spacing4),
-
-              // PIN entry card
+              // PIN entry card — the primary and only content card.
               CustomCard(
                 child: Padding(
                   padding: const EdgeInsets.all(AppTheme.spacing6),
@@ -152,7 +154,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
 
                       // Step title
                       Text(
-                        _step == 0 ? 'Set your PIN' : 'Confirm your PIN',
+                        _step == 0 ? 'Set Up Your PIN' : 'Confirm Your PIN',
                         style: AppTheme.titleLarge,
                         textAlign: TextAlign.center,
                       ),
@@ -161,7 +163,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
                       // Step description
                       Text(
                         _step == 0
-                            ? 'Enter a 4–6 digit PIN.'
+                            ? 'Enter a 4–6 digit PIN to protect your app.'
                             : 'Re-enter your PIN to confirm.',
                         style: AppTheme.bodyMedium.copyWith(
                           color: colorScheme.onSurface.withValues(alpha: 0.7),
@@ -170,12 +172,13 @@ class _SetPinScreenState extends State<SetPinScreen> {
                       ),
                       const SizedBox(height: AppTheme.spacing6),
 
-                      // PIN keypad
+                      // PIN keypad — no autoSubmit; Continue button below
+                      // handles submission so 4–6 digit PINs are all valid.
                       PinKeypad(
                         key: _keypadKey,
                         maxLength: 6,
                         minLength: 4,
-                        autoSubmit: true,
+                        autoSubmit: false,
                         errorText: _errorText,
                         enabled: !securityProvider.isLoading,
                         onChanged: _onPinChanged,
@@ -183,6 +186,25 @@ class _SetPinScreenState extends State<SetPinScreen> {
                       ),
 
                       const SizedBox(height: AppTheme.spacing4),
+
+                      // Continue button — enabled when PIN has 4+ digits.
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: (_currentPin.length >= 4 &&
+                                  !securityProvider.isLoading)
+                              ? () => _onPinSubmitted(_currentPin)
+                              : null,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                          ),
+                          child: Text(
+                            _step == 0 ? 'Continue' : 'Save PIN',
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: AppTheme.spacing2),
 
                       // Step indicator + secondary actions
                       if (_step == 1)
@@ -211,44 +233,4 @@ class _SetPinScreenState extends State<SetPinScreen> {
     );
   }
 
-  Widget _buildStatusCard(BuildContext context, ColorScheme colorScheme) {
-    return CustomCard(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacing4),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppTheme.bambooGreen600.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              ),
-              child: Icon(
-                Icons.shield_outlined,
-                color: AppTheme.bambooGreen600,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: AppTheme.spacing3),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('PIN Lock', style: AppTheme.titleMedium),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Protect your QuizSnap app with a personal PIN.',
-                    style: AppTheme.bodySmall.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

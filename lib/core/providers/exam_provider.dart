@@ -9,6 +9,7 @@ class ExamProvider with ChangeNotifier {
   final ExamService _examService;
   final ExplanationCacheService _cacheService;
   final GroqService? _groqService;
+  final int _dbEpoch;
 
   Exam? _currentExam;
   List<ExamQuestion>? _currentQuestions;
@@ -22,9 +23,10 @@ class ExamProvider with ChangeNotifier {
     required FlashcardRepository flashcardRepository,
     required this._cacheService,
     this._groqService,
-  })  : _examService = ExamService(
-          flashcardRepository: flashcardRepository,
-        );
+    this._dbEpoch = 0,
+  })  : _examService = ExamService(flashcardRepository: flashcardRepository);
+
+  int get dbEpoch => _dbEpoch;
 
   // Getters
   Exam? get currentExam => _currentExam;

@@ -692,57 +692,6 @@ class _TroubleshootSection extends StatelessWidget {
   }
 }
 
-/// A "deep link" button that navigates to a real app screen.
-class ManualDeepLinkButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color? color;
-
-  const ManualDeepLinkButton({
-    super.key,
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = color ?? Theme.of(context).colorScheme.primary;
-    return SizedBox(
-      width: double.infinity,
-      child: Material(
-        color: accent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacing4,
-              vertical: AppTheme.spacing3,
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: accent, size: 22),
-                const SizedBox(width: AppTheme.spacing3),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: AppTheme.labelLarge.copyWith(color: accent),
-                  ),
-                ),
-                Icon(Icons.arrow_forward, color: accent, size: 20),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// A responsive grid that shows 1 column on phones and 2 on tablets.
 class ManualResponsiveGrid extends StatelessWidget {
   final List<Widget> children;

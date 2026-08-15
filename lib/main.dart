@@ -184,7 +184,11 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
         provider_pkg.ChangeNotifierProxyProvider<DatabaseProvider, AiQuotaProvider>(
           create: (context) => AiQuotaProvider(context.read<DatabaseProvider>()),
           update: (context, dbProvider, previous) {
-            return previous ?? AiQuotaProvider(dbProvider);
+            final old = previous;
+            if (old == null || old.dbEpoch != dbProvider.dbEpoch) {
+              return AiQuotaProvider(dbProvider);
+            }
+            return old;
           },
         ),
         // SecurityProvider is created early in main() so it can be
@@ -203,36 +207,66 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
         provider_pkg.ChangeNotifierProvider(create: (_) => RecentGenerationRepository(widget.prefs)),
         provider_pkg.ChangeNotifierProxyProvider<DatabaseProvider, CachedDocumentRepository>(
           create: (context) => CachedDocumentRepository(context.read<DatabaseProvider>()),
-          update: (context, db, previous) => previous ?? CachedDocumentRepository(db),
+          update: (context, db, previous) {
+            final old = previous;
+            if (old == null || old.dbEpoch != db.dbEpoch) {
+              return CachedDocumentRepository(db);
+            }
+            return old;
+          },
         ),
         provider_pkg.ChangeNotifierProvider(create: (_) => HighlightedSelectionProvider()),
         provider_pkg.ChangeNotifierProvider(create: (_) => PageSelectionProvider()),
         provider_pkg.ChangeNotifierProvider(create: (_) => FlashcardSelectionProvider()),
-        provider_pkg.ChangeNotifierProvider(
+        provider_pkg.ChangeNotifierProxyProvider<DatabaseProvider, TrashProvider>(
           create: (context) => TrashProvider(
             TrashService(
               deckRepository: context.read<DatabaseProvider>().deckRepository,
               flashcardRepository: context.read<DatabaseProvider>().flashcardRepository,
             ),
+            dbEpoch: context.read<DatabaseProvider>().dbEpoch,
           ),
+          update: (context, dbProvider, previous) {
+            final old = previous;
+            if (old == null || old.dbEpoch != dbProvider.dbEpoch) {
+              return TrashProvider(
+                TrashService(
+                  deckRepository: dbProvider.deckRepository,
+                  flashcardRepository: dbProvider.flashcardRepository,
+                ),
+                dbEpoch: dbProvider.dbEpoch,
+              );
+            }
+            return old;
+          },
         ),
         provider_pkg.ChangeNotifierProxyProvider2<DatabaseProvider, GroqProvider, ExamProvider>(
           create: (context) => ExamProvider(
             flashcardRepository: context.read<DatabaseProvider>().flashcardRepository,
             cacheService: ExplanationCacheService(widget.prefs),
             groqService: context.read<GroqProvider>().service,
+            dbEpoch: context.read<DatabaseProvider>().dbEpoch,
           ),
           update: (context, dbProvider, groqProvider, previous) {
-            return previous ?? ExamProvider(
-              flashcardRepository: dbProvider.flashcardRepository,
-              cacheService: ExplanationCacheService(widget.prefs),
-              groqService: groqProvider.service,
-            );
+            final old = previous;
+            if (old == null || old.dbEpoch != dbProvider.dbEpoch) {
+              return ExamProvider(
+                flashcardRepository: dbProvider.flashcardRepository,
+                cacheService: ExplanationCacheService(widget.prefs),
+                groqService: groqProvider.service,
+                dbEpoch: dbProvider.dbEpoch,
+              );
+            }
+            return old;
           },
         ),
         provider_pkg.ProxyProvider<DatabaseProvider, ExportProvider>(
           update: (context, dbProvider, previous) {
-            return previous ?? ExportProvider(dbProvider.database);
+            final old = previous;
+            if (old == null || old.dbEpoch != dbProvider.dbEpoch) {
+              return ExportProvider(dbProvider.database, dbEpoch: dbProvider.dbEpoch);
+            }
+            return old;
           },
         ),
       ],

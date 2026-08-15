@@ -841,9 +841,13 @@ class _BackupRestoreScreenEnhancedState extends ConsumerState<BackupRestoreScree
     if (newDb != null && mounted) {
       // Adopt the new database on the Provider-package side too so all
       // deck/flashcard/analytics screens refresh immediately.
+      // reopenDatabase increments dbEpoch, which triggers ProxyProviders
+      // (AiQuotaProvider, TrashProvider, ExamProvider, ExportProvider,
+      // CachedDocumentRepository) to rebuild with fresh repository refs.
       context.read<DatabaseProvider>().reopenDatabase(newDatabase: newDb);
-      context.read<DatabaseProvider>().refreshDecks();
-      context.read<DatabaseProvider>().refreshAnalytics();
+      // refreshAll triggers a second notifyListeners so any screen that
+      // listens directly to DatabaseProvider rebuilds with the new data.
+      context.read<DatabaseProvider>().refreshAll();
 
       await DialogService.showSuccess(
         context,

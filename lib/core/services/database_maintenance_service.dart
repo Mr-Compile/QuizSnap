@@ -6,6 +6,22 @@ class DatabaseMaintenanceService {
 
   DatabaseMaintenanceService(this.database);
 
+  /// Permanently removes all user-generated data while preserving the
+  /// database schema, migrations, and system configuration stored outside
+  /// the SQLite database (e.g. secure storage quota/PIN settings).
+  Future<void> clearAllData() async {
+    // Delete in an order that respects foreign key constraints.
+    await database.deleteAllQuizResults();
+    await database.deleteAllStudySessions();
+    await database.deleteAllAiUsage();
+    await database.deleteAllExtractedDocuments();
+    await database.deleteAllFlashcardTags();
+    await database.deleteAllFlashcards();
+    await database.deleteAllDecks();
+    await database.deleteAllTags();
+    await database.deleteAllFolders();
+  }
+
   Future<DatabaseIntegrityReport> checkIntegrity() async {
     final report = DatabaseIntegrityReport();
 

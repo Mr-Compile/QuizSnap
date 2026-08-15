@@ -7,19 +7,22 @@ import '../services/backup_service.dart';
 
 class ExportProvider with ChangeNotifier {
   final AppDatabase _database;
+  final int _dbEpoch;
   late ExportService _exportService;
   late BackupService _backupService;
-  
+
   final List<ExportResult> _exportHistory = [];
   List<BackupMetadata> _backupHistory = [];
   bool _isLoading = false;
   String? _errorMessage;
 
-  ExportProvider(this._database) {
+  ExportProvider(this._database, {this._dbEpoch = 0}) {
     _exportService = ExportService(_database);
     _backupService = BackupService(_database);
     _loadBackupHistory();
   }
+
+  int get dbEpoch => _dbEpoch;
 
   // Getters
   ExportService get exportService => _exportService;

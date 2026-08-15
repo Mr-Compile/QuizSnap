@@ -5,12 +5,16 @@ import '../services/document_cache_service.dart';
 
 class CachedDocumentRepository with ChangeNotifier {
   final CachedDocumentService _service;
+  final int _dbEpoch;
   List<CachedDocument> _documents = [];
   bool _isLoading = false;
   String? _error;
 
   CachedDocumentRepository(DatabaseProvider dbProvider)
-      : _service = CachedDocumentService(DocumentCacheService(dbProvider));
+      : _service = CachedDocumentService(DocumentCacheService(dbProvider)),
+        _dbEpoch = dbProvider.dbEpoch;
+
+  int get dbEpoch => _dbEpoch;
 
   List<CachedDocument> get documents => List.unmodifiable(_documents);
   bool get isLoading => _isLoading;

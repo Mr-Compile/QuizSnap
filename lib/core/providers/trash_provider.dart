@@ -8,13 +8,16 @@ import '../services/trash_service.dart';
 /// operations with loading and error states.
 class TrashProvider with ChangeNotifier {
   final TrashService _trashService;
+  final int _dbEpoch;
 
   bool _isLoading = false;
   String? _error;
   List<Deck> _deletedDecks = [];
   List<Flashcard> _deletedFlashcards = [];
 
-  TrashProvider(this._trashService);
+  TrashProvider(this._trashService, {required this._dbEpoch});
+
+  int get dbEpoch => _dbEpoch;
 
   bool get isLoading => _isLoading;
   String? get error => _error;

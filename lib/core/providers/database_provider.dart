@@ -7,16 +7,26 @@ import '../repositories/tag_repository.dart';
 import '../repositories/study_repository.dart';
 import '../repositories/analytics_repository.dart';
 import '../repositories/backup_repository.dart';
+import '../services/database_maintenance_service.dart';
 
 class DatabaseProvider extends ChangeNotifier {
   AppDatabase? _database;
-  late final FolderRepository _folderRepository;
-  late final DeckRepository _deckRepository;
-  late final FlashcardRepository _flashcardRepository;
-  late final TagRepository _tagRepository;
-  late final StudyRepository _studyRepository;
-  late final AnalyticsRepository _analyticsRepository;
-  late final BackupRepository _backupRepository;
+  late FolderRepository _folderRepository;
+  late DeckRepository _deckRepository;
+  late FlashcardRepository _flashcardRepository;
+  late TagRepository _tagRepository;
+  late StudyRepository _studyRepository;
+  late AnalyticsRepository _analyticsRepository;
+  late BackupRepository _backupRepository;
+  DatabaseMaintenanceService? _maintenanceService;
+
+  /// Monotonically increasing counter that changes **only** when the
+  /// underlying [AppDatabase] instance is replaced (e.g. after a `.db`
+  /// restore or [clearAllData]). ProxyProviders compare this value to
+  /// decide whether they need to rebuild their dependent objects with
+  /// fresh repository references.
+  int _dbEpoch = 0;
+  int get dbEpoch => _dbEpoch;
 
   AppDatabase get database => _database!;
   FolderRepository get folderRepository => _folderRepository;
@@ -39,6 +49,7 @@ class DatabaseProvider extends ChangeNotifier {
     _studyRepository = StudyRepository(_database!);
     _analyticsRepository = AnalyticsRepository(_database!);
     _backupRepository = BackupRepository(_database!);
+    _maintenanceService = DatabaseMaintenanceService(_database!);
   }
 
   Future<AppDatabase> initializeDatabase() async {
@@ -52,6 +63,7 @@ class DatabaseProvider extends ChangeNotifier {
     _studyRepository = StudyRepository(_database!);
     _analyticsRepository = AnalyticsRepository(_database!);
     _backupRepository = BackupRepository(_database!);
+    _maintenanceService = DatabaseMaintenanceService(_database!);
     
     return _database!;
   }
@@ -68,6 +80,16 @@ class DatabaseProvider extends ChangeNotifier {
   /// (decks, folders, flashcards) so that all listening screens — including
   /// the Library tab — rebuild with fresh data.
   void refreshAll() => notifyListeners();
+
+  /// Permanently deletes all user-generated records through the maintenance
+  /// service, then notifies every listener so the UI shows the empty state.
+  Future<void> clearAllData() async {
+    if (_maintenanceService == null) {
+      throw Exception('Database not initialized');
+    }
+    await _maintenanceService!.clearAllData();
+    notifyListeners();
+  }
 
   /// Reopen the database after a `.db` restore replaces the underlying file.
   ///
@@ -90,6 +112,8 @@ class DatabaseProvider extends ChangeNotifier {
     _studyRepository = StudyRepository(_database!);
     _analyticsRepository = AnalyticsRepository(_database!);
     _backupRepository = BackupRepository(_database!);
+    _maintenanceService = DatabaseMaintenanceService(_database!);
+    _dbEpoch++;
     notifyListeners();
   }
 

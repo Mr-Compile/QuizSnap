@@ -44,20 +44,23 @@ class QuestionReviewScreen extends StatefulWidget {
 
 class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
   final List<GeneratedQuestion> _selectedQuestions = [];
+  late List<GeneratedQuestion> _currentQuestions;
   int? _selectedDeckId;
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
+    // Local mutable copy so regeneration can replace the list.
+    _currentQuestions = List<GeneratedQuestion>.from(widget.questions);
     // Select all questions by default
-    _selectedQuestions.addAll(widget.questions);
+    _selectedQuestions.addAll(_currentQuestions);
   }
 
   @override
   Widget build(BuildContext context) {
     // Show empty state UI if no questions were generated
-    if (widget.questions.isEmpty) {
+    if (_currentQuestions.isEmpty) {
       return _buildEmptyState(context);
     }
 
@@ -99,9 +102,9 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
                 top: 16,
                 bottom: 16 + MediaQuery.of(context).padding.bottom,
               ),
-              itemCount: widget.questions.length,
+              itemCount: _currentQuestions.length,
               itemBuilder: (context, index) {
-                final question = widget.questions[index];
+                final question = _currentQuestions[index];
                 final isSelected = _selectedQuestions.contains(question);
                 return _buildQuestionCard(question, index, isSelected);
               },
@@ -160,7 +163,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${_selectedQuestions.length} of ${widget.questions.length} questions selected',
+            '${_selectedQuestions.length} of ${_currentQuestions.length} questions selected',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -349,7 +352,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
           index: index,
           onSave: (editedQuestion) {
             setState(() {
-              widget.questions[index] = editedQuestion;
+              _currentQuestions[index] = editedQuestion;
             });
           },
         ),
@@ -359,7 +362,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
 
   void _deleteQuestion(GeneratedQuestion question) {
     setState(() {
-      widget.questions.remove(question);
+      _currentQuestions.remove(question);
       _selectedQuestions.remove(question);
     });
   }
@@ -745,14 +748,14 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
 
   void _showRegenerationOptions() {
     final approvedCount = _selectedQuestions.length;
-    final rejectedCount = widget.questions.length - _selectedQuestions.length;
+    final rejectedCount = _currentQuestions.length - _selectedQuestions.length;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => RegenerationOptionsBottomSheet(
-        totalQuestions: widget.questions.length,
+        totalQuestions: _currentQuestions.length,
         approvedCount: approvedCount,
         rejectedCount: rejectedCount,
         onOptionSelected: (option) {
@@ -805,11 +808,11 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
             sourceText: widget.source, // This would need to be stored/passed properly
             type: widget.type,
             difficulty: widget.difficulty,
-            questionCount: widget.questions.length,
+            questionCount: _currentQuestions.length,
             model: groqProvider.selectedModel,
           );
           break;
-          
+
         case RegenerationOption.regenerateSelected:
           // Regenerate only selected questions
           newQuestions = await generationService.generateQuestions(
@@ -820,10 +823,10 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
             model: groqProvider.selectedModel,
           );
           break;
-          
+
         case RegenerationOption.keepApprovedReplaceRejected:
           // Keep approved, replace rejected
-          final rejectedCount = widget.questions.length - _selectedQuestions.length;
+          final rejectedCount = _currentQuestions.length - _selectedQuestions.length;
           if (rejectedCount > 0) {
             final regeneratedQuestions = await generationService.generateQuestions(
               sourceText: widget.source,
@@ -881,7 +884,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
     String message;
     switch (option) {
       case RegenerationOption.regenerateAll:
-        message = 'This will replace all ${widget.questions.length} questions with new ones. Continue?';
+        message = 'This will replace all ${_currentQuestions.length} questions with new ones. Continue?';
         break;
       case RegenerationOption.regenerateSelected:
         message = 'This will replace ${_selectedQuestions.length} selected questions with new ones. Continue?';
@@ -918,18 +921,21 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // Keep old questions
+              // Keep old questions — do nothing.
             },
             child: const Text('Keep Old'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // Replace with new questions - this would require updating the state
+              // Replace current questions with the regenerated set.
               setState(() {
-                // For now, just show a message
+                _currentQuestions = List<GeneratedQuestion>.from(newQuestions);
+                _selectedQuestions
+                  ..clear()
+                  ..addAll(_currentQuestions);
               });
-              DialogService.showSuccess(context, 
+              DialogService.showSuccess(context,
                 'Questions updated with regenerated versions',
               );
             },

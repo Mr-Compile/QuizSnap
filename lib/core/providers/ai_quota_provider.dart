@@ -4,16 +4,20 @@ import '../providers/database_provider.dart';
 
 class AiQuotaProvider with ChangeNotifier {
   final DatabaseProvider _databaseProvider;
-  late final AiQuotaService _quotaService;
-  
+  late AiQuotaService _quotaService;
+  final int _dbEpoch;
+
   QuotaStatus? _quotaStatus;
   bool _isLoading = false;
   String? _errorMessage;
 
-  AiQuotaProvider(this._databaseProvider) {
+  AiQuotaProvider(this._databaseProvider)
+      : _dbEpoch = _databaseProvider.dbEpoch {
     _quotaService = AiQuotaService(_databaseProvider);
     _loadQuotaStatus();
   }
+
+  int get dbEpoch => _dbEpoch;
 
   QuotaStatus? get quotaStatus => _quotaStatus;
   bool get isLoading => _isLoading;

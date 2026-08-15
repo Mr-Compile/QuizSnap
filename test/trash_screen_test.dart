@@ -34,6 +34,7 @@ void main() {
               deckRepository: dbProvider.deckRepository,
               flashcardRepository: dbProvider.flashcardRepository,
             ),
+            dbEpoch: dbProvider.dbEpoch,
           ),
         ),
       ],

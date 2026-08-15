@@ -6,7 +6,6 @@ import '../../core/providers/ai_quota_provider.dart';
 import '../../core/models/recent_generation.dart';
 import '../../core/repositories/recent_generation_repository.dart';
 import '../../core/navigation/app_routes.dart';
-import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
@@ -42,97 +41,62 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
             );
           }
 
-          // Show API key setup if not initialized
-          if (!groqProvider.isInitialized) {
-            return _buildApiKeySetup(context, groqProvider);
-          }
-
           return _buildImportOptions(context, groqProvider);
         },
       ),
     );
   }
 
-  Widget _buildApiKeySetup(BuildContext context, GroqProvider groqProvider) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
-        child: CustomCard(
-          child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingXl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppTheme.spacingLg),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.smart_toy_outlined,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spacingLg),
-                Text(
-                  'AI setup required',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: AppTheme.spacingMd),
-                Text(
-                  'QuizSnap needs an AI API key before it can generate questions.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.7),
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spacingSm),
-                Text(
-                  'If you do not have an API key, contact your system administrator '
-                  'or the person responsible for configuring QuizSnap.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.6),
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spacingXl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _navigateToApiConfig(context),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(48),
-                        ),
-                        child: const Text('Later'),
-                      ),
-                    ),
-                    const SizedBox(width: AppTheme.spacingMd),
-                    Expanded(
-                      flex: 2,
-                      child: FilledButton.icon(
-                        icon: const Icon(Icons.key),
-                        label: const Text('Configure API Key'),
-                        onPressed: () => _navigateToApiConfig(context),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(48),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+  Future<void> _ensureApiKeyConfigured(
+    BuildContext context,
+    VoidCallback onConfirmed,
+  ) async {
+    final groqProvider = context.read<GroqProvider>();
+    if (groqProvider.isInitialized) {
+      onConfirmed();
+      return;
+    }
+
+    final shouldConfigure = await _showApiKeyDialog(context);
+    if (shouldConfigure == true && context.mounted) {
+      _navigateToApiConfig(context);
+    }
+  }
+
+  Future<bool?> _showApiKeyDialog(BuildContext context) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.key,
+          color: Theme.of(context).colorScheme.primary,
+          size: 32,
+        ),
+        title: const Text('AI setup required'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('An API key is required to generate questions with AI.'),
+              SizedBox(height: 12),
+              Text(
+                'Add your AI API key in Settings before generating questions.',
+              ),
+            ],
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Later'),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.key),
+            label: const Text('Configure API Key'),
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+        ],
       ),
     );
   }
@@ -183,28 +147,40 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                     title: 'PDF',
                     icon: Icons.picture_as_pdf,
                     color: const Color(0xFFEF4444), // Red
-                    onTap: () => _showFilePicker(context, 'pdf'),
+                    onTap: () => _ensureApiKeyConfigured(
+                      context,
+                      () => _showFilePicker(context, 'pdf'),
+                    ),
                   ),
                   _buildImportCard(
                     context,
                     title: 'TXT',
                     icon: Icons.text_snippet,
                     color: const Color(0xFF64748B), // Slate
-                    onTap: () => _showFilePicker(context, 'txt'),
+                    onTap: () => _ensureApiKeyConfigured(
+                      context,
+                      () => _showFilePicker(context, 'txt'),
+                    ),
                   ),
                   _buildImportCard(
                     context,
                     title: 'DOCX',
                     icon: Icons.description,
                     color: const Color(0xFF3B82F6), // Blue
-                    onTap: () => _showFilePicker(context, 'docx'),
+                    onTap: () => _ensureApiKeyConfigured(
+                      context,
+                      () => _showFilePicker(context, 'docx'),
+                    ),
                   ),
                   _buildImportCard(
                     context,
                     title: 'Camera OCR',
                     icon: Icons.camera_alt,
                     color: const Color(0xFF22C55E), // Green
-                    onTap: () => _navigateToCameraOCR(context),
+                    onTap: () => _ensureApiKeyConfigured(
+                      context,
+                      () => _navigateToCameraOCR(context),
+                    ),
                   ),
                 ],
               );
