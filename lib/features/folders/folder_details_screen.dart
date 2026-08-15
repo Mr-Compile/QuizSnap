@@ -3,11 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/trash_provider.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/navigation/app_routes.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
+import '../../shared/widgets/confirmation_dialog.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_skeleton.dart';
@@ -231,59 +233,53 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
 
   Widget _buildDeckCard(BuildContext context, Deck deck) {
     return CustomCard(
+      onTap: () => _navigateToDeckDetails(context, deck),
       child: Row(
         children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _navigateToDeckDetails(context, deck),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Color(int.parse(deck.color.replaceFirst('#', '0xFF'))),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                    ),
-                    child: Icon(
-                      Icons.style,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingMd),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          deck.name,
-                          style: AppTheme.labelLarge,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: AppTheme.spacingXs),
-                        Text(
-                          '${deck.cardCount} cards',
-                          style: AppTheme.bodySmall.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingSm),
-                  Icon(
-                    Icons.chevron_right,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-                  ),
-                ],
-              ),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Color(int.parse(deck.color.replaceFirst('#', '0xFF'))),
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            ),
+            child: Icon(
+              Icons.style,
+              color: Theme.of(context).colorScheme.onPrimary,
             ),
           ),
+          const SizedBox(width: AppTheme.spacingMd),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  deck.name,
+                  style: AppTheme.labelLarge,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppTheme.spacingXs),
+                Text(
+                  '${deck.cardCount} cards',
+                  style: AppTheme.bodySmall.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppTheme.spacingSm),
+          // Menu button — a separate tap target that does NOT trigger
+          // the card's navigation.  PopupMenuButton wins the gesture
+          // arena for its own area, so tapping it opens the menu
+          // instead of navigating to Deck Details.
           PopupMenuButton<String>(
             onSelected: (value) => _onDeckMenuSelected(context, deck, value),
             itemBuilder: (context) => const [
+              PopupMenuItem(value: 'view', child: Text('View Deck')),
               PopupMenuItem(value: 'remove', child: Text('Remove from folder')),
+              PopupMenuItem(value: 'delete', child: Text('Delete')),
             ],
           ),
         ],
@@ -338,18 +334,75 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
   }
 
   Future<void> _onDeckMenuSelected(BuildContext context, Deck deck, String value) async {
-    if (value != 'remove') return;
     if (!context.mounted) return;
 
-    final dbProvider = context.read<DatabaseProvider>();
-    try {
-      await dbProvider.deckRepository.removeDeckFromFolder(deck.id);
-      dbProvider.refreshAll();
-      if (!context.mounted) return;
-      await DialogService.showSuccess(context, 'Deck removed from folder');
-      if (context.mounted) await _refresh();
-    } catch (e) {
-      if (context.mounted) DialogService.showError(context, 'Error removing deck: $e');
+    if (value == 'view') {
+      _navigateToDeckDetails(context, deck);
+      return;
+    }
+
+    if (value == 'remove') {
+      final confirmed = await DialogService.showConfirmation(
+        context,
+        'Remove "${deck.name}" from this folder? The deck will remain in your Library as an unfiled deck.',
+        title: 'Remove from folder',
+        confirmAction: 'Remove',
+      );
+      if (confirmed != true || !context.mounted) return;
+
+      final dbProvider = context.read<DatabaseProvider>();
+      try {
+        await dbProvider.deckRepository.removeDeckFromFolder(deck.id);
+        dbProvider.refreshAll();
+        if (!context.mounted) return;
+        await DialogService.showSuccess(context, 'Deck removed from folder');
+        if (context.mounted) await _refresh();
+      } catch (e) {
+        if (context.mounted) DialogService.showError(context, 'Error removing deck: $e');
+      }
+      return;
+    }
+
+    if (value == 'delete') {
+      // Reuse the exact same soft-delete flow as DeckDetailsScreen:
+      // ConfirmationDialog → DeckRepository.deleteDeck → refreshAll →
+      // TrashProvider.load → success dialog.  This populates
+      // deleted_at in SQLite so the deck appears in Trash and
+      // disappears from all active lists.
+      final confirmed = await ConfirmationDialog.show(
+        context: context,
+        title: 'Move deck to Trash?',
+        message:
+            '"${deck.name}" and all flashcards inside it will be moved to Trash. You can restore them later.',
+        confirmText: 'Move to Trash',
+        isDestructive: true,
+      );
+
+      if (confirmed != true || !context.mounted) return;
+
+      final dbProvider = context.read<DatabaseProvider>();
+      try {
+        await dbProvider.deckRepository.deleteDeck(deck.id);
+        dbProvider.refreshAll();
+        if (context.mounted) {
+          context.read<TrashProvider>().load();
+        }
+        if (context.mounted) {
+          await DialogService.showSuccess(
+            context,
+            'Deck moved to Trash',
+            title: 'Deck deleted',
+          );
+        }
+        // Remain in Folder Details — the deck is already gone from the
+        // list because _onProviderChanged triggers _refresh() via
+        // dbProvider.notifyListeners().
+      } catch (e) {
+        if (context.mounted) {
+          await DialogService.showError(context, 'Error deleting deck: $e');
+        }
+      }
+      return;
     }
   }
 }

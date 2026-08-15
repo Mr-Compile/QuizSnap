@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizSnap PIN Lock — Updated Cooldown Modal</title>
+<style>
+  :root {
+    /* QuizSnap theme tokens (from app_theme.dart) */
+    --bambooGreen600: #16A34A;
+    --bambooGreen500: #22C55E;
+    --bambooGreen50: #F0FDF4;
+    --emerald600: #059669;
+    --amber600: #D97706;
+    --red600: #DC2626;
+    --red400: #F87171;
+    --red100: #FEE2E2;
+    --red900: #7F1D1D;
+    --slate900: #0F172A;
+    --slate800: #1E293B;
+    --slate700: #334155;
+    --slate600: #475569;
+    --slate400: #94A3B8;
+    --slate300: #CBD5E1;
+    --slate200: #E2E8F0;
+    --slate100: #F1F5F9;
+    --neutralWhite50: #FFFFFF;
+    --neutralWhite200: #F5F5F5;
+    /* Dark theme semantic roles */
+    --dark-surface: #0F172A;
+    --dark-onSurface: #F1F5F9;
+    --dark-onSurfaceVariant: #CBD5E1;
+    --dark-error: #F87171;
+    --dark-errorContainer: rgba(127, 29, 29, 0.5);
+    --dark-onError: #0F172A;
+    --rounded2xl: 24px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #E2E8F0 0%, #F1F5F9 100%);
+    padding: 32px 16px 64px;
+    color: var(--slate900);
+    min-height: 100vh;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: var(--slate600);
+    margin-bottom: 8px;
+  }
+
+  .updated-badge {
+    display: inline-block;
+    background: var(--bambooGreen600);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 0 auto 24px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-wrap { text-align: center; margin-bottom: 24px; }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 0 auto 40px;
+    flex-wrap: wrap;
+    max-width: 1000px;
+  }
+
+  .btn {
+    padding: 10px 18px;
+    border-radius: 12px;
+    border: 2px solid var(--slate300);
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--slate600);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .btn:hover { border-color: var(--bambooGreen600); color: var(--bambooGreen600); }
+  .btn.active {
+    background: var(--bambooGreen600);
+    border-color: var(--bambooGreen600);
+    color: white;
+  }
+
+  /* ── Grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 400px));
+    gap: 40px;
+    justify-content: center;
+    max-width: 1700px;
+    margin: 0 auto;
+  }
+
+  .phone-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .label {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--slate600);
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .scenario-label {
+    text-align: center;
+    font-size: 13px;
+    color: var(--slate600);
+    margin-top: 16px;
+    max-width: 360px;
+    line-height: 1.5;
+    min-height: 60px;
+  }
+
+  /* ── Phone frame ── */
+  .phone {
+    width: 360px;
+    height: 740px;
+    border-radius: 44px;
+    background: var(--slate900);
+    padding: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 2px var(--slate800);
+    position: relative;
+  }
+
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 18px; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 28px;
+    background: var(--slate900);
+    border-radius: 0 0 16px 16px;
+    z-index: 10;
+  }
+
+  .screen {
+    width: 100%;
+    height: 100%;
+    border-radius: 32px;
+    overflow: hidden;
+    position: relative;
+    background: var(--neutralWhite50);
+  }
+
+  .screen.dark {
+    background: var(--dark-surface);
+    color: var(--dark-onSurface);
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px 0 28px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .status-bar .right { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+
+  /* ── PIN screen (always visible behind modal) ── */
+  .pin-screen {
+    height: calc(100% - 44px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 24px 32px;
+    text-align: center;
+    transition: filter 0.3s, opacity 0.3s;
+  }
+
+  .pin-screen.dimmed {
+    filter: brightness(0.5);
+  }
+
+  .lock-icon-circle {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(22, 163, 74, 0.12);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .lock-icon-circle svg { width: 40px; height: 40px; fill: var(--bambooGreen600); }
+
+  .app-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: rgba(15, 23, 42, 0.6);
+    margin-bottom: 4px;
+  }
+  .dark .app-name { color: rgba(241, 245, 249, 0.6); }
+
+  .lock-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .lock-desc {
+    font-size: 14px;
+    color: rgba(15, 23, 42, 0.7);
+    margin-bottom: 32px;
+  }
+  .dark .lock-desc { color: rgba(241, 245, 249, 0.7); }
+
+  /* PIN dots */
+  .dots {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--slate300);
+    background: transparent;
+  }
+  .dark .dot { border-color: var(--slate600); }
+
+  /* Keypad */
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 72px);
+    gap: 12px;
+    justify-content: center;
+  }
+  .key {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.05);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--slate900);
+    border: none;
+    transition: opacity 0.2s;
+  }
+  .dark .key {
+    background: rgba(241, 245, 249, 0.05);
+    color: var(--dark-onSurface);
+  }
+  .key.empty { background: transparent; }
+  .key.disabled { opacity: 0.3; pointer-events: none; }
+  .key.backspace { background: transparent; }
+  .key.backspace svg { width: 26px; height: 26px; fill: rgba(15,23,42,0.7); }
+  .dark .key.backspace svg { fill: rgba(241,245,249,0.7); }
+
+  .attempts-text {
+    font-size: 12px;
+    color: var(--red600);
+    margin-top: 16px;
+    min-height: 18px;
+  }
+
+  /* ── Cooldown modal overlay ── */
+  .modal-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-out;
+  }
+
+  .modal-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-dialog {
+    background: var(--neutralWhite50);
+    border-radius: var(--rounded2xl);
+    padding: 24px;
+    width: 100%;
+    max-width: 320px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    transform: scale(0.9);
+    transition: transform 0.2s ease-out;
+  }
+  .dark .modal-dialog {
+    background: var(--dark-surface);
+    color: var(--dark-onSurface);
+  }
+
+  .modal-overlay.visible .modal-dialog {
+    transform: scale(1);
+  }
+
+  /* Security icon — lock_clock in error container circle */
+  .modal-icon {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: rgba(220, 38, 38, 0.12);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+  }
+  .dark .modal-icon { background: var(--dark-errorContainer); }
+  .modal-icon svg { width: 32px; height: 32px; fill: var(--red600); }
+  .dark .modal-icon svg { fill: var(--dark-error); }
+
+  .modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .modal-message {
+    font-size: 14px;
+    color: rgba(15, 23, 42, 0.8);
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+  .dark .modal-message { color: rgba(241, 245, 249, 0.8); }
+
+  .modal-try-label {
+    font-size: 13px;
+    color: var(--slate600);
+    margin-bottom: 8px;
+  }
+  .dark .modal-try-label { color: var(--dark-onSurfaceVariant); }
+
+  /* Countdown — strongest visual element */
+  .modal-countdown {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--red600);
+    margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .dark .modal-countdown { color: var(--dark-error); }
+
+  .modal-seconds {
+    font-size: 13px;
+    color: var(--slate600);
+    margin-bottom: 20px;
+  }
+  .dark .modal-seconds { color: var(--dark-onSurfaceVariant); }
+
+  /* Linear progress indicator */
+  .modal-progress {
+    width: 100%;
+    height: 6px;
+    background: rgba(220, 38, 38, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .dark .modal-progress { background: rgba(127, 29, 29, 0.4); }
+
+  .modal-progress-fill {
+    height: 100%;
+    background: var(--red600);
+    border-radius: 3px;
+    transition: width 1s linear;
+  }
+  .dark .modal-progress-fill { background: var(--dark-error); }
+
+  .modal-supporting {
+    font-size: 12px;
+    color: var(--slate600);
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+  .dark .modal-supporting { color: var(--dark-onSurfaceVariant); }
+
+  /* Got it button — error colored, 48dp height */
+  .modal-btn {
+    width: 100%;
+    height: 48px;
+    border-radius: 12px;
+    border: none;
+    background: var(--red600);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .dark .modal-btn { background: var(--dark-error); color: var(--dark-onError); }
+  .modal-btn:hover { opacity: 0.9; }
+
+  /* ── Annotation labels ── */
+  .annotation {
+    position: absolute;
+    background: var(--bambooGreen600);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    z-index: 200;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+  }
+
+  .annotation::after {
+    content: '';
+    position: absolute;
+    border: 6px solid transparent;
+  }
+
+  .annotation.left {
+    right: 380px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .annotation.left::after {
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-left-color: var(--bambooGreen600);
+  }
+
+  /* ── Info section ── */
+  .info-section {
+    max-width: 900px;
+    margin: 48px auto 0;
+    background: white;
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  .dark-info { background: var(--slate800); color: var(--slate100); }
+
+  .info-section h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .info-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+  }
+
+  .info-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .info-list .check {
+    color: var(--bambooGreen600);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .footer-note {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 12px;
+    color: var(--slate600);
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+
+  .code {
+    background: var(--slate100);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<h1>QuizSnap PIN Lock — Updated Cooldown Modal</h1>
+<p class="subtitle">Reflects the actual CooldownLockoutDialog widget in pin_lock_screen.dart</p>
+<div class="badge-wrap"><span class="updated-badge">Updated Implementation</span></div>
+
+<div class="controls">
+  <button class="btn active" onclick="setScenario('normal')">Normal (4-digit)</button>
+  <button class="btn" onclick="setScenario('normal6')">Normal (6-digit)</button>
+  <button class="btn" onclick="setScenario('error')">Incorrect PIN (3/5)</button>
+  <button class="btn" onclick="setScenario('cooldown')">Cooldown starts (30s)</button>
+  <button class="btn" onclick="setScenario('cooldown15')">Cooldown mid (15s)</button>
+  <button class="btn" onclick="setScenario('cooldown3')">Cooldown ending (3s)</button>
+  <button class="btn" onclick="setScenario('dismissed')">Got it clicked</button>
+</div>
+
+<div class="grid">
+
+  <!-- ── LIGHT MODE ── -->
+  <div class="phone-col">
+    <div class="label">Light Mode</div>
+    <div class="phone">
+      <div class="screen" id="screen-light">
+        <div class="status-bar"><span>9:41</span><span class="right">📶 🔋 100%</span></div>
+        <div class="pin-screen" id="pin-light">
+          <div class="lock-icon-circle">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <div class="app-name">QuizSnap</div>
+          <div class="lock-title">App Locked</div>
+          <div class="lock-desc">Enter your PIN to continue.</div>
+          <div class="dots" id="dots-light"></div>
+          <div class="keypad" id="keypad-light"></div>
+          <div class="attempts-text" id="attempts-light"></div>
+        </div>
+
+        <!-- Cooldown modal overlay -->
+        <div class="modal-overlay" id="modal-light">
+          <div class="modal-dialog">
+            <div class="modal-icon">
+              <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+            </div>
+            <div class="modal-title">Too many attempts</div>
+            <div class="modal-message">For your protection, PIN entry is temporarily locked.</div>
+            <div class="modal-try-label">Try again in</div>
+            <div class="modal-countdown" id="cd-light">30</div>
+            <div class="modal-seconds" id="sec-light">seconds</div>
+            <div class="modal-progress"><div class="modal-progress-fill" id="prog-light" style="width:100%"></div></div>
+            <div class="modal-supporting">PIN entry will be available when the timer reaches zero.</div>
+            <button class="modal-btn" onclick="dismissModal()">Got it</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scenario-label" id="desc-light"></div>
+  </div>
+
+  <!-- ── DARK MODE ── -->
+  <div class="phone-col">
+    <div class="label">Dark Mode</div>
+    <div class="phone">
+      <div class="screen dark" id="screen-dark">
+        <div class="status-bar" style="color: #F1F5F9;"><span>9:41</span><span class="right">📶 🔋 100%</span></div>
+        <div class="pin-screen" id="pin-dark">
+          <div class="lock-icon-circle">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <div class="app-name">QuizSnap</div>
+          <div class="lock-title">App Locked</div>
+          <div class="lock-desc">Enter your PIN to continue.</div>
+          <div class="dots" id="dots-dark"></div>
+          <div class="keypad" id="keypad-dark"></div>
+          <div class="attempts-text" id="attempts-dark"></div>
+        </div>
+
+        <!-- Cooldown modal overlay -->
+        <div class="modal-overlay" id="modal-dark">
+          <div class="modal-dialog">
+            <div class="modal-icon">
+              <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+            </div>
+            <div class="modal-title">Too many attempts</div>
+            <div class="modal-message">For your protection, PIN entry is temporarily locked.</div>
+            <div class="modal-try-label">Try again in</div>
+            <div class="modal-countdown" id="cd-dark">30</div>
+            <div class="modal-seconds" id="sec-dark">seconds</div>
+            <div class="modal-progress"><div class="modal-progress-fill" id="prog-dark" style="width:100%"></div></div>
+            <div class="modal-supporting">PIN entry will be available when the timer reaches zero.</div>
+            <button class="modal-btn" onclick="dismissModal()">Got it</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scenario-label" id="desc-dark"></div>
+  </div>
+
+</div>
+
+<!-- ── Info section ── -->
+<div class="info-section">
+  <h2>What Changed (Updated Implementation)</h2>
+  <ul class="info-list">
+    <li><span class="check">✓</span><span>Removed the inline red <code>_buildLockoutCard</code> that replaced the PIN screen</span></li>
+    <li><span class="check">✓</span><span>Normal PIN screen (lock icon, title, keypad) <strong>stays visible</strong> behind the modal</span></li>
+    <li><span class="check">✓</span><span>Cooldown is now a <strong>centered Material 3 dialog</strong> (<code>CooldownLockoutDialog</code>)</span></li>
+    <li><span class="check">✓</span><span>Keypad disabled via <code>enabled: !inLockout</code> — dimmed but visible</span></li>
+    <li><span class="check">✓</span><span>"Got it" button dismisses dialog but does <strong>NOT</strong> bypass cooldown</span></li>
+    <li><span class="check">✓</span><span>Modal <strong>auto-closes</strong> when countdown reaches zero</span></li>
+    <li><span class="check">✓</span><span>Countdown computed from <code>lockoutEndTime - now</code> (survives rebuilds)</span></li>
+    <li><span class="check">✓</span><span>Non-dismissible via barrier tap or back button (PopScope <code>canPop: false</code>)</span></li>
+    <li><span class="check">✓</span><span>Uses semantic theme roles: <code>error</code>, <code>errorContainer</code>, <code>surface</code>, <code>onSurfaceVariant</code></span></li>
+    <li><span class="check">✓</span><span>Responsive: <code>ConstrainedBox</code> + <code>SingleChildScrollView</code> for small phones & tablets</span></li>
+    <li><span class="check">✓</span><span>Semantics labels on dialog and progress indicator for accessibility</span></li>
+    <li><span class="check">✓</span><span>No duplicate timers — old <code>_countdownTimer</code> removed from PinLockScreen</span></li>
+  </ul>
+</div>
+
+<p class="footer-note">
+  This mockup matches the actual <code>CooldownLockoutDialog</code> widget in
+  <code>lib/features/settings/pin_lock_screen.dart</code>. The modal is shown via
+  <code>_onSecurityChanged</code> listener when <code>SecurityProvider.isInLockout</code> becomes true.
+  Click "Got it" to see the dismissed state (keypad still disabled until timer expires).
+  Click cooldown scenarios to see the live countdown animation.
+</p>
+
+<script>
+  const backspaceSvg = '<svg viewBox="0 0 24 24"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/></svg>';
+
+  let countdownTimer = null;
+  let currentCountdown = 30;
+  let modalDismissed = false;
+  let cooldownActive = false;
+
+  const scenarios = {
+    normal: {
+      pinLength: 4, attempts: 0, cooldown: false, countdown: 0, dismissed: false,
+      desc: 'Normal lock state — 4-digit PIN. Clean full-screen. Lock icon, title, keypad. No modal.'
+    },
+    normal6: {
+      pinLength: 6, attempts: 0, cooldown: false, countdown: 0, dismissed: false,
+      desc: 'Normal lock state — 6-digit PIN. Dots & auto-submit adapt to configured PIN length.'
+    },
+    error: {
+      pinLength: 4, attempts: 3, cooldown: false, countdown: 0, dismissed: false,
+      desc: '3rd failed attempt — "3 of 5 failed attempts" warning shown in red. Input still enabled. No modal yet.'
+    },
+    cooldown: {
+      pinLength: 4, attempts: 5, cooldown: true, countdown: 30, dismissed: false,
+      desc: '5 failed attempts → centered modal appears. PIN screen dimmed behind barrier. Keypad disabled. 30s countdown starts.'
+    },
+    cooldown15: {
+      pinLength: 4, attempts: 5, cooldown: true, countdown: 15, dismissed: false,
+      desc: 'Cooldown mid-way — 15s remaining. Progress bar at 50%. Modal on top, keypad still disabled.'
+    },
+    cooldown3: {
+      pinLength: 4, attempts: 5, cooldown: true, countdown: 3, dismissed: false,
+      desc: 'Cooldown ending — 3s remaining. Modal about to auto-close. Keypad will re-enable at 0.'
+    },
+    dismissed: {
+      pinLength: 4, attempts: 5, cooldown: true, countdown: 18, dismissed: true,
+      desc: 'User clicked "Got it" — modal dismissed but keypad STILL DISABLED (cooldown active). PIN entry unavailable until timer expires.'
+    },
+  };
+
+  function renderKeypad(containerId, disabled) {
+    const c = document.getElementById(containerId);
+    let html = '';
+    ['1','2','3','4','5','6','7','8','9'].forEach(k => {
+      html += `<button class="key ${disabled ? 'disabled' : ''}">${k}</button>`;
+    });
+    html += `<button class="key empty"></button>`;
+    html += `<button class="key ${disabled ? 'disabled' : ''}">0</button>`;
+    html += `<button class="key backspace ${disabled ? 'disabled' : ''}">${backspaceSvg}</button>`;
+    c.innerHTML = html;
+  }
+
+  function renderDots(containerId, pinLength) {
+    const c = document.getElementById(containerId);
+    let html = '';
+    for (let i = 0; i < pinLength; i++) html += '<div class="dot"></div>';
+    c.innerHTML = html;
+  }
+
+  function setScenario(name) {
+    document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+
+    const s = scenarios[name];
+    modalDismissed = s.dismissed;
+    cooldownActive = s.cooldown && !s.dismissed;
+
+    // Render PIN screen (always visible)
+    renderDots('dots-light', s.pinLength);
+    renderDots('dots-dark', s.pinLength);
+    renderKeypad('keypad-light', s.cooldown);  // disabled if cooldown active
+    renderKeypad('keypad-dark', s.cooldown);
+
+    // Attempts text
+    const attemptsText = !s.cooldown && s.attempts > 0
+      ? `Incorrect PIN. ${s.attempts} of 5 failed attempts.`
+      : '';
+    document.getElementById('attempts-light').textContent = attemptsText;
+    document.getElementById('attempts-dark').textContent = attemptsText;
+
+    // Dim PIN screen behind modal (only if modal is visible)
+    const dimmed = s.cooldown && !s.dismissed;
+    document.getElementById('pin-light').classList.toggle('dimmed', dimmed);
+    document.getElementById('pin-dark').classList.toggle('dimmed', dimmed);
+
+    // Show/hide modal
+    const modalVisible = s.cooldown && !s.dismissed;
+    document.getElementById('modal-light').classList.toggle('visible', modalVisible);
+    document.getElementById('modal-dark').classList.toggle('visible', modalVisible);
+
+    // Descriptions
+    document.getElementById('desc-light').textContent = s.desc;
+    document.getElementById('desc-dark').textContent = s.desc;
+
+    if (s.cooldown && !s.dismissed) {
+      currentCountdown = s.countdown;
+      updateCountdownDisplay();
+      countdownTimer = setInterval(() => {
+        if (currentCountdown <= 0) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+          // Auto-close modal (simulates clearLockout() + Navigator.pop())
+          document.getElementById('modal-light').classList.remove('visible');
+          document.getElementById('modal-dark').classList.remove('visible');
+          document.getElementById('pin-light').classList.remove('dimmed');
+          document.getElementById('pin-dark').classList.remove('dimmed');
+          renderKeypad('keypad-light', false);
+          renderKeypad('keypad-dark', false);
+          cooldownActive = false;
+          return;
+        }
+        currentCountdown--;
+        updateCountdownDisplay();
+      }, 1000);
+    }
+  }
+
+  function dismissModal() {
+    // "Got it" — dismisses the modal but does NOT bypass cooldown.
+    // The keypad stays disabled until the timer expires.
+    document.getElementById('modal-light').classList.remove('visible');
+    document.getElementById('modal-dark').classList.remove('visible');
+    document.getElementById('pin-light').classList.remove('dimmed');
+    document.getElementById('pin-dark').classList.remove('dimmed');
+    modalDismissed = true;
+    // Keypad remains disabled — cooldown is still active
+    document.querySelectorAll('.key').forEach(k => {
+      if (!k.classList.contains('empty')) k.classList.add('disabled');
+    });
+    // Update description
+    const desc = 'User clicked "Got it" — modal dismissed but keypad STILL DISABLED (cooldown active). PIN entry unavailable until timer expires.';
+    document.getElementById('desc-light').textContent = desc;
+    document.getElementById('desc-dark').textContent = desc;
+    // Keep the timer running so keypad re-enables at 0
+    if (!countdownTimer && currentCountdown > 0) {
+      countdownTimer = setInterval(() => {
+        if (currentCountdown <= 0) {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+          renderKeypad('keypad-light', false);
+          renderKeypad('keypad-dark', false);
+          cooldownActive = false;
+          return;
+        }
+        currentCountdown--;
+      }, 1000);
+    }
+  }
+
+  function updateCountdownDisplay() {
+    document.getElementById('cd-light').textContent = currentCountdown;
+    document.getElementById('cd-dark').textContent = currentCountdown;
+    document.getElementById('sec-light').textContent = currentCountdown === 1 ? 'second' : 'seconds';
+    document.getElementById('sec-dark').textContent = currentCountdown === 1 ? 'second' : 'seconds';
+    const progress = (currentCountdown / 30) * 100;
+    document.getElementById('prog-light').style.width = progress + '%';
+    document.getElementById('prog-dark').style.width = progress + '%';
+  }
+
+  setScenario('normal');
+</script>
+
+</body>
+</html>

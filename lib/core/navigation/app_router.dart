@@ -94,6 +94,14 @@ class AppRouter {
   static final _RouterRefreshNotifier _refreshNotifier =
       _RouterRefreshNotifier();
 
+  /// Global navigator key for the GoRouter.  Exposed so widgets
+  /// rendered above the router's Navigator (e.g. inside the
+  /// MaterialApp.router builder) can show dialogs via the root
+  /// Navigator without throwing "Navigator operation requested with a
+  /// context that does not include a Navigator".
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
   /// Triggers a GoRouter redirect re-evaluation.  Called after
   /// [SecurityProvider] state changes that affect locking.
   static void refresh() {
@@ -104,16 +112,16 @@ class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: AppRoutes.home,
     refreshListenable: _refreshNotifier,
+    navigatorKey: navigatorKey,
     errorBuilder: (context, state) => const NotFoundScreen(),
     redirect: (context, state) {
-      // App lock is now handled by a modal dialog overlay (AppLockDialog)
-      // shown from the MaterialApp.router builder in main.dart, NOT by a
-      // GoRouter redirect.  This keeps the underlying application visually
-      // intact while blocking interaction until the user unlocks.
+      // App lock is handled by a full-screen overlay (PinLockScreen)
+      // rendered inside the MaterialApp.router builder in main.dart via
+      // _AppLockHandler, NOT by a GoRouter redirect.  The overlay sits
+      // above the entire application content in a Stack and completely
+      // hides/blocks the underlying screens until the user unlocks.
       //
       // We intentionally do NOT redirect to /settings/pin-lock here.
-      // The dialog approach prevents the "visually disconnected" full-screen
-      // card that the previous route-based lock produced.
       return null;
     },
     routes: [

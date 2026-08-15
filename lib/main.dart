@@ -31,9 +31,9 @@ import 'core/database/database.dart';
 import 'core/services/backup_service_enhanced.dart';
 import 'core/providers/focus_mode_provider.dart';
 import 'core/navigation/app_router.dart';
+import 'features/settings/pin_lock_screen.dart';
 import 'shared/widgets/activity_detector.dart';
 import 'shared/widgets/dialogs/inactivity_warning_dialog.dart';
-import 'shared/widgets/dialogs/app_lock_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -107,6 +107,13 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
   late final SecurityProvider _securityProvider;
   late final SessionInactivityService _sessionInactivityService;
 
+  /// Tracks whether the app was actually backgrounded (paused) before
+  /// the next `resumed` event.  This prevents re-locking on transient
+  /// `inactive → resumed` cycles such as keyboard show/hide, system
+  /// dialogs, or permission prompts — which fire `inactive` without
+  /// ever going through `paused`.
+  bool _wasBackgrounded = false;
+
   @override
   void initState() {
     super.initState();
@@ -143,28 +150,35 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
     debugPrint('[QuizSnapApp] lifecycle event: ${state.name}');
     switch (state) {
       case AppLifecycleState.paused:
+        // App fully backgrounded — record this so we know to re-lock
+        // on resume, and stop inactivity tracking.
+        _wasBackgrounded = true;
+        _sessionInactivityService.stop();
+        break;
       case AppLifecycleState.inactive:
-        // App going to background — stop inactivity tracking.
-        // We lock on resume, not here, to avoid locking during transient
-        // inactive states (system dialogs, keyboard show/hide, etc.).
+        // Transient state (keyboard, system dialog, permission prompt).
+        // Do NOT mark as backgrounded — we only stop the inactivity
+        // timer here.  Locking on `inactive → resumed` caused the PIN
+        // lock to appear during normal usage (e.g. opening the keyboard).
         _sessionInactivityService.stop();
         break;
       case AppLifecycleState.detached:
         _sessionInactivityService.stop();
         break;
       case AppLifecycleState.resumed:
-        // Priority 1: App PIN Lock — always check first.
-        // lockApp() has internal guards:
-        //   - skips if PIN not enabled
-        //   - skips if already locked
-        //   - skips if isUnlocking (unlock in progress)
-        //   - skips if within unlock grace period (3s after unlock)
-        //   - skips if lock screen already visible
-        // These guards prevent the relock loop.
-        debugPrint('[QuizSnapApp] lifecycle: resumed — checking lock');
-        _securityProvider.lockApp();
+        // Only re-lock if the app was actually backgrounded (paused),
+        // not just transiently inactive.  lockApp() also has internal
+        // guards (PIN not enabled, already locked, unlock grace period,
+        // lock screen visible) that prevent spurious re-locks.
+        if (_wasBackgrounded) {
+          debugPrint('[QuizSnapApp] lifecycle: resumed from background — checking lock');
+          _securityProvider.lockApp();
+        } else {
+          debugPrint('[QuizSnapApp] lifecycle: resumed from transient inactive — no lock');
+        }
+        _wasBackgrounded = false;
 
-        // Priority 2: Restart inactivity tracking.
+        // Restart inactivity tracking.
         // If app lock was applied, the session timer will be idle until
         // the user unlocks (the service checks isLocked and skips ticks).
         _sessionInactivityService.start();
@@ -362,15 +376,27 @@ class _SessionWarningHandlerState extends State<_SessionWarningHandler> {
 
   void _dismissDialog() {
     if (!mounted) return;
-    final navigator = Navigator.of(context, rootNavigator: true);
-    if (navigator.canPop()) {
+    // Use the GoRouter's navigator key — same reason as
+    // _showWarningDialog (this widget's context is above the router
+    // Navigator).
+    final navigator = AppRouter.navigatorKey.currentState;
+    if (navigator != null && navigator.canPop()) {
       navigator.pop();
     }
   }
 
   void _showWarningDialog(SessionInactivityService service) {
+    // Use the GoRouter's navigator key because this widget's context
+    // sits above the router Navigator inside the MaterialApp.router
+    // builder.  Using `context` directly throws "Navigator operation
+    // requested with a context that does not include a Navigator".
+    final navigator = AppRouter.navigatorKey.currentState;
+    if (navigator == null) {
+      debugPrint('[SessionWarningHandler] navigator not ready — skipping dialog');
+      return;
+    }
     showDialog(
-      context: context,
+      context: navigator.context,
       barrierDismissible: false,
       useRootNavigator: true,
       builder: (dialogContext) {
@@ -417,16 +443,22 @@ Future<void> _checkAndPerformAutoBackup(AppDatabase database) async {
   }
 }
 
-/// Watches [SecurityProvider.isLocked] and shows a non-dismissible
-/// [AppLockDialog] modal overlay when the app is locked.
+/// Watches [SecurityProvider.isLocked] and renders a full-screen
+/// [PinLockScreen] overlay on top of the entire application when the
+/// app is locked.
 ///
-/// This replaces the previous GoRouter redirect to a full-screen
-/// [PinLockScreen].  The dialog approach keeps the underlying
-/// application visually intact but blocks interaction until the user
-/// enters the correct PIN.
+/// This replaces the previous dialog-based [AppLockDialog] approach.
+/// The full-screen overlay completely hides and blocks interaction
+/// with the underlying application content (Dashboard, Library, Study,
+/// Settings, etc.) until the user enters the correct PIN.
 ///
-/// This widget must be inside the [MaterialApp.router] builder so its
-/// context has access to the root navigator for showing dialogs.
+/// The overlay sits inside a [Stack] above the router output.  When
+/// [SecurityProvider.verifyPin] succeeds it clears `isLocked`, the
+/// [Consumer] rebuilds, and the overlay disappears — the user returns
+/// to the exact screen they were on.  No route navigation is needed.
+///
+/// This widget must be inside the [MaterialApp.router] builder so it
+/// wraps the router output.
 class _AppLockHandler extends StatefulWidget {
   final Widget child;
 
@@ -438,7 +470,7 @@ class _AppLockHandler extends StatefulWidget {
 
 class _AppLockHandlerState extends State<_AppLockHandler> {
   SecurityProvider? _securityProvider;
-  bool _dialogShown = false;
+  bool _overlayVisible = false;
 
   @override
   void didChangeDependencies() {
@@ -466,29 +498,52 @@ class _AppLockHandlerState extends State<_AppLockHandler> {
     final provider = _securityProvider;
     if (provider == null || !mounted) return;
 
-    if (provider.isLocked && !_dialogShown) {
-      _dialogShown = true;
+    final locked = provider.isLocked;
+    if (locked && !_overlayVisible) {
+      _overlayVisible = true;
       // Mark the lock screen as visible so lockApp()/lockSession()
       // guards prevent stacking duplicate lock requests.
       provider.setLockScreenVisible(true);
-      _showLockDialog();
-    } else if (!provider.isLocked && _dialogShown) {
-      // Unlock happened (e.g. via verifyPin from the dialog itself).
-      // The dialog pops itself on success, so we just reset the flag.
-      _dialogShown = false;
+      debugPrint('[AppLockHandler] full-screen lock overlay shown');
+    } else if (!locked && _overlayVisible) {
+      _overlayVisible = false;
       provider.setLockScreenVisible(false);
+      debugPrint('[AppLockHandler] full-screen lock overlay removed');
     }
   }
 
-  void _showLockDialog() {
-    debugPrint('[AppLockHandler] showing lock dialog');
-    AppLockDialog.show(context).then((_) {
-      _dialogShown = false;
-      _securityProvider?.setLockScreenVisible(false);
-      debugPrint('[AppLockHandler] lock dialog dismissed');
-    });
-  }
-
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    final provider = _securityProvider;
+    if (provider == null) {
+      return widget.child;
+    }
+    return provider_pkg.Consumer<SecurityProvider>(
+      builder: (context, security, child) {
+        final locked = security.isLocked;
+        // Keep the visibility flag in sync with the lock state so the
+        // listener and the Consumer agree (the listener handles the
+        // setLockScreenVisible side-effects).
+        if (locked != _overlayVisible) {
+          _overlayVisible = locked;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              security.setLockScreenVisible(locked);
+              debugPrint('[AppLockHandler] lock overlay ${locked ? 'shown' : 'removed'} (consumer)');
+            }
+          });
+        }
+        // The full-screen lock overlay is rendered ABOVE the app
+        // content in a Stack.  It is fully opaque so the underlying
+        // screens are hidden and not interactable.
+        return Stack(
+          children: [
+            child!,
+            if (locked) const PinLockScreen(isOverlay: true),
+          ],
+        );
+      },
+      child: widget.child,
+    );
+  }
 }
