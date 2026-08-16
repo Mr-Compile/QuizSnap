@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../shared/widgets/app_bar.dart';
 import 'package:pdfx/pdfx.dart';
 import '../../core/services/document_extraction_service.dart';
+import '../../shared/widgets/stepper_header.dart';
 import 'text_preview_screen.dart';
 import '../../core/services/dialog_service.dart';
 
@@ -62,8 +64,8 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Preview PDF'),
+      appBar: CustomAppBar(
+        title: 'Preview PDF',
         actions: [
           if (_selectedPages.isNotEmpty)
             TextButton.icon(
@@ -73,11 +75,21 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
             ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? _buildErrorState()
-              : _buildPageGrid(),
+      body: Column(
+        children: [
+          const StepperHeader(
+            currentStep: 1,
+            steps: kAiWizardSteps,
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                    ? _buildErrorState()
+                    : _buildPageGrid(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -183,7 +195,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
 
       if (!mounted) return;
 
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => TextPreviewScreen(
             text: text,

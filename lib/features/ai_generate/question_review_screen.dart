@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/widgets/app_bar.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/connectivity_guard.dart';
 import '../../core/services/question_generation_service.dart';
@@ -16,6 +17,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/services/question_validation_service.dart';
 import '../../core/utils/question_type_helper.dart';
 import '../../shared/widgets/formatted_study_text.dart';
+import '../../shared/widgets/stepper_header.dart';
 import 'regeneration_options_bottom_sheet.dart';
 import 'text_preview_screen.dart';
 import 'ai_generation_config_screen.dart';
@@ -27,6 +29,8 @@ class QuestionReviewScreen extends StatefulWidget {
   final String source;
   final String sourceText;
   final String? generationId;
+  final int? sourcePage;
+  final String? sourceSection;
 
   const QuestionReviewScreen({
     super.key,
@@ -36,6 +40,8 @@ class QuestionReviewScreen extends StatefulWidget {
     required this.source,
     this.sourceText = '',
     this.generationId,
+    this.sourcePage,
+    this.sourceSection,
   });
 
   @override
@@ -65,8 +71,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Review Questions'),
+      appBar: CustomAppBar(
+        title: 'Review Questions',
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -91,6 +97,10 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
       ),
       body: Column(
         children: [
+          const StepperHeader(
+            currentStep: 4,
+            steps: kAiWizardSteps,
+          ),
           // Summary header
           _buildSummaryHeader(),
           // Questions list
@@ -557,7 +567,6 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
       ...question.options.take(4).toList().asMap().entries.map((entry) {
         final optionIndex = entry.key;
         final optionText = entry.value;
-        final isCorrect = optionIndex == question.correctAnswerIndex;
         return Padding(
           padding: const EdgeInsets.only(left: 16, bottom: 4),
           child: Row(
@@ -566,18 +575,14 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: isCorrect
-                      ? colorScheme.primary
-                      : colorScheme.outline.withValues(alpha: 0.3),
+                  color: colorScheme.outline.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Center(
                   child: Text(
                     String.fromCharCode(65 + optionIndex),
                     style: TextStyle(
-                      color: isCorrect
-                          ? colorScheme.onPrimary
-                          : colorScheme.onSurface,
+                      color: colorScheme.onSurface,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -588,9 +593,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
               Expanded(
                 child: FormattedStudyText(
                   text: _cleanOptionText(optionText),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    decoration: isCorrect ? TextDecoration.underline : null,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall,
                   showActions: false,
                 ),
               ),
@@ -598,122 +601,18 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
           ),
         );
       }),
-      if (question.correctAnswerIndex >= 0 && question.correctAnswerIndex < question.options.length) ...[
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.check_circle,
-                size: 16,
-                color: colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                    'Correct Answer: ${String.fromCharCode(65 + question.correctAnswerIndex)}. ${_cleanOptionText(question.options[question.correctAnswerIndex])}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onPrimaryContainer,
-                    ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     ];
   }
 
   List<Widget> _buildIdentificationContent(GeneratedQuestion question) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final answer = QuestionGenerationService.sanitizeText(question.answer ?? '');
     return [
       const SizedBox(height: 8),
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.check_circle,
-              size: 16,
-              color: colorScheme.primary,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                answer.isEmpty ? 'Correct Answer: (missing)' : 'Correct Answer: $answer',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onPrimaryContainer,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     ];
   }
 
   List<Widget> _buildEnumerationContent(GeneratedQuestion question) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final rawItems = question.options.isNotEmpty
-        ? question.options
-        : (question.answer ?? '').split(RegExp(r',\s*|\n'));
-    final sanitizedItems = rawItems
-        .map((i) => QuestionGenerationService.sanitizeText(i))
-        .where((i) => i.isNotEmpty)
-        .toList();
     return [
       const SizedBox(height: 8),
-      Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.check_circle,
-                  size: 16,
-                  color: colorScheme.primary,
-                ),
-              const SizedBox(width: 8),
-              Text(
-                'Correct Answers:',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onPrimaryContainer,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          ...sanitizedItems.asMap().entries.map((entry) {
-            return Padding(
-              padding: const EdgeInsets.only(left: 24, bottom: 2),
-              child: Text(
-                '${entry.key + 1}. ${entry.value}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onPrimaryContainer,
-                ),
-              ),
-            );
-          }),
-          ],
-        ),
-      ),
     ];
   }
 
@@ -805,22 +704,28 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         case RegenerationOption.regenerateAll:
           // Regenerate all questions
           newQuestions = await generationService.generateQuestions(
-            sourceText: widget.source, // This would need to be stored/passed properly
+            sourceText: widget.sourceText,
             type: widget.type,
             difficulty: widget.difficulty,
             questionCount: _currentQuestions.length,
             model: groqProvider.selectedModel,
+            source: widget.source,
+            sourcePage: widget.sourcePage,
+            sourceSection: widget.sourceSection,
           );
           break;
 
         case RegenerationOption.regenerateSelected:
           // Regenerate only selected questions
           newQuestions = await generationService.generateQuestions(
-            sourceText: widget.source,
+            sourceText: widget.sourceText,
             type: widget.type,
             difficulty: widget.difficulty,
             questionCount: _selectedQuestions.length,
             model: groqProvider.selectedModel,
+            source: widget.source,
+            sourcePage: widget.sourcePage,
+            sourceSection: widget.sourceSection,
           );
           break;
 
@@ -829,11 +734,14 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
           final rejectedCount = _currentQuestions.length - _selectedQuestions.length;
           if (rejectedCount > 0) {
             final regeneratedQuestions = await generationService.generateQuestions(
-              sourceText: widget.source,
+              sourceText: widget.sourceText,
               type: widget.type,
               difficulty: widget.difficulty,
               questionCount: rejectedCount,
               model: groqProvider.selectedModel,
+              source: widget.source,
+              sourcePage: widget.sourcePage,
+              sourceSection: widget.sourceSection,
             );
             // Combine approved with regenerated
             newQuestions = [..._selectedQuestions, ...regeneratedQuestions];
@@ -958,8 +866,8 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
             : widget.sourceText;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('No Questions Generated'),
+      appBar: CustomAppBar(
+        title: 'No Questions Generated',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -1065,11 +973,13 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
   }
 
   void _retryGeneration() {
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AiGenerationConfigScreen(
           sourceText: widget.sourceText,
           source: widget.source,
+          sourcePage: widget.sourcePage,
+          sourceSection: widget.sourceSection,
         ),
       ),
     );
@@ -1178,8 +1088,8 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Edit Question ${widget.index + 1}'),
+      appBar: CustomAppBar(
+        title: 'Edit Question ${widget.index + 1}',
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
@@ -1389,6 +1299,12 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
       options: options,
       correctAnswerIndex: _correctAnswerIndex,
       explanation: widget.question.explanation,
+      type: widget.question.type,
+      difficulty: widget.question.difficulty,
+      source: widget.question.source,
+      sourceText: widget.question.sourceText,
+      sourcePage: widget.question.sourcePage,
+      sourceSection: widget.question.sourceSection,
     );
 
     widget.onSave(editedQuestion);

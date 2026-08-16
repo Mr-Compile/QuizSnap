@@ -32,8 +32,8 @@ class SectionPreviewScreen extends StatelessWidget {
       body: Column(
         children: [
           const StepperHeader(
-            currentStep: 3,
-            steps: ['Import', 'Scope', 'Select', 'Preview', 'Generate'],
+            currentStep: 1,
+            steps: kAiWizardSteps,
           ),
           Expanded(
             child: SingleChildScrollView(

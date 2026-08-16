@@ -6,6 +6,24 @@ import '../../core/services/document_extraction_service.dart';
 import '../../core/services/text_normalization_service.dart';
 import '../../core/services/question_validation_service.dart';
 
+/// Maps a question type string back to its [PromptType].
+PromptType? _promptTypeFromString(String? type) {
+  final normalized = (type ?? '').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  if (normalized == 'multiplechoice' || normalized == 'multiple') {
+    return PromptType.multipleChoice;
+  }
+  if (normalized == 'identification') {
+    return PromptType.identification;
+  }
+  if (normalized == 'enumeration') {
+    return PromptType.enumeration;
+  }
+  if (normalized == 'mixedformat' || normalized == 'mixed') {
+    return PromptType.mixedFormat;
+  }
+  return null;
+}
+
 class GeneratedQuestion {
   final String question;
   final List<String> options;
@@ -14,6 +32,10 @@ class GeneratedQuestion {
   final String? answer; // For identification/enumeration types
   final String? type;
   final String? difficulty;
+  final String? source;
+  final String? sourceText;
+  final int? sourcePage;
+  final String? sourceSection;
 
   GeneratedQuestion({
     required this.question,
@@ -23,6 +45,10 @@ class GeneratedQuestion {
     this.answer,
     this.type,
     this.difficulty,
+    this.source,
+    this.sourceText,
+    this.sourcePage,
+    this.sourceSection,
   });
 
   Map<String, dynamic> toJson() {
@@ -34,6 +60,10 @@ class GeneratedQuestion {
       'answer': answer,
       'type': type,
       'difficulty': difficulty,
+      'source': source,
+      'sourceText': sourceText,
+      'sourcePage': sourcePage,
+      'sourceSection': sourceSection,
     };
   }
 
@@ -46,6 +76,10 @@ class GeneratedQuestion {
       answer: json['answer'] as String?,
       type: json['type'] as String?,
       difficulty: json['difficulty'] as String?,
+      source: json['source'] as String?,
+      sourceText: json['sourceText'] as String?,
+      sourcePage: json['sourcePage'] as int?,
+      sourceSection: json['sourceSection'] as String?,
     );
   }
 
@@ -54,6 +88,7 @@ class GeneratedQuestion {
       type: type,
       options: options,
       answer: answer,
+      expected: _promptTypeFromString(type),
     );
 
     String? correctAnswerText;
@@ -83,6 +118,10 @@ class GeneratedQuestion {
       correctAnswers: correctAnswersList,
       explanation: explanation,
       flashcardId: null,
+      source: source,
+      sourceText: sourceText,
+      sourcePage: sourcePage,
+      sourceSection: sourceSection,
     );
   }
 }
@@ -94,14 +133,18 @@ class QuestionGenerationService {
 
   /// Generate questions from source text
   Future<List<GeneratedQuestion>> generateQuestions({
-    required String sourceText,
+    String? sourceText,
     required PromptType type,
     required Difficulty difficulty,
     required int questionCount,
     String? model,
+    String? source,
+    int? sourcePage,
+    String? sourceSection,
   }) async {
     // Clean and reconstruct extracted text, then truncate if too long.
-    final cleanedText = TextNormalizationService.cleanForPrompt(sourceText);
+    final content = sourceText ?? '';
+    final cleanedText = TextNormalizationService.cleanForPrompt(content);
     final truncatedText = DocumentExtractionService.truncateText(cleanedText);
 
     // Generate questions using Groq service
@@ -114,7 +157,14 @@ class QuestionGenerationService {
     );
 
     // Parse the response into structured questions
-    final questions = _parseGeneratedQuestions(response, type);
+    final questions = _parseGeneratedQuestions(
+      response,
+      type,
+      source: source,
+      sourceText: sourceText,
+      sourcePage: sourcePage,
+      sourceSection: sourceSection,
+    );
     final filteredQuestions = _filterPlaceholderDistractors(questions);
     
     // If too many questions were filtered out, log a warning but continue with what we have
@@ -192,6 +242,10 @@ class QuestionGenerationService {
         answer: q.answer == null ? null : sanitizeText(q.answer!),
         type: q.type,
         difficulty: q.difficulty,
+        source: q.source,
+        sourceText: q.sourceText,
+        sourcePage: q.sourcePage,
+        sourceSection: q.sourceSection,
       );
     }).toList();
   }
@@ -205,55 +259,129 @@ class QuestionGenerationService {
       RegExp(r'distractor \d+', caseSensitive: false),
       RegExp(r'^\s*\d+\.\s*$', caseSensitive: false), // Just numbers like "1."
       RegExp(r'^\s*[A-C]\)\s*$', caseSensitive: false), // Just labels like "A)"
+      RegExp(
+        r'^(none of the above|all of the above|not applicable|n/a|tbd|todo|unknown|other|none|all)$',
+        caseSensitive: false,
+      ),
+      RegExp(r'^\s*[A-Da-d]\s*$'), // Single-letter options such as A, B, C, D
     ];
 
     return questions.where((question) {
-      // Check each option (except the correct answer)
+      // Check each option (including the correct answer; single letters and
+      // forbidden phrases are not acceptable for any option)
       for (int i = 0; i < question.options.length; i++) {
-        if (i == question.correctAnswerIndex) continue; // Skip correct answer
-        
         final option = question.options[i].trim();
-        
+
         // Check if option matches any placeholder pattern
         for (final pattern in placeholderPatterns) {
           if (pattern.hasMatch(option)) {
             return false; // Reject this question
           }
         }
-        
+
         // Check if option is too short or empty
         if (option.length < 3) {
           return false; // Reject this question
         }
       }
-      
+
       return true; // Keep this question
     }).toList();
   }
 
-  List<GeneratedQuestion> _parseGeneratedQuestions(String response, PromptType type) {
+  List<GeneratedQuestion> _parseGeneratedQuestions(
+    String response,
+    PromptType type, {
+    String? source,
+    String? sourceText,
+    int? sourcePage,
+    String? sourceSection,
+  }) {
     if (response.trim().isEmpty) {
       throw Exception('Empty response from AI');
     }
 
-    final jsonQuestions = _tryParseJsonQuestions(response);
-    if (jsonQuestions.isNotEmpty) return jsonQuestions;
+    List<GeneratedQuestion> questions;
 
-    try {
-      switch (type) {
-        case PromptType.multipleChoice:
-          return _sanitizeQuestions(_parseMultipleChoiceQuestions(response));
-        case PromptType.identification:
-          return _sanitizeQuestions(_parseIdentificationQuestions(response));
-        case PromptType.enumeration:
-          return _sanitizeQuestions(_parseEnumerationQuestions(response));
-        case PromptType.mixedFormat:
-          return _sanitizeQuestions(_tryParseJsonQuestions(response));
+    final jsonQuestions = _tryParseJsonQuestions(response);
+    if (jsonQuestions.isNotEmpty) {
+      questions = jsonQuestions;
+    } else {
+      try {
+        switch (type) {
+          case PromptType.multipleChoice:
+            questions = _sanitizeQuestions(_parseMultipleChoiceQuestions(response));
+            break;
+          case PromptType.identification:
+            questions = _sanitizeQuestions(_parseIdentificationQuestions(response));
+            break;
+          case PromptType.enumeration:
+            questions = _sanitizeQuestions(_parseEnumerationQuestions(response));
+            break;
+          case PromptType.mixedFormat:
+            questions = _sanitizeQuestions(_tryParseJsonQuestions(response));
+            break;
+        }
+      } catch (e) {
+        // Fall back to a single question from the raw text.
+        questions = _sanitizeQuestions(_fallbackSingleQuestion(response));
       }
-    } catch (e) {
-      // Fall back to a single question from the raw text.
-      return _sanitizeQuestions(_fallbackSingleQuestion(response));
     }
+
+    return questions
+        .map((q) => _applySourceAndType(
+              q,
+              type,
+              source: source,
+              sourceText: sourceText,
+              sourcePage: sourcePage,
+              sourceSection: sourceSection,
+            ))
+        .toList();
+  }
+
+  /// Returns the canonical string used to represent a [PromptType] in
+  /// generated questions and flashcards.
+  String _promptTypeToString(PromptType type) {
+    switch (type) {
+      case PromptType.multipleChoice:
+        return 'multiple_choice';
+      case PromptType.identification:
+        return 'identification';
+      case PromptType.enumeration:
+        return 'enumeration';
+      case PromptType.mixedFormat:
+        return 'mixed_format';
+    }
+  }
+
+  /// Applies the requested [PromptType] and source traceability fields to a
+  /// parsed question, ensuring the final object reflects the user's request.
+  GeneratedQuestion _applySourceAndType(
+    GeneratedQuestion question,
+    PromptType type, {
+    String? source,
+    String? sourceText,
+    int? sourcePage,
+    String? sourceSection,
+  }) {
+    final resolvedType = type == PromptType.mixedFormat
+        ? question.type
+        : _promptTypeToString(type);
+
+    return GeneratedQuestion(
+      question: question.question,
+      options: question.options,
+      correctAnswerIndex: question.correctAnswerIndex,
+      explanation: question.explanation,
+      answer: question.answer,
+      type: resolvedType,
+      difficulty: question.difficulty,
+      source: source,
+      sourceText: sourceText,
+      sourcePage: sourcePage,
+      sourceSection: sourceSection,
+    );
   }
 
   /// Attempt to parse a JSON array or object containing questions.

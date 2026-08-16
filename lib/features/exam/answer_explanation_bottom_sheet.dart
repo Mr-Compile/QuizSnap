@@ -13,10 +13,12 @@ import 'full_explanation_screen.dart';
 
 class AnswerExplanationBottomSheet extends StatefulWidget {
   final ExamQuestion question;
+  final UserAnswer? userAnswer;
 
   const AnswerExplanationBottomSheet({
     super.key,
     required this.question,
+    this.userAnswer,
   });
 
   @override
@@ -63,6 +65,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
               backgroundColor: Colors.transparent,
               builder: (context) => AnswerExplanationBottomSheet(
                 question: widget.question,
+                userAnswer: widget.userAnswer,
               ),
             );
           },
@@ -71,7 +74,10 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
       }
 
       // Generate new explanation
-      final explanation = await examProvider.generateExplanation(widget.question);
+      final explanation = await examProvider.generateExplanation(
+        widget.question,
+        userAnswer: widget.userAnswer,
+      );
 
       if (!mounted) return;
       setState(() {
@@ -103,6 +109,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
               backgroundColor: Colors.transparent,
               builder: (context) => AnswerExplanationBottomSheet(
                 question: widget.question,
+                userAnswer: widget.userAnswer,
               ),
             );
           },
@@ -149,7 +156,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
                 children: [
                   _buildQuestion(),
                   const SizedBox(height: AppTheme.spacingLg),
-                  _buildCorrectAnswer(),
+                  _buildAnswerComparison(),
                   const SizedBox(height: AppTheme.spacingLg),
                   _buildExplanation(),
                 ],
@@ -233,50 +240,114 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
     );
   }
 
-  Widget _buildCorrectAnswer() {
+  String _getUserAnswerText() {
+    final answer = widget.userAnswer;
+    if (answer == null) return 'No answer';
+
+    final selectedIndex = answer.selectedAnswerIndex;
+    if (selectedIndex != null &&
+        selectedIndex >= 0 &&
+        selectedIndex < widget.question.options.length) {
+      return widget.question.options[selectedIndex];
+    }
+
+    if (answer.textAnswer != null && answer.textAnswer!.trim().isNotEmpty) {
+      return answer.textAnswer!.trim();
+    }
+
+    if (answer.listAnswer != null && answer.listAnswer!.isNotEmpty) {
+      return answer.listAnswer!.join(', ');
+    }
+
+    return 'No answer';
+  }
+
+  bool get _hasUserAnswer {
+    final answer = widget.userAnswer;
+    return answer != null && answer.hasAnswer;
+  }
+
+  Widget _buildAnswerComparison() {
     final colorScheme = Theme.of(context).colorScheme;
-    final correctAnswer = (widget.question.correctAnswer ?? '').trim();
+    final userAnswerText = _getUserAnswerText();
+    final correctAnswerText = widget.question.correctAnswerText.trim();
 
     // Do not render an empty answer container.
-    if (correctAnswer.isEmpty) {
+    if (correctAnswerText.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return Semantics(
-      label: 'Correct answer: $correctAnswer',
-      child: CustomCard(
-        color: colorScheme.primaryContainer,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final isUserCorrect = _hasUserAnswer && (widget.userAnswer?.isCorrect ?? false);
+    final userColor = _hasUserAnswer
+        ? (isUserCorrect ? colorScheme.primary : colorScheme.error)
+        : colorScheme.onSurface;
+    final userIcon = _hasUserAnswer
+        ? (isUserCorrect ? Icons.check_circle : Icons.cancel)
+        : Icons.help;
+
+    return CustomCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildAnswerRow(
+            context,
+            label: 'Your answer',
+            value: userAnswerText,
+            color: userColor,
+            icon: userIcon,
+          ),
+          Divider(
+            color: colorScheme.outline.withValues(alpha: 0.2),
+            height: AppTheme.spacingLg,
+          ),
+          _buildAnswerRow(
+            context,
+            label: 'Correct answer',
+            value: correctAnswerText,
+            color: colorScheme.primary,
+            icon: Icons.check_circle,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnswerRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.check_circle,
-                  color: colorScheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: AppTheme.spacingSm),
-                Text(
-                  'Correct Answer',
-                  style: AppTheme.labelLarge.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+            Icon(
+              icon,
+              color: color,
+              size: 20,
             ),
-            const SizedBox(height: AppTheme.spacingSm),
+            const SizedBox(width: AppTheme.spacingSm),
             Text(
-              correctAnswer,
-              style: AppTheme.titleMedium.copyWith(
+              label,
+              style: AppTheme.labelLarge.copyWith(
+                color: color,
                 fontWeight: FontWeight.bold,
-                color: colorScheme.onPrimaryContainer,
               ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: AppTheme.spacingSm),
+        Text(
+          value,
+          style: AppTheme.titleMedium.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+      ],
     );
   }
 
@@ -452,6 +523,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
                               builder: (context) => FullExplanationScreen(
                                 question: widget.question,
                                 explanation: _explanation,
+                                userAnswer: widget.userAnswer,
                               ),
                             ),
                           );

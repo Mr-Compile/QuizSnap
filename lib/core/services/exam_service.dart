@@ -56,6 +56,13 @@ class ExamService {
     bool shuffle = false,
   }) async {
     final flashcards = await _flashcardRepository.getFlashcardsByDeck(deckId);
+
+    if (flashcards.length < questionCount) {
+      throw Exception(
+        'Not enough flashcards in deck. Available: ${flashcards.length}, Requested: $questionCount',
+      );
+    }
+
     final pool = _shuffleList(flashcards);
     final selectedFlashcards = pool.take(questionCount).toList();
     final ordered = shuffle ? _shuffleList(selectedFlashcards) : selectedFlashcards;

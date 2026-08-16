@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/database_provider.dart';
@@ -26,14 +28,17 @@ class ExamSetupScreen extends StatefulWidget {
 class _ExamSetupScreenState extends State<ExamSetupScreen> {
   int _selectedQuestionCount = 10;
   int _selectedTimeLimit = 10; // in minutes
-  bool _isLoading = false;
+  bool _isLoading = true;
   bool _isCustomTime = false;
   bool _shuffle = false;
   String? _timeError;
+  int _availableCardCount = 0;
 
   final _customTimeController = TextEditingController();
 
-  final List<int> _questionCountOptions = [5, 10, 15, 20, 25, 30, 50, 100];
+  final List<int> _baseQuestionCountOptions = [5, 10, 15, 20, 25, 30, 50, 100];
+  List<int> _questionCountOptions = [];
+  static const int _maxQuestionCount = 100;
   final List<int> _timeLimitPresets = [1, 5, 10, 15, 20, 25, 30];
   static const int _minTimeLimit = 1;
   static const int _maxTimeLimit = 120;
@@ -59,14 +64,44 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
 
       if (mounted) {
         setState(() {
-          if (flashcards.length < _selectedQuestionCount) {
-            _selectedQuestionCount = flashcards.length;
+          _isLoading = false;
+          _availableCardCount = flashcards.length;
+          _questionCountOptions = _buildQuestionCountOptions(_availableCardCount);
+
+          final effectiveMax = min(_availableCardCount, _maxQuestionCount);
+          if (_availableCardCount == 0) {
+            _selectedQuestionCount = 0;
+          } else {
+            final target = min(10, effectiveMax);
+            _selectedQuestionCount = _questionCountOptions.lastWhere(
+              (count) => count <= target,
+              orElse: () => _questionCountOptions.first,
+            );
           }
         });
       }
     } catch (e) {
-      // Handle error silently
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _availableCardCount = 0;
+          _questionCountOptions = _buildQuestionCountOptions(0);
+          _selectedQuestionCount = 0;
+        });
+      }
     }
+  }
+
+  List<int> _buildQuestionCountOptions(int availableCount) {
+    final effectiveMax = min(availableCount, _maxQuestionCount);
+    final options = List<int>.from(_baseQuestionCountOptions);
+
+    if (effectiveMax > 0 && !options.contains(effectiveMax)) {
+      options.add(effectiveMax);
+      options.sort();
+    }
+
+    return options;
   }
 
   Future<void> _startExam() async {
@@ -74,6 +109,22 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
       await DialogService.showError(
         context,
         _timeError ?? 'Enter a valid time between $_minTimeLimit and $_maxTimeLimit minutes.',
+      );
+      return;
+    }
+
+    if (_availableCardCount == 0) {
+      await DialogService.showError(
+        context,
+        'This deck has no flashcards. Add cards before starting an exam.',
+      );
+      return;
+    }
+
+    if (_selectedQuestionCount > _availableCardCount) {
+      await DialogService.showError(
+        context,
+        'This deck only has $_availableCardCount cards available.',
       );
       return;
     }
@@ -184,6 +235,8 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
   }
 
   Widget _buildQuestionCountSelector() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,8 +249,15 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
           Text(
             '$_selectedQuestionCount questions',
             style: AppTheme.bodyMedium.copyWith(
-              color: Theme.of(context).colorScheme.primary,
+              color: colorScheme.primary,
               fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spacingXs),
+          Text(
+            'Available: $_availableCardCount cards',
+            style: AppTheme.bodySmall.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: AppTheme.spacingMd),
@@ -206,14 +266,26 @@ class _ExamSetupScreenState extends State<ExamSetupScreen> {
             runSpacing: AppTheme.spacingSm,
             children: _questionCountOptions.map((count) {
               final isSelected = count == _selectedQuestionCount;
+              final isDisabled = count > _availableCardCount;
+
               return FilterChip(
-                label: Text('$count'),
+                label: Text(
+                  '$count',
+                  style: TextStyle(
+                    color: isDisabled
+                        ? colorScheme.onSurface.withValues(alpha: 0.4)
+                        : null,
+                  ),
+                ),
                 selected: isSelected,
-                onSelected: (selected) {
-                  setState(() => _selectedQuestionCount = count);
-                },
-                selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                checkmarkColor: Theme.of(context).colorScheme.primary,
+                onSelected: isDisabled
+                    ? null
+                    : (selected) {
+                        setState(() => _selectedQuestionCount = count);
+                      },
+                selectedColor: colorScheme.primary.withValues(alpha: 0.2),
+                checkmarkColor: colorScheme.primary,
+                disabledColor: colorScheme.surfaceContainerHighest,
               );
             }).toList(),
           ),

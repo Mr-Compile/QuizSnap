@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/widgets/app_bar.dart';
 import '../../core/models/prompt_template.dart';
 import '../../core/models/recent_generation.dart';
 import '../../core/providers/groq_provider.dart';
@@ -9,16 +10,21 @@ import '../../core/repositories/recent_generation_repository.dart';
 import '../../core/services/question_generation_service.dart';
 import '../../core/services/text_normalization_service.dart';
 import 'package:provider/provider.dart';
+import '../../shared/widgets/stepper_header.dart';
 import 'question_review_screen.dart';
 
 class AiGenerationConfigScreen extends StatefulWidget {
   final String sourceText;
   final String source;
+  final int? sourcePage;
+  final String? sourceSection;
 
   const AiGenerationConfigScreen({
     super.key,
     required this.sourceText,
     required this.source,
+    this.sourcePage,
+    this.sourceSection,
   });
 
   @override
@@ -36,14 +42,21 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Configure Generation'),
+      appBar: CustomAppBar(
+        title: 'Configure Generation',
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
+      body: Column(
         children: [
-          // Source info
-          _buildSourceInfo(),
+          StepperHeader(
+            currentStep: _isGenerating ? 3 : 2,
+            steps: kAiWizardSteps,
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16.0),
+              children: [
+                // Source info
+                _buildSourceInfo(),
           const SizedBox(height: 24),
           
           // Question type selection
@@ -80,7 +93,10 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
             _buildProgressIndicator(),
         ],
       ),
-    );
+    ),
+  ],
+),
+);
   }
 
   Widget _buildSourceInfo() {
@@ -289,6 +305,9 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
         difficulty: _selectedDifficulty,
         questionCount: _questionCount,
         model: groqProvider.selectedModel,
+        source: widget.source,
+        sourcePage: widget.sourcePage,
+        sourceSection: widget.sourceSection,
       );
 
       if (!mounted) return;
@@ -337,7 +356,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
       context.read<RecentGenerationRepository>().addGeneration(recent);
 
       // Navigate to review screen
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => QuestionReviewScreen(
             questions: questions,
@@ -345,6 +364,8 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
             difficulty: _selectedDifficulty,
             source: widget.source,
             sourceText: cleanedSource,
+            sourcePage: widget.sourcePage,
+            sourceSection: widget.sourceSection,
             generationId: generationId,
           ),
         ),

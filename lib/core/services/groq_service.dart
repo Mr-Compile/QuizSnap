@@ -5,6 +5,7 @@ import 'package:groq/groq.dart';
 import '../models/prompt_template.dart';
 import '../models/groq_models.dart';
 import '../repositories/prompt_template_repository.dart';
+import '../models/exam.dart';
 import 'secure_storage_service.dart';
 
 class GroqService {
@@ -73,15 +74,17 @@ CRITICAL OUTPUT RULES:
 DISTRACTOR QUALITY RULES (for multiple choice questions):
 1. NEVER use placeholder text like "Incorrect option 1", "Incorrect option 2", "Incorrect option 3", "Wrong answer", "Distractor", or "Placeholder".
 2. NEVER use phrases like "none of the above" or "all of the above".
-3. ALWAYS generate specific, realistic distractors that are:
+   Do not use "All of the above", "None of the above", "Not applicable", "N/A", or single-letter options.
+3. If a multiple choice question cannot be formed with four plausible, specific distractors from the source text, generate a different question instead.
+4. ALWAYS generate specific, realistic distractors that are:
    - In the same category/domain as the correct answer
    - Plausible but clearly incorrect to knowledgeable students
    - Similar in length and complexity to the correct answer
    - Not obviously wrong (e.g., not "Blue" when the question is about historical dates)
-4. All distractors must be unique and distinct from each other.
-5. Distractors should test common misconceptions or related concepts.
-6. EXAMPLE: If the question is "Who proclaimed the Philippine independence on June 12, 1898?" and the correct answer is "Emilio Aguinaldo", good distractors would be "Andres Bonifacio", "Jose Rizal", "Emilio Jacinto" - NOT "Incorrect option 1", "Wrong answer", etc.
-7. Prefer returning a single JSON object when the user asks for it; otherwise follow the requested format exactly.''';
+5. All distractors must be unique and distinct from each other.
+6. Distractors should test common misconceptions or related concepts.
+7. EXAMPLE: If the question is "Who proclaimed the Philippine independence on June 12, 1898?" and the correct answer is "Emilio Aguinaldo", good distractors would be "Andres Bonifacio", "Jose Rizal", "Emilio Jacinto" - NOT "Incorrect option 1", "Wrong answer", etc.
+8. Prefer returning a single JSON object when the user asks for it; otherwise follow the requested format exactly.''';
   }
 
   Future<String> _tryGenerateWithModel({
@@ -201,8 +204,10 @@ DISTRACTOR QUALITY RULES (for multiple choice questions):
 
   Future<String> generateExplanation({
     required String question,
+    required String? userAnswer,
     required String correctAnswer,
-    required List<String> wrongAnswers,
+    required QuestionType questionType,
+    List<String>? options,
     String? model,
   }) async {
     if (!isInitialized) {
@@ -216,11 +221,25 @@ DISTRACTOR QUALITY RULES (for multiple choice questions):
       _client = Groq(apiKey: _apiKey!, configuration: configuration);
     }
 
-    final prompt = '''Question: $question
-Correct Answer: $correctAnswer
-Wrong Answers: ${wrongAnswers.join(', ')}
+    final typeLabel = _questionTypeLabel(questionType);
+    final optionsText = (options != null && options.isNotEmpty)
+        ? options
+            .asMap()
+            .entries
+            .map((e) => '${String.fromCharCode(65 + e.key)}) ${e.value}')
+            .join('\n')
+        : '';
 
-Explain why the correct answer is correct and why the other options are incorrect. Be direct and student-friendly.''';
+    final prompt = '''Question Type: $typeLabel
+Question: $question
+User's Answer: ${userAnswer ?? 'No answer'}
+Correct Answer: $correctAnswer
+${optionsText.isNotEmpty ? 'Options:\n$optionsText\n' : ''}
+The user's answer may be wrong, incomplete, or missing. Do not treat it as correct. Explain why the correct answer is right and, if the user was wrong, why their answer is wrong without being harsh.
+
+${_questionTypeSpecificInstruction(questionType)}
+
+Keep the response concise (1-3 sentences).''';
 
     try {
       _client!.startChat();
@@ -238,6 +257,32 @@ Explain why the correct answer is correct and why the other options are incorrec
       return response.choices.first.message.content;
     } catch (e) {
       throw Exception('Failed to generate explanation: $e');
+    }
+  }
+
+  String _questionTypeLabel(QuestionType type) {
+    switch (type) {
+      case QuestionType.multipleChoice:
+        return 'Multiple Choice';
+      case QuestionType.identification:
+        return 'Identification';
+      case QuestionType.enumeration:
+        return 'Enumeration';
+      case QuestionType.mixedFormat:
+        return 'Mixed Format';
+    }
+  }
+
+  String _questionTypeSpecificInstruction(QuestionType type) {
+    switch (type) {
+      case QuestionType.multipleChoice:
+        return 'Explain why the correct option is correct and briefly why each distractor is incorrect.';
+      case QuestionType.identification:
+        return 'Explain why the correct answer is correct and compare it with the user\'s answer.';
+      case QuestionType.enumeration:
+        return 'Explain the set of correct items and point out any missing or incorrect items in the user\'s list.';
+      case QuestionType.mixedFormat:
+        return 'Explain why the correct answer is correct and compare it with the user\'s answer.';
     }
   }
 

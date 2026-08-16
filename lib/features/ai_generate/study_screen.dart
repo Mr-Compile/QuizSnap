@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/widgets/app_bar.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/models/prompt_template.dart';
@@ -103,7 +104,7 @@ class _StudyScreenState extends State<StudyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Groq AI Flashcard Generator')),
+      appBar: const CustomAppBar(title: 'Groq AI Flashcard Generator'),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

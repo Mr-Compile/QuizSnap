@@ -1,4 +1,5 @@
 import '../models/exam.dart';
+import '../models/prompt_template.dart';
 
 /// Validates and formats AI-generated answers so they stay useful for
 /// flashcards and study sessions.
@@ -190,17 +191,70 @@ class QuestionValidationService {
     return (type ?? '').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
   }
 
+  /// Maps a [PromptType] to its concrete [QuestionType].
+  static QuestionType _questionTypeFromPromptType(PromptType type) {
+    switch (type) {
+      case PromptType.multipleChoice:
+        return QuestionType.multipleChoice;
+      case PromptType.identification:
+        return QuestionType.identification;
+      case PromptType.enumeration:
+        return QuestionType.enumeration;
+      case PromptType.mixedFormat:
+        return QuestionType.mixedFormat;
+    }
+  }
+
+  /// Checks whether a normalized type string corresponds to the [expected]
+  /// prompt type.
+  static bool _typeMatchesPrompt(String normalized, PromptType expected) {
+    switch (expected) {
+      case PromptType.multipleChoice:
+        return normalized == 'multiplechoice' ||
+            normalized == 'multiple' ||
+            normalized == 'multiplechoicequestion';
+      case PromptType.identification:
+        return normalized == 'identification';
+      case PromptType.enumeration:
+        return normalized == 'enumeration';
+      case PromptType.mixedFormat:
+        return normalized == 'mixedformat' ||
+            normalized == 'mixed' ||
+            normalized == 'mixedformat';
+    }
+  }
+
   /// Determines the concrete [QuestionType] for a single question.
   ///
-  /// When [type] is mixed or not provided, the question is classified by its
-  /// structure: four options is multiple choice, a multi-item answer is
-  /// enumeration, otherwise identification.
+  /// When [expected] is provided, the requested type is honored and the
+  /// function does not fall through to structural heuristics. If the parsed
+  /// [type] string already matches [expected], the corresponding [QuestionType]
+  /// is returned. If [type] is mixed, unknown, or not provided and [expected]
+  /// is provided, the [QuestionType] for [expected] is returned.
+  ///
+  /// When [expected] is not provided and [type] is mixed or not provided, the
+  /// question is classified by its structure: four options is multiple choice,
+  /// a multi-item answer is enumeration, otherwise identification.
   static QuestionType determineQuestionType({
     String? type,
     required List<String> options,
     required String? answer,
+    PromptType? expected,
   }) {
     final normalized = _normalizeType(type);
+
+    if (expected != null) {
+      if (normalized.isNotEmpty && _typeMatchesPrompt(normalized, expected)) {
+        return _questionTypeFromPromptType(expected);
+      }
+
+      if (normalized.isEmpty ||
+          normalized == 'mixedformat' ||
+          normalized == 'mixed' ||
+          !_typeMatchesPrompt(normalized, expected)) {
+        return _questionTypeFromPromptType(expected);
+      }
+    }
 
     if (normalized == 'multiplechoice' || normalized == 'multiple') {
       return QuestionType.multipleChoice;

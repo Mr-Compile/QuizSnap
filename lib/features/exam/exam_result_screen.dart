@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/providers/exam_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/exam.dart';
+import '../../core/navigation/app_routes.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/custom_card.dart';
@@ -359,10 +360,13 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
         CustomButton(
           text: 'Back to Deck',
           onPressed: () {
-            final examProvider = context.read<ExamProvider>();
-            examProvider.clearExam();
+            final deckId = result.exam.deckId;
+            context.goNamed(
+              AppRoutes.deckDetails,
+              pathParameters: {'deckId': deckId.toString()},
+            );
             if (mounted) {
-              context.go('/decks/${result.exam.deckId}');
+              context.read<ExamProvider>().clearExam();
             }
           },
           isOutlined: true,

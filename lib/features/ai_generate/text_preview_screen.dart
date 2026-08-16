@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../shared/widgets/app_bar.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/unified_text_cleaner.dart';
 import '../../core/services/dialog_service.dart';
 import '../../shared/widgets/formatted_study_text.dart';
+import '../../shared/widgets/stepper_header.dart';
 import 'ai_generation_config_screen.dart';
 
 class TextPreviewScreen extends StatefulWidget {
@@ -46,8 +48,8 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Review Content'),
+      appBar: CustomAppBar(
+        title: 'Review Content',
         actions: [
           IconButton(
             icon: Icon(_isEditing ? Icons.check : Icons.edit),
@@ -61,6 +63,10 @@ class _TextPreviewScreenState extends State<TextPreviewScreen> {
       ),
       body: Column(
         children: [
+          const StepperHeader(
+            currentStep: 1,
+            steps: kAiWizardSteps,
+          ),
           if (widget.showImportSuccess)
             _buildImportSuccessBanner(context),
           // Source info and statistics

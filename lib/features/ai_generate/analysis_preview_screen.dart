@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/formatted_study_text.dart';
+import '../../shared/widgets/stepper_header.dart';
 import 'ai_generation_config_screen.dart';
 import 'text_preview_screen.dart';
 
@@ -42,6 +43,10 @@ class _AnalysisPreviewScreenState extends State<AnalysisPreviewScreen> {
       appBar: const CustomAppBar(title: 'Preview for AI'),
       body: Column(
         children: [
+          const StepperHeader(
+            currentStep: 1,
+            steps: kAiWizardSteps,
+          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppTheme.spacingLg),

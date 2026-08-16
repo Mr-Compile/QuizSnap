@@ -1,9 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../shared/widgets/app_bar.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/services/unified_text_cleaner.dart';
+import '../../shared/widgets/custom_button.dart';
+import '../../shared/widgets/stepper_header.dart';
 import 'text_preview_screen.dart';
 
 class CameraOcrScreen extends StatefulWidget {
@@ -18,8 +22,11 @@ class _CameraOcrScreenState extends State<CameraOcrScreen> {
   List<CameraDescription>? _cameras;
   bool _isCameraInitialized = false;
   bool _isProcessing = false;
+  bool _isOcrProcessing = false;
+  bool _isTextRecognizerClosed = false;
   String? _errorMessage;
-  final TextRecognizer _textRecognizer = TextRecognizer();
+  final List<String> _capturedImagePaths = [];
+  TextRecognizer _textRecognizer = TextRecognizer();
 
   @override
   void initState() {
@@ -30,8 +37,67 @@ class _CameraOcrScreenState extends State<CameraOcrScreen> {
   @override
   void dispose() {
     _cameraController?.dispose();
-    _textRecognizer.close();
+    if (!_isOcrProcessing && !_isTextRecognizerClosed) {
+      _textRecognizer.close();
+    }
     super.dispose();
+  }
+
+  Future<void> _processImages() async {
+    if (_capturedImagePaths.isEmpty || _isOcrProcessing) return;
+
+    if (_isTextRecognizerClosed) {
+      _textRecognizer = TextRecognizer();
+      _isTextRecognizerClosed = false;
+    }
+
+    setState(() {
+      _isOcrProcessing = true;
+    });
+
+    try {
+      final buffer = StringBuffer();
+
+      for (final imagePath in _capturedImagePaths) {
+        final inputImage = InputImage.fromFilePath(imagePath);
+        final recognizedText = await _textRecognizer.processImage(inputImage);
+
+        if (buffer.isNotEmpty) {
+          buffer.write('\n\n');
+        }
+
+        buffer.write(recognizedText.text);
+      }
+
+      final extractedText = OcrTextCleaner.clean(buffer.toString());
+
+      final source = _capturedImagePaths.length == 1
+          ? 'Camera OCR'
+          : 'Camera OCR (${_capturedImagePaths.length} images)';
+
+      if (!mounted) return;
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => TextPreviewScreen(
+            text: extractedText,
+            source: source,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        DialogService.showError(context, 'Failed to process images: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isOcrProcessing = false;
+        });
+      }
+      await _textRecognizer.close();
+      _isTextRecognizerClosed = true;
+    }
   }
 
   Future<void> _initializeCamera() async {
@@ -82,8 +148,8 @@ class _CameraOcrScreenState extends State<CameraOcrScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan Document'),
+      appBar: CustomAppBar(
+        title: 'Scan Document',
         actions: [
           if (_cameras != null && _cameras!.length > 1)
             IconButton(
@@ -92,11 +158,21 @@ class _CameraOcrScreenState extends State<CameraOcrScreen> {
             ),
         ],
       ),
-      body: _errorMessage != null
-          ? _buildErrorState()
-          : !_isCameraInitialized
-              ? const Center(child: CircularProgressIndicator())
-              : _buildCameraView(),
+      body: Column(
+        children: [
+          const StepperHeader(
+            currentStep: 1,
+            steps: kAiWizardSteps,
+          ),
+          Expanded(
+            child: _errorMessage != null
+                ? _buildErrorState()
+                : !_isCameraInitialized
+                    ? const Center(child: CircularProgressIndicator())
+                    : _buildCameraView(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -166,36 +242,74 @@ class _CameraOcrScreenState extends State<CameraOcrScreen> {
                 ],
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Position text within the frame',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    FloatingActionButton(
-                      heroTag: 'capture',
-                      onPressed: _isProcessing ? null : _captureAndRecognize,
-                      child: _isProcessing
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_capturedImagePaths.isNotEmpty) ...[
+                    SizedBox(
+                      height: 70,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _capturedImagePaths.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                File(_capturedImagePaths[index]),
+                                width: 56,
+                                height: 70,
+                                fit: BoxFit.cover,
                               ),
-                            )
-                          : const Icon(Icons.camera_alt),
+                            ),
+                          );
+                        },
+                      ),
                     ),
+                    const SizedBox(height: 16),
                   ],
-                ),
-              ],
+                  Text(
+                    'Position text within the frame',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      FloatingActionButton(
+                        heroTag: 'capture',
+                        onPressed: _isProcessing ? null : _captureAndRecognize,
+                        child: _isProcessing
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.camera_alt),
+                      ),
+                      if (_capturedImagePaths.isNotEmpty) ...[
+                        const SizedBox(width: 24),
+                        CustomButton(
+                          text: _isOcrProcessing
+                              ? 'Processing...'
+                              : (_capturedImagePaths.length == 1
+                                  ? 'Process'
+                                  : 'Done (${_capturedImagePaths.length})'),
+                          onPressed: _isOcrProcessing ? null : _processImages,
+                          isLoading: _isOcrProcessing,
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -232,41 +346,31 @@ class _CameraOcrScreenState extends State<CameraOcrScreen> {
   }
 
   Future<void> _captureAndRecognize() async {
-    if (_cameraController == null || _isProcessing) return;
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _isProcessing) {
+      return;
+    }
 
     setState(() {
       _isProcessing = true;
     });
 
     try {
-      // Capture image
+      // Capture image and allow additional captures
       final image = await _cameraController!.takePicture();
-      
-      // Perform OCR
-      final inputImage = InputImage.fromFilePath(image.path);
-      final recognizedText = await _textRecognizer.processImage(inputImage);
-      
-      final extractedText = OcrTextCleaner.clean(recognizedText.text);
 
-      if (!mounted) return;
-
-      // Navigate to text preview
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => TextPreviewScreen(
-            text: extractedText,
-            source: 'Camera OCR',
-          ),
-        ),
-      );
+      setState(() {
+        _capturedImagePaths.add(image.path);
+        _isProcessing = false;
+      });
     } catch (e) {
       if (mounted) {
         setState(() {
           _isProcessing = false;
-          _errorMessage = 'Failed to capture or recognize text: $e';
         });
 
-        DialogService.showError(context, 'Error: $e');
+        DialogService.showError(context, 'Failed to capture image: $e');
       }
     }
   }

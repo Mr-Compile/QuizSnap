@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../shared/widgets/app_bar.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/document_cache_service.dart';
@@ -61,7 +62,7 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
         });
       } else {
         setState(() {
-          _totalPages = 1;
+          _totalPages = 0;
           _isLoading = false;
         });
       }
@@ -76,14 +77,14 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Select Document Scope'),
+      appBar: CustomAppBar(
+        title: 'Select Document Scope',
       ),
       body: Column(
         children: [
           const StepperHeader(
             currentStep: 1,
-            steps: ['Import', 'Scope', 'Select', 'Preview', 'Generate'],
+            steps: kAiWizardSteps,
           ),
           Expanded(
             child: _isLoading
@@ -179,18 +180,16 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
           if (widget.fileType == 'pdf')
             const SizedBox(height: 16),
           
-          if (widget.fileType == 'pdf')
-            _buildScopeCard(
-              context,
-              title: 'By Chapter/Heading',
-              description: 'Select chapters or headings to analyze',
-              icon: Icons.format_list_bulleted,
-              color: Theme.of(context).colorScheme.tertiary,
-              onTap: () => _navigateToHeadingSelector(),
-            ),
+          _buildScopeCard(
+            context,
+            title: 'By Chapter/Heading',
+            description: 'Select chapters or headings to analyze',
+            icon: Icons.format_list_bulleted,
+            color: Theme.of(context).colorScheme.tertiary,
+            onTap: () => _navigateToHeadingSelector(),
+          ),
           
-          if (widget.fileType == 'pdf')
-            const SizedBox(height: 16),
+          const SizedBox(height: 16),
           
           _buildScopeCard(
             context,
@@ -377,7 +376,7 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
 
       if (!mounted) return;
 
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => AnalysisPreviewScreen(
             text: rawText,

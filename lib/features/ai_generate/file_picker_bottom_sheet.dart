@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/file_management_service.dart';
 import '../../core/services/dialog_service.dart';
+import '../../core/services/unified_text_cleaner.dart';
 import 'document_scope_selection_screen.dart';
 import 'text_preview_screen.dart';
 
@@ -150,78 +152,85 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
             allowedExtensions: ['docx'],
           );
           break;
+        case 'image':
+          result = await FilePicker.platform.pickFiles(
+            type: FileType.image,
+            allowMultiple: true,
+          );
+          break;
         default:
           result = await FilePicker.platform.pickFiles();
       }
 
-      if (result != null && result.files.isNotEmpty && result.files.single.path != null) {
-        final originalFile = File(result.files.single.path!);
+      if (result != null && result.files.isNotEmpty) {
+        final selectedFiles = result.files.where((f) => f.path != null).toList();
 
-        // Copy file to app storage to avoid permission issues
-        final copiedFilePath = await _fileManagementService.copyFileToAppStorage(originalFile);
-        final copiedFile = File(copiedFilePath);
+        if (selectedFiles.isEmpty) {
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
 
-        if (!mounted) return;
+        if (widget.fileType.toLowerCase() == 'image') {
+          await _processSelectedImages(selectedFiles);
+        } else {
+          final originalFile = File(selectedFiles.first.path!);
 
-        // Close the bottom sheet first.
-        Navigator.of(context).pop();
+          // Copy file to app storage to avoid permission issues
+          final copiedFilePath = await _fileManagementService.copyFileToAppStorage(originalFile);
+          final copiedFile = File(copiedFilePath);
 
-        // Navigate directly to the review/extracted-content screen and
-        // communicate the successful import through the destination screen.
-        // Do NOT show a success dialog here; that keeps stale state alive.
+          if (!mounted) return;
 
-        // Navigate to document scope selection screen
-        if (widget.fileType.toLowerCase() == 'pdf') {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => DocumentScopeSelectionScreen(
-                file: copiedFile,
-                fileType: widget.fileType,
-                showImportSuccess: true,
-              ),
-            ),
-          );
-        } else if (widget.fileType.toLowerCase() == 'txt') {
-          // For TXT, extract text and go to text preview
-          try {
-            final text = await DocumentExtractionService.extractFromFile(copiedFile);
-            if (!mounted) return;
+          // Close the bottom sheet first.
+          Navigator.of(context).pop();
 
-            final fileName = copiedFile.path.split('/').last;
+          // Navigate directly to the review/extracted-content screen and
+          // communicate the successful import through the destination screen.
+          // Do NOT show a success dialog here; that keeps stale state alive.
 
+          if (widget.fileType.toLowerCase() == 'pdf') {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => TextPreviewScreen(
-                  text: text,
-                  source: fileName,
+                builder: (context) => DocumentScopeSelectionScreen(
+                  file: copiedFile,
+                  fileType: widget.fileType,
                   showImportSuccess: true,
                 ),
               ),
             );
-          } catch (e) {
-            if (!mounted) return;
-            DialogService.showError(context, 'Failed to extract text: $e');
-          }
-        } else if (widget.fileType.toLowerCase() == 'docx') {
-          // For DOCX, extract text and go to text preview
-          try {
-            final text = await DocumentExtractionService.extractFromFile(copiedFile);
-            if (!mounted) return;
+          } else if (widget.fileType.toLowerCase() == 'txt') {
+            // For TXT, extract text and go to text preview
+            try {
+              final text = await DocumentExtractionService.extractFromFile(copiedFile);
+              if (!mounted) return;
 
-            final fileName = copiedFile.path.split('/').last;
+              final fileName = copiedFile.path.split('/').last;
 
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => TextPreviewScreen(
+                    text: text,
+                    source: fileName,
+                    showImportSuccess: true,
+                  ),
+                ),
+              );
+            } catch (e) {
+              if (!mounted) return;
+              DialogService.showError(context, 'Failed to extract text: $e');
+            }
+          } else if (widget.fileType.toLowerCase() == 'docx') {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => TextPreviewScreen(
-                  text: text,
-                  source: fileName,
+                builder: (context) => DocumentScopeSelectionScreen(
+                  file: copiedFile,
+                  fileType: widget.fileType,
                   showImportSuccess: true,
                 ),
               ),
             );
-          } catch (e) {
-            if (!mounted) return;
-            DialogService.showError(context, 'Failed to extract text: $e');
           }
         }
       } else {
@@ -234,6 +243,65 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
         _isLoading = false;
         _errorMessage = 'Failed to pick file: $e';
       });
+    }
+  }
+
+  Future<void> _processSelectedImages(List<PlatformFile> selectedFiles) async {
+    try {
+      // Copy each selected image to app storage to avoid permission issues
+      final copiedImagePaths = <String>[];
+      for (final file in selectedFiles) {
+        final originalFile = File(file.path!);
+        final copiedPath = await _fileManagementService.copyFileToAppStorage(originalFile);
+        copiedImagePaths.add(copiedPath);
+      }
+
+      if (!mounted) return;
+
+      // OCR all selected images and combine the recognized text
+      final textRecognizer = TextRecognizer();
+      String combinedText;
+      try {
+        final buffer = StringBuffer();
+        for (final imagePath in copiedImagePaths) {
+          final inputImage = InputImage.fromFilePath(imagePath);
+          final recognizedText = await textRecognizer.processImage(inputImage);
+          if (buffer.isNotEmpty) {
+            buffer.write('\n\n');
+          }
+          buffer.write(recognizedText.text);
+        }
+        combinedText = OcrTextCleaner.clean(buffer.toString());
+      } finally {
+        await textRecognizer.close();
+      }
+
+      if (!mounted) return;
+
+      final source = copiedImagePaths.length == 1
+          ? selectedFiles.first.name
+          : 'Image OCR (${copiedImagePaths.length} images)';
+
+      // Close the bottom sheet first
+      Navigator.of(context).pop();
+
+      // Navigate to text preview with the combined OCR text
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => TextPreviewScreen(
+            text: combinedText,
+            source: source,
+            showImportSuccess: true,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        DialogService.showError(context, 'Failed to process images: $e');
+      }
     }
   }
 

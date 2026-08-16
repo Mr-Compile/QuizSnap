@@ -36,12 +36,19 @@ class ExamProvider with ChangeNotifier {
   DateTime? get currentQuestionStartTime => _currentQuestionStartTime;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  ExamQuestion? get currentQuestion {
+  ExamQuestion? get _currentQuestion {
     if (_currentQuestions == null || 
         _currentQuestionIndex >= _currentQuestions!.length) {
       return null;
     }
     return _currentQuestions![_currentQuestionIndex];
+  }
+
+  /// A sanitized, answer-free view of the current question for the UI.
+  QuestionForExam? get currentQuestionForExam {
+    final question = _currentQuestion;
+    if (question == null) return null;
+    return QuestionForExam.fromExamQuestion(question);
   }
   int get answeredCount => _currentAnswers?.length ?? 0;
   int get totalQuestions => _currentQuestions?.length ?? 0;
@@ -136,7 +143,7 @@ class ExamProvider with ChangeNotifier {
   }
 
   void submitAnswer(int selectedAnswerIndex) {
-    if (_currentExam == null || currentQuestion == null) {
+    if (_currentExam == null || _currentQuestion == null) {
       throw Exception('No active exam or question');
     }
 
@@ -144,7 +151,7 @@ class ExamProvider with ChangeNotifier {
 
     _examService.submitAnswer(
       examId: _currentExam!.id,
-      questionId: currentQuestion!.id,
+      questionId: _currentQuestion!.id,
       selectedAnswerIndex: selectedAnswerIndex,
       questionStartTime: _currentQuestionStartTime!,
     );
@@ -154,18 +161,18 @@ class ExamProvider with ChangeNotifier {
   }
 
   void submitTextAnswer(String textAnswer) {
-    if (_currentExam == null || currentQuestion == null) {
+    if (_currentExam == null || _currentQuestion == null) {
       throw Exception('No active exam or question');
     }
 
     _currentQuestionStartTime ??= DateTime.now();
 
     // Validate text answer against correct answer
-    final isCorrect = _validateTextAnswer(textAnswer, currentQuestion!);
+    final isCorrect = _validateTextAnswer(textAnswer, _currentQuestion!);
 
     _examService.submitTextAnswer(
       examId: _currentExam!.id,
-      questionId: currentQuestion!.id,
+      questionId: _currentQuestion!.id,
       textAnswer: textAnswer,
       isCorrect: isCorrect,
       questionStartTime: _currentQuestionStartTime!,
@@ -176,18 +183,18 @@ class ExamProvider with ChangeNotifier {
   }
 
   void submitListAnswer(List<String> listAnswer) {
-    if (_currentExam == null || currentQuestion == null) {
+    if (_currentExam == null || _currentQuestion == null) {
       throw Exception('No active exam or question');
     }
 
     _currentQuestionStartTime ??= DateTime.now();
 
     // Validate list answer against correct answers
-    final isCorrect = _validateListAnswer(listAnswer, currentQuestion!);
+    final isCorrect = _validateListAnswer(listAnswer, _currentQuestion!);
 
     _examService.submitListAnswer(
       examId: _currentExam!.id,
-      questionId: currentQuestion!.id,
+      questionId: _currentQuestion!.id,
       listAnswer: listAnswer,
       isCorrect: isCorrect,
       questionStartTime: _currentQuestionStartTime!,
@@ -305,7 +312,7 @@ class ExamProvider with ChangeNotifier {
     );
   }
 
-  Future<String> generateExplanation(ExamQuestion question) async {
+  Future<String> generateExplanation(ExamQuestion question, {UserAnswer? userAnswer}) async {
     if (_groqService == null || !_groqService.isInitialized) {
       throw Exception('AI service not available');
     }
@@ -314,17 +321,68 @@ class ExamProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final wrongAnswers = <String>[];
-      for (int i = 0; i < question.options.length; i++) {
-        if (i != question.correctAnswerIndex) {
-          wrongAnswers.add(question.options[i]);
+      // Prefer the provided answer; fall back to the current exam answers.
+      final answer = userAnswer ?? _currentAnswers?.firstWhere(
+        (a) => a.questionId == question.id,
+        orElse: () => UserAnswer(
+          questionId: question.id,
+          isCorrect: false,
+          answeredAt: DateTime.now(),
+          timeSpent: Duration.zero,
+        ),
+      );
+
+      // Resolve mixed format to a concrete question type.
+      QuestionType resolvedType = question.type;
+      if (resolvedType == QuestionType.mixedFormat) {
+        if (question.correctAnswers != null && question.correctAnswers!.isNotEmpty) {
+          resolvedType = QuestionType.enumeration;
+        } else if (question.options.length >= 2) {
+          resolvedType = QuestionType.multipleChoice;
+        } else {
+          resolvedType = QuestionType.identification;
         }
+      }
+
+      String userAnswerText;
+      List<String>? options;
+
+      switch (resolvedType) {
+        case QuestionType.multipleChoice:
+          final index = answer?.selectedAnswerIndex;
+          if (index != null && index >= 0 && index < question.options.length) {
+            userAnswerText = question.options[index];
+          } else {
+            userAnswerText = 'No answer';
+          }
+          options = question.options;
+          break;
+        case QuestionType.identification:
+          final text = answer?.textAnswer?.trim();
+          userAnswerText = text != null && text.isNotEmpty ? text : 'No answer';
+          options = null;
+          break;
+        case QuestionType.enumeration:
+          final list = answer?.listAnswer;
+          userAnswerText = list != null && list.isNotEmpty
+              ? list.join(', ')
+              : 'No answer';
+          options = null;
+          break;
+        case QuestionType.mixedFormat:
+          // Should already be resolved; fallback to a generic message.
+          final text = answer?.textAnswer?.trim();
+          userAnswerText = text != null && text.isNotEmpty ? text : 'No answer';
+          options = question.options.isNotEmpty ? question.options : null;
+          break;
       }
 
       final explanation = await _groqService.generateExplanation(
         question: question.question,
-        correctAnswer: question.correctAnswer ?? '',
-        wrongAnswers: wrongAnswers,
+        userAnswer: userAnswerText,
+        correctAnswer: question.correctAnswerText,
+        questionType: resolvedType,
+        options: options,
         model: _groqService.currentModel,
       );
 

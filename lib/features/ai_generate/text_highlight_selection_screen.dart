@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../shared/widgets/app_bar.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/providers/highlighted_selection_provider.dart';
 import '../../shared/widgets/selectable_document_viewer.dart';
 import '../../shared/widgets/selected_text_summary_sheet.dart';
+import '../../shared/widgets/stepper_header.dart';
 import 'analysis_preview_screen.dart';
 import '../../core/services/dialog_service.dart';
 
@@ -75,8 +77,8 @@ class _TextHighlightSelectionScreenState extends State<TextHighlightSelectionScr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Select Text'),
+      appBar: CustomAppBar(
+        title: 'Select Text',
         actions: [
           if (widget.fileType == 'pdf')
             IconButton(
@@ -96,11 +98,21 @@ class _TextHighlightSelectionScreenState extends State<TextHighlightSelectionScr
             ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? _buildErrorState()
-              : _buildContent(),
+      body: Column(
+        children: [
+          const StepperHeader(
+            currentStep: 1,
+            steps: kAiWizardSteps,
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                    ? _buildErrorState()
+                    : _buildContent(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -234,7 +246,7 @@ class _TextHighlightSelectionScreenState extends State<TextHighlightSelectionScr
       return;
     }
 
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AnalysisPreviewScreen(
           text: _selectedText,

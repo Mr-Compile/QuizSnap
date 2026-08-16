@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../shared/widgets/app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:pdfx/pdfx.dart';
 import '../../core/services/document_extraction_service.dart';
@@ -69,8 +70,8 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Select Page Range'),
+      appBar: CustomAppBar(
+        title: 'Select Page Range',
         actions: [
           if (_selectedPages.isNotEmpty)
             TextButton.icon(
@@ -83,8 +84,8 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
       body: Column(
         children: [
           const StepperHeader(
-            currentStep: 2,
-            steps: ['Import', 'Scope', 'Select', 'Preview', 'Generate'],
+            currentStep: 1,
+            steps: kAiWizardSteps,
           ),
           Expanded(
             child: _isLoading
@@ -522,7 +523,7 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
 
       if (!mounted) return;
 
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => AnalysisPreviewScreen(
             text: text,

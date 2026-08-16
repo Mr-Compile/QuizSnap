@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../shared/widgets/app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:pdfx/pdfx.dart';
 import '../../core/services/document_extraction_service.dart';
@@ -159,8 +160,8 @@ class _HeadingSelectionScreenState extends State<HeadingSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Select Chapters/Headings'),
+      appBar: CustomAppBar(
+        title: 'Select Chapters/Headings',
         actions: [
           if (_headings.any((h) => h.isSelected))
             TextButton.icon(

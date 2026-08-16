@@ -104,7 +104,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
 
   void _syncTextAnswer() {
     final examProvider = context.read<ExamProvider>();
-    final question = examProvider.currentQuestion;
+    final question = examProvider.currentQuestionForExam;
     if (question == null) return;
     final controller = _textControllers[question.id];
     if (controller != null && controller.text.trim().isNotEmpty) {
@@ -179,21 +179,11 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
 
   void _persistCurrentInput() {
     final examProvider = context.read<ExamProvider>();
-    final question = examProvider.currentQuestion;
+    final question = examProvider.currentQuestionForExam;
     if (question == null) return;
 
     switch (question.type) {
       case QuestionType.identification:
-      case QuestionType.mixedFormat:
-        if (question.type == QuestionType.mixedFormat &&
-            question.correctAnswers != null &&
-            question.correctAnswers!.isNotEmpty) {
-          break;
-        }
-        if (question.type == QuestionType.mixedFormat &&
-            question.options.length >= 4) {
-          break;
-        }
         final controller = _textControllers[question.id];
         if (controller != null) {
           _submitTextAnswer(controller.text);
@@ -217,6 +207,16 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         }
         break;
       case QuestionType.multipleChoice:
+        break;
+      case QuestionType.mixedFormat:
+        if (question.options.isNotEmpty) {
+          // Treat as multiple choice; nothing to persist.
+          break;
+        }
+        final controller = _textControllers[question.id];
+        if (controller != null) {
+          _submitTextAnswer(controller.text);
+        }
         break;
     }
   }
@@ -281,7 +281,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
         ),
         body: Consumer<ExamProvider>(
           builder: (context, examProvider, child) {
-            final question = examProvider.currentQuestion;
+            final question = examProvider.currentQuestionForExam;
 
             if (question == null) {
               return const Center(child: CircularProgressIndicator());
@@ -411,7 +411,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     );
   }
 
-  Widget _buildQuestionCard(ExamQuestion question) {
+  Widget _buildQuestionCard(QuestionForExam question) {
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,7 +426,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
   }
 
   Widget _buildAnswerOptions(
-    ExamQuestion question,
+    QuestionForExam question,
     UserAnswer? answer,
     ExamProvider examProvider,
   ) {
@@ -438,17 +438,13 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
       case QuestionType.enumeration:
         return _buildEnumerationInput(question, answer);
       case QuestionType.mixedFormat:
-        if (question.correctAnswers != null && question.correctAnswers!.isNotEmpty) {
-          return _buildEnumerationInput(question, answer);
-        }
-        if (question.options.length >= 4) {
-          return _buildMultipleChoiceOptions(question, answer);
-        }
-        return _buildIdentificationInput(question, answer);
+        return question.options.isNotEmpty
+            ? _buildMultipleChoiceOptions(question, answer)
+            : _buildIdentificationInput(question, answer);
     }
   }
 
-  Widget _buildMultipleChoiceOptions(ExamQuestion question, UserAnswer? answer) {
+  Widget _buildMultipleChoiceOptions(QuestionForExam question, UserAnswer? answer) {
     return Column(
       children: question.options.asMap().entries.map((entry) {
         final index = entry.key;
@@ -525,7 +521,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     );
   }
 
-  Widget _buildIdentificationInput(ExamQuestion question, UserAnswer? answer) {
+  Widget _buildIdentificationInput(QuestionForExam question, UserAnswer? answer) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -549,7 +545,7 @@ class _ExamQuestionScreenState extends State<ExamQuestionScreen> {
     );
   }
 
-  Widget _buildEnumerationInput(ExamQuestion question, UserAnswer? answer) {
+  Widget _buildEnumerationInput(QuestionForExam question, UserAnswer? answer) {
     final items = answer?.listAnswer ?? <String>[];
     final colorScheme = Theme.of(context).colorScheme;
 

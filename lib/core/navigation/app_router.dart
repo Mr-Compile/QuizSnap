@@ -167,6 +167,7 @@ class AppRouter {
             },
           ),
           GoRoute(
+            name: AppRoutes.deckDetails,
             path: ':deckId',
             builder: (context, state) {
               final deckId = int.tryParse(state.pathParameters['deckId'] ?? '');

@@ -24,13 +24,30 @@ class DocumentExtractionService {
     try {
       final bytes = await file.readAsBytes();
       final PdfDocument document = PdfDocument(inputBytes: bytes);
-      
-      // Extract text from the entire document
       final PdfTextExtractor textExtractor = PdfTextExtractor(document);
-      final extractedText = textExtractor.extractText();
-      
+
+      final String extractedText;
+      if (pages != null && pages.isNotEmpty) {
+        final sortedPages = pages.toSet().toList()..sort();
+        final buffer = StringBuffer();
+        for (final page in sortedPages) {
+          if (page >= 1 && page <= document.pages.count) {
+            buffer.writeln(
+              textExtractor.extractText(
+                startPageIndex: page - 1,
+                endPageIndex: page - 1,
+                layoutText: true,
+              ),
+            );
+          }
+        }
+        extractedText = buffer.toString();
+      } else {
+        extractedText = textExtractor.extractText();
+      }
+
       document.dispose();
-      
+
       if (extractedText.trim().isEmpty) {
         throw Exception('No text could be extracted from PDF');
       }

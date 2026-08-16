@@ -291,7 +291,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
           const SizedBox(height: AppTheme.spacingMd),
           _buildAnswerOptions(question, answer),
           const SizedBox(height: AppTheme.spacingMd),
-          _buildExplanationButton(question),
+          _buildExplanationButton(question, answer),
         ],
       ),
     );
@@ -596,7 +596,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
     );
   }
 
-  Widget _buildExplanationButton(ExamQuestion question) {
+  Widget _buildExplanationButton(ExamQuestion question, UserAnswer answer) {
     return CustomButton(
       text: 'View Explanation',
       onPressed: () {
@@ -606,6 +606,7 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
           backgroundColor: Colors.transparent,
           builder: (context) => AnswerExplanationBottomSheet(
             question: question,
+            userAnswer: answer,
           ),
         );
       },

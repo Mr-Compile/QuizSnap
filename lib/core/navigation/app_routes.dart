@@ -16,7 +16,7 @@ class AppRoutes {
   static const String settings = '/settings';
 
   // Deck routes
-  static const String deckDetails = '/decks/:deckId';
+  static const String deckDetails = 'deckDetails';
   static const String createDeck = '/decks/create';
   static const String editDeck = '/decks/:deckId/edit';
 

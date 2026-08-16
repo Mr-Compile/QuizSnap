@@ -9,6 +9,7 @@ import '../../core/navigation/app_routes.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/stepper_header.dart';
 import 'file_picker_bottom_sheet.dart';
 import 'camera_ocr_screen.dart';
 import 'recent_generation_details_screen.dart';
@@ -25,24 +26,34 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'AI Generate'),
-      body: Consumer<GroqProvider>(
-        builder: (context, groqProvider, _) {
-          // Show loading state during auto-initialization
-          if (groqProvider.isAutoInitializing) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Initializing AI service...'),
-                ],
-              ),
-            );
-          }
+      body: Column(
+        children: [
+          const StepperHeader(
+            currentStep: 0,
+            steps: kAiWizardSteps,
+          ),
+          Expanded(
+            child: Consumer<GroqProvider>(
+              builder: (context, groqProvider, _) {
+                // Show loading state during auto-initialization
+                if (groqProvider.isAutoInitializing) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Initializing AI service...'),
+                      ],
+                    ),
+                  );
+                }
 
-          return _buildImportOptions(context, groqProvider);
-        },
+                return _buildImportOptions(context, groqProvider);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -180,6 +191,16 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                     onTap: () => _ensureApiKeyConfigured(
                       context,
                       () => _navigateToCameraOCR(context),
+                    ),
+                  ),
+                  _buildImportCard(
+                    context,
+                    title: 'Image(s)',
+                    icon: Icons.photo_library,
+                    color: const Color(0xFF8B5CF6), // Purple
+                    onTap: () => _ensureApiKeyConfigured(
+                      context,
+                      () => _showFilePicker(context, 'image'),
                     ),
                   ),
                 ],

@@ -168,6 +168,10 @@ class ExamQuestion {
   final List<String>? correctAnswers; // For enumeration (multiple items)
   final String? explanation;
   final int? flashcardId;
+  final String? source;
+  final String? sourceText;
+  final int? sourcePage;
+  final String? sourceSection;
 
   ExamQuestion({
     required this.id,
@@ -179,6 +183,10 @@ class ExamQuestion {
     this.correctAnswers,
     this.explanation,
     this.flashcardId,
+    this.source,
+    this.sourceText,
+    this.sourcePage,
+    this.sourceSection,
   });
 
   ExamQuestion copyWith({
@@ -191,6 +199,10 @@ class ExamQuestion {
     List<String>? correctAnswers,
     String? explanation,
     int? flashcardId,
+    String? source,
+    String? sourceText,
+    int? sourcePage,
+    String? sourceSection,
   }) {
     return ExamQuestion(
       id: id ?? this.id,
@@ -202,6 +214,10 @@ class ExamQuestion {
       correctAnswers: correctAnswers ?? this.correctAnswers,
       explanation: explanation ?? this.explanation,
       flashcardId: flashcardId ?? this.flashcardId,
+      source: source ?? this.source,
+      sourceText: sourceText ?? this.sourceText,
+      sourcePage: sourcePage ?? this.sourcePage,
+      sourceSection: sourceSection ?? this.sourceSection,
     );
   }
 
@@ -229,6 +245,10 @@ class ExamQuestion {
       'correctAnswers': correctAnswers,
       'explanation': explanation,
       'flashcardId': flashcardId,
+      'source': source,
+      'sourceText': sourceText,
+      'sourcePage': sourcePage,
+      'sourceSection': sourceSection,
     };
   }
 
@@ -250,6 +270,103 @@ class ExamQuestion {
           : null,
       explanation: json['explanation'] as String?,
       flashcardId: json['flashcardId'] as int?,
+      source: json['source'] as String?,
+      sourceText: json['sourceText'] as String?,
+      sourcePage: json['sourcePage'] as int?,
+      sourceSection: json['sourceSection'] as String?,
+    );
+  }
+}
+
+/// A sanitized view of an [ExamQuestion] that is safe to render in the exam UI.
+///
+/// This model intentionally omits all answer-bearing fields
+/// (`correctAnswerIndex`, `correctAnswer`, `correctAnswers`, `explanation`,
+/// `flashcardId`) so that the widget tree cannot leak or inspect correct answers.
+class QuestionForExam {
+  final String id;
+  final String question;
+  final QuestionType type;
+  final List<String> options;
+  final bool isEnumeration;
+
+  const QuestionForExam({
+    required this.id,
+    required this.question,
+    required this.type,
+    this.options = const [],
+    this.isEnumeration = false,
+  });
+
+  QuestionForExam copyWith({
+    String? id,
+    String? question,
+    QuestionType? type,
+    List<String>? options,
+    bool? isEnumeration,
+  }) {
+    return QuestionForExam(
+      id: id ?? this.id,
+      question: question ?? this.question,
+      type: type ?? this.type,
+      options: options ?? this.options,
+      isEnumeration: isEnumeration ?? this.isEnumeration,
+    );
+  }
+
+  /// Converts a full [ExamQuestion] into a sanitized [QuestionForExam].
+  ///
+  /// Any [QuestionType.mixedFormat] value is resolved to a concrete type for
+  /// the UI. Answer data (`correctAnswers`) is only read for this one-way
+  /// resolution and is not stored in the resulting object.
+  factory QuestionForExam.fromExamQuestion(ExamQuestion question) {
+    QuestionType resolvedType = question.type;
+
+    if (resolvedType == QuestionType.mixedFormat) {
+      if (question.options.length >= 2) {
+        resolvedType = QuestionType.multipleChoice;
+      } else if (question.correctAnswers != null &&
+          question.correctAnswers!.isNotEmpty) {
+        resolvedType = QuestionType.enumeration;
+      } else {
+        resolvedType = QuestionType.identification;
+      }
+    }
+
+    return QuestionForExam(
+      id: question.id,
+      question: question.question,
+      type: resolvedType,
+      options: question.options,
+      isEnumeration: resolvedType == QuestionType.enumeration,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'question': question,
+      'type': type.toString(),
+      'options': options,
+      'isEnumeration': isEnumeration,
+    };
+  }
+
+  factory QuestionForExam.fromJson(Map<String, dynamic> json) {
+    final resolvedType = json['type'] != null
+        ? QuestionType.values.firstWhere(
+            (e) => e.toString() == json['type'],
+            orElse: () => QuestionType.multipleChoice,
+          )
+        : QuestionType.multipleChoice;
+
+    return QuestionForExam(
+      id: json['id'] as String,
+      question: json['question'] as String,
+      type: resolvedType,
+      options: List<String>.from(json['options'] as List? ?? []),
+      isEnumeration: json['isEnumeration'] as bool? ??
+          resolvedType == QuestionType.enumeration,
     );
   }
 }

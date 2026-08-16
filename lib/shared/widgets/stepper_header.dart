@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 
+const List<String> kAiWizardSteps = ['Source', 'Content', 'Configure', 'Generate', 'Review'];
+
 /// A compact horizontal stepper for the document-analysis flow.
 class StepperHeader extends StatelessWidget {
   final int currentStep;

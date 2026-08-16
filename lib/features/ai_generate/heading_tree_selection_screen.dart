@@ -43,8 +43,9 @@ class _HeadingTreeSelectionScreenState extends State<HeadingTreeSelectionScreen>
   Future<void> _loadDocument() async {
     setState(() => _isLoading = true);
     try {
-      _totalPages = await DocumentExtractionService.getPageCount(widget.file);
-      final text = await DocumentExtractionService.extractFromPdf(widget.file);
+      final isPdf = widget.file.path.toLowerCase().endsWith('.pdf');
+      _totalPages = isPdf ? await DocumentExtractionService.getPageCount(widget.file) : 0;
+      final text = await DocumentExtractionService.extractFromFile(widget.file);
       _lines = text.split('\n');
       _sections = HeadingDetectionService.detectSections(text);
       setState(() => _isLoading = false);
@@ -63,8 +64,8 @@ class _HeadingTreeSelectionScreenState extends State<HeadingTreeSelectionScreen>
       body: Column(
         children: [
           const StepperHeader(
-            currentStep: 2,
-            steps: ['Import', 'Scope', 'Select', 'Preview', 'Generate'],
+            currentStep: 1,
+            steps: kAiWizardSteps,
           ),
           Expanded(
             child: _isLoading
@@ -253,12 +254,12 @@ class _HeadingTreeSelectionScreenState extends State<HeadingTreeSelectionScreen>
       rawText: text,
       selectedScope: 'headings',
       totalPages: _totalPages,
-      source: 'PDF sections',
+      source: '${widget.file.path.split('/').last} sections',
     );
 
     if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => SectionPreviewScreen(
           text: text,
