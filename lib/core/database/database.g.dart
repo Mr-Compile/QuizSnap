@@ -1294,6 +1294,48 @@ class $FlashcardsTable extends Flashcards
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceTextMeta = const VerificationMeta(
+    'sourceText',
+  );
+  @override
+  late final GeneratedColumn<String> sourceText = GeneratedColumn<String>(
+    'source_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourcePageMeta = const VerificationMeta(
+    'sourcePage',
+  );
+  @override
+  late final GeneratedColumn<int> sourcePage = GeneratedColumn<int>(
+    'source_page',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceSectionMeta = const VerificationMeta(
+    'sourceSection',
+  );
+  @override
+  late final GeneratedColumn<String> sourceSection = GeneratedColumn<String>(
+    'source_section',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1320,6 +1362,10 @@ class $FlashcardsTable extends Flashcards
     correctOption,
     enumerationItems,
     explanation,
+    source,
+    sourceText,
+    sourcePage,
+    sourceSection,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1507,6 +1553,33 @@ class $FlashcardsTable extends Flashcards
         ),
       );
     }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('source_text')) {
+      context.handle(
+        _sourceTextMeta,
+        sourceText.isAcceptableOrUnknown(data['source_text']!, _sourceTextMeta),
+      );
+    }
+    if (data.containsKey('source_page')) {
+      context.handle(
+        _sourcePageMeta,
+        sourcePage.isAcceptableOrUnknown(data['source_page']!, _sourcePageMeta),
+      );
+    }
+    if (data.containsKey('source_section')) {
+      context.handle(
+        _sourceSectionMeta,
+        sourceSection.isAcceptableOrUnknown(
+          data['source_section']!,
+          _sourceSectionMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1612,6 +1685,22 @@ class $FlashcardsTable extends Flashcards
         DriftSqlType.string,
         data['${effectivePrefix}explanation'],
       ),
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      ),
+      sourceText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_text'],
+      ),
+      sourcePage: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_page'],
+      ),
+      sourceSection: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_section'],
+      ),
     );
   }
 
@@ -1646,6 +1735,10 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
   final String? correctOption;
   final String? enumerationItems;
   final String? explanation;
+  final String? source;
+  final String? sourceText;
+  final int? sourcePage;
+  final String? sourceSection;
   const Flashcard({
     required this.id,
     required this.question,
@@ -1671,6 +1764,10 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
     this.correctOption,
     this.enumerationItems,
     this.explanation,
+    this.source,
+    this.sourceText,
+    this.sourcePage,
+    this.sourceSection,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1718,6 +1815,18 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
     }
     if (!nullToAbsent || explanation != null) {
       map['explanation'] = Variable<String>(explanation);
+    }
+    if (!nullToAbsent || source != null) {
+      map['source'] = Variable<String>(source);
+    }
+    if (!nullToAbsent || sourceText != null) {
+      map['source_text'] = Variable<String>(sourceText);
+    }
+    if (!nullToAbsent || sourcePage != null) {
+      map['source_page'] = Variable<int>(sourcePage);
+    }
+    if (!nullToAbsent || sourceSection != null) {
+      map['source_section'] = Variable<String>(sourceSection);
     }
     return map;
   }
@@ -1768,6 +1877,18 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
       explanation: explanation == null && nullToAbsent
           ? const Value.absent()
           : Value(explanation),
+      source: source == null && nullToAbsent
+          ? const Value.absent()
+          : Value(source),
+      sourceText: sourceText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceText),
+      sourcePage: sourcePage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourcePage),
+      sourceSection: sourceSection == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceSection),
     );
   }
 
@@ -1801,6 +1922,10 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
       correctOption: serializer.fromJson<String?>(json['correctOption']),
       enumerationItems: serializer.fromJson<String?>(json['enumerationItems']),
       explanation: serializer.fromJson<String?>(json['explanation']),
+      source: serializer.fromJson<String?>(json['source']),
+      sourceText: serializer.fromJson<String?>(json['sourceText']),
+      sourcePage: serializer.fromJson<int?>(json['sourcePage']),
+      sourceSection: serializer.fromJson<String?>(json['sourceSection']),
     );
   }
   @override
@@ -1831,6 +1956,10 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
       'correctOption': serializer.toJson<String?>(correctOption),
       'enumerationItems': serializer.toJson<String?>(enumerationItems),
       'explanation': serializer.toJson<String?>(explanation),
+      'source': serializer.toJson<String?>(source),
+      'sourceText': serializer.toJson<String?>(sourceText),
+      'sourcePage': serializer.toJson<int?>(sourcePage),
+      'sourceSection': serializer.toJson<String?>(sourceSection),
     };
   }
 
@@ -1859,6 +1988,10 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
     Value<String?> correctOption = const Value.absent(),
     Value<String?> enumerationItems = const Value.absent(),
     Value<String?> explanation = const Value.absent(),
+    Value<String?> source = const Value.absent(),
+    Value<String?> sourceText = const Value.absent(),
+    Value<int?> sourcePage = const Value.absent(),
+    Value<String?> sourceSection = const Value.absent(),
   }) => Flashcard(
     id: id ?? this.id,
     question: question ?? this.question,
@@ -1890,6 +2023,12 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
         ? enumerationItems.value
         : this.enumerationItems,
     explanation: explanation.present ? explanation.value : this.explanation,
+    source: source.present ? source.value : this.source,
+    sourceText: sourceText.present ? sourceText.value : this.sourceText,
+    sourcePage: sourcePage.present ? sourcePage.value : this.sourcePage,
+    sourceSection: sourceSection.present
+        ? sourceSection.value
+        : this.sourceSection,
   );
   Flashcard copyWithCompanion(FlashcardsCompanion data) {
     return Flashcard(
@@ -1939,6 +2078,16 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
       explanation: data.explanation.present
           ? data.explanation.value
           : this.explanation,
+      source: data.source.present ? data.source.value : this.source,
+      sourceText: data.sourceText.present
+          ? data.sourceText.value
+          : this.sourceText,
+      sourcePage: data.sourcePage.present
+          ? data.sourcePage.value
+          : this.sourcePage,
+      sourceSection: data.sourceSection.present
+          ? data.sourceSection.value
+          : this.sourceSection,
     );
   }
 
@@ -1968,7 +2117,11 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
           ..write('optionD: $optionD, ')
           ..write('correctOption: $correctOption, ')
           ..write('enumerationItems: $enumerationItems, ')
-          ..write('explanation: $explanation')
+          ..write('explanation: $explanation, ')
+          ..write('source: $source, ')
+          ..write('sourceText: $sourceText, ')
+          ..write('sourcePage: $sourcePage, ')
+          ..write('sourceSection: $sourceSection')
           ..write(')'))
         .toString();
   }
@@ -1999,6 +2152,10 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
     correctOption,
     enumerationItems,
     explanation,
+    source,
+    sourceText,
+    sourcePage,
+    sourceSection,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -2027,7 +2184,11 @@ class Flashcard extends DataClass implements Insertable<Flashcard> {
           other.optionD == this.optionD &&
           other.correctOption == this.correctOption &&
           other.enumerationItems == this.enumerationItems &&
-          other.explanation == this.explanation);
+          other.explanation == this.explanation &&
+          other.source == this.source &&
+          other.sourceText == this.sourceText &&
+          other.sourcePage == this.sourcePage &&
+          other.sourceSection == this.sourceSection);
 }
 
 class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
@@ -2055,6 +2216,10 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
   final Value<String?> correctOption;
   final Value<String?> enumerationItems;
   final Value<String?> explanation;
+  final Value<String?> source;
+  final Value<String?> sourceText;
+  final Value<int?> sourcePage;
+  final Value<String?> sourceSection;
   const FlashcardsCompanion({
     this.id = const Value.absent(),
     this.question = const Value.absent(),
@@ -2080,6 +2245,10 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
     this.correctOption = const Value.absent(),
     this.enumerationItems = const Value.absent(),
     this.explanation = const Value.absent(),
+    this.source = const Value.absent(),
+    this.sourceText = const Value.absent(),
+    this.sourcePage = const Value.absent(),
+    this.sourceSection = const Value.absent(),
   });
   FlashcardsCompanion.insert({
     this.id = const Value.absent(),
@@ -2106,6 +2275,10 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
     this.correctOption = const Value.absent(),
     this.enumerationItems = const Value.absent(),
     this.explanation = const Value.absent(),
+    this.source = const Value.absent(),
+    this.sourceText = const Value.absent(),
+    this.sourcePage = const Value.absent(),
+    this.sourceSection = const Value.absent(),
   }) : question = Value(question),
        answer = Value(answer),
        deckId = Value(deckId);
@@ -2134,6 +2307,10 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
     Expression<String>? correctOption,
     Expression<String>? enumerationItems,
     Expression<String>? explanation,
+    Expression<String>? source,
+    Expression<String>? sourceText,
+    Expression<int>? sourcePage,
+    Expression<String>? sourceSection,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2160,6 +2337,10 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
       if (correctOption != null) 'correct_option': correctOption,
       if (enumerationItems != null) 'enumeration_items': enumerationItems,
       if (explanation != null) 'explanation': explanation,
+      if (source != null) 'source': source,
+      if (sourceText != null) 'source_text': sourceText,
+      if (sourcePage != null) 'source_page': sourcePage,
+      if (sourceSection != null) 'source_section': sourceSection,
     });
   }
 
@@ -2188,6 +2369,10 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
     Value<String?>? correctOption,
     Value<String?>? enumerationItems,
     Value<String?>? explanation,
+    Value<String?>? source,
+    Value<String?>? sourceText,
+    Value<int?>? sourcePage,
+    Value<String?>? sourceSection,
   }) {
     return FlashcardsCompanion(
       id: id ?? this.id,
@@ -2214,6 +2399,10 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
       correctOption: correctOption ?? this.correctOption,
       enumerationItems: enumerationItems ?? this.enumerationItems,
       explanation: explanation ?? this.explanation,
+      source: source ?? this.source,
+      sourceText: sourceText ?? this.sourceText,
+      sourcePage: sourcePage ?? this.sourcePage,
+      sourceSection: sourceSection ?? this.sourceSection,
     );
   }
 
@@ -2292,6 +2481,18 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
     if (explanation.present) {
       map['explanation'] = Variable<String>(explanation.value);
     }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (sourceText.present) {
+      map['source_text'] = Variable<String>(sourceText.value);
+    }
+    if (sourcePage.present) {
+      map['source_page'] = Variable<int>(sourcePage.value);
+    }
+    if (sourceSection.present) {
+      map['source_section'] = Variable<String>(sourceSection.value);
+    }
     return map;
   }
 
@@ -2321,7 +2522,11 @@ class FlashcardsCompanion extends UpdateCompanion<Flashcard> {
           ..write('optionD: $optionD, ')
           ..write('correctOption: $correctOption, ')
           ..write('enumerationItems: $enumerationItems, ')
-          ..write('explanation: $explanation')
+          ..write('explanation: $explanation, ')
+          ..write('source: $source, ')
+          ..write('sourceText: $sourceText, ')
+          ..write('sourcePage: $sourcePage, ')
+          ..write('sourceSection: $sourceSection')
           ..write(')'))
         .toString();
   }
@@ -6137,6 +6342,10 @@ typedef $$FlashcardsTableCreateCompanionBuilder =
       Value<String?> correctOption,
       Value<String?> enumerationItems,
       Value<String?> explanation,
+      Value<String?> source,
+      Value<String?> sourceText,
+      Value<int?> sourcePage,
+      Value<String?> sourceSection,
     });
 typedef $$FlashcardsTableUpdateCompanionBuilder =
     FlashcardsCompanion Function({
@@ -6164,6 +6373,10 @@ typedef $$FlashcardsTableUpdateCompanionBuilder =
       Value<String?> correctOption,
       Value<String?> enumerationItems,
       Value<String?> explanation,
+      Value<String?> source,
+      Value<String?> sourceText,
+      Value<int?> sourcePage,
+      Value<String?> sourceSection,
     });
 
 final class $$FlashcardsTableReferences
@@ -6327,6 +6540,26 @@ class $$FlashcardsTableFilterComposer
 
   ColumnFilters<String> get explanation => $composableBuilder(
     column: $table.explanation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceText => $composableBuilder(
+    column: $table.sourceText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sourcePage => $composableBuilder(
+    column: $table.sourcePage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceSection => $composableBuilder(
+    column: $table.sourceSection,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6503,6 +6736,26 @@ class $$FlashcardsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceText => $composableBuilder(
+    column: $table.sourceText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourcePage => $composableBuilder(
+    column: $table.sourcePage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceSection => $composableBuilder(
+    column: $table.sourceSection,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$DecksTableOrderingComposer get deckId {
     final $$DecksTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6627,6 +6880,24 @@ class $$FlashcardsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceText => $composableBuilder(
+    column: $table.sourceText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sourcePage => $composableBuilder(
+    column: $table.sourcePage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceSection => $composableBuilder(
+    column: $table.sourceSection,
+    builder: (column) => column,
+  );
+
   $$DecksTableAnnotationComposer get deckId {
     final $$DecksTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -6728,6 +6999,10 @@ class $$FlashcardsTableTableManager
                 Value<String?> correctOption = const Value.absent(),
                 Value<String?> enumerationItems = const Value.absent(),
                 Value<String?> explanation = const Value.absent(),
+                Value<String?> source = const Value.absent(),
+                Value<String?> sourceText = const Value.absent(),
+                Value<int?> sourcePage = const Value.absent(),
+                Value<String?> sourceSection = const Value.absent(),
               }) => FlashcardsCompanion(
                 id: id,
                 question: question,
@@ -6753,6 +7028,10 @@ class $$FlashcardsTableTableManager
                 correctOption: correctOption,
                 enumerationItems: enumerationItems,
                 explanation: explanation,
+                source: source,
+                sourceText: sourceText,
+                sourcePage: sourcePage,
+                sourceSection: sourceSection,
               ),
           createCompanionCallback:
               ({
@@ -6780,6 +7059,10 @@ class $$FlashcardsTableTableManager
                 Value<String?> correctOption = const Value.absent(),
                 Value<String?> enumerationItems = const Value.absent(),
                 Value<String?> explanation = const Value.absent(),
+                Value<String?> source = const Value.absent(),
+                Value<String?> sourceText = const Value.absent(),
+                Value<int?> sourcePage = const Value.absent(),
+                Value<String?> sourceSection = const Value.absent(),
               }) => FlashcardsCompanion.insert(
                 id: id,
                 question: question,
@@ -6805,6 +7088,10 @@ class $$FlashcardsTableTableManager
                 correctOption: correctOption,
                 enumerationItems: enumerationItems,
                 explanation: explanation,
+                source: source,
+                sourceText: sourceText,
+                sourcePage: sourcePage,
+                sourceSection: sourceSection,
               ),
           withReferenceMapper: (p0) => p0
               .map(

@@ -436,6 +436,10 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
             correctOption: drift.Value(correctOption),
             enumerationItems: drift.Value(enumerationItemsJson),
             explanation: drift.Value(question.explanation),
+            source: drift.Value(question.source),
+            sourceText: drift.Value(question.sourceText),
+            sourcePage: drift.Value(question.sourcePage),
+            sourceSection: drift.Value(question.sourceSection),
           ),
         );
       }

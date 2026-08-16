@@ -62,6 +62,11 @@ class Flashcards extends Table {
   TextColumn get enumerationItems => text().nullable()();
   // Optional explanation shown after reveal / in exam review.
   TextColumn get explanation => text().nullable()();
+  // Source traceability fields (schema v6).
+  TextColumn get source => text().nullable()();
+  TextColumn get sourceText => text().nullable()();
+  IntColumn get sourcePage => integer().nullable()();
+  TextColumn get sourceSection => text().nullable()();
 }
 
 class Tags extends Table {
@@ -132,7 +137,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -175,6 +180,13 @@ class AppDatabase extends _$AppDatabase {
             "UPDATE flashcards SET question_type = 'multiple_choice' "
             "WHERE answer LIKE '%|||%' AND deleted_at IS NULL",
           );
+        }
+        if (from < 6 && to >= 6) {
+          // Add source traceability columns.
+          await m.addColumn(flashcards, flashcards.source);
+          await m.addColumn(flashcards, flashcards.sourceText);
+          await m.addColumn(flashcards, flashcards.sourcePage);
+          await m.addColumn(flashcards, flashcards.sourceSection);
         }
       },
     );
