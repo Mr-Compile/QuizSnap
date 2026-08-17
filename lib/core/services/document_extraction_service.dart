@@ -56,7 +56,7 @@ class DocumentExtractionService {
         throw Exception('No text could be extracted from PDF');
       }
 
-      final normalized = TextNormalizationService.reconstruct(extractedText);
+      final normalized = UnifiedTextCleaner.clean(extractedText, sourceHint: 'pdf');
       return normalized;
     } catch (e) {
       throw Exception('Failed to extract text from PDF: $e');

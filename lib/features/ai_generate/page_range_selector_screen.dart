@@ -32,7 +32,7 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
   final TextEditingController _rangeController = TextEditingController();
   final Set<int> _selectedPages = {};
   List<List<int>> _parsedRanges = [];
-  final Map<int, Future<Uint8List?>> _thumbnailFutures = {};
+  final Map<String, Future<Uint8List?>> _thumbnailFutures = {};
   PdfController? _pdfController;
   PdfDocument? _pdfDocument;
   late final PageSelectionProvider _pageSelection;
@@ -60,18 +60,19 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
     super.dispose();
   }
 
-  Future<Uint8List?> _loadThumbnail(int pageNumber) async {
+  Future<Uint8List?> _loadThumbnail(int pageNumber, double width) async {
     if (_pdfDocument == null) return null;
 
     try {
       final page = await _pdfDocument!.getPage(pageNumber);
       try {
+        // Render at the physical resolution of the thumbnail container while
+        // preserving the original PDF aspect ratio.
         final aspect = page.height / page.width;
-        const targetWidth = 150.0;
         final image = await page.render(
-          width: targetWidth,
-          height: targetWidth * aspect,
-          format: PdfPageImageFormat.jpeg,
+          width: width,
+          height: width * aspect,
+          format: PdfPageImageFormat.png,
           backgroundColor: '#FFFFFF',
         );
         if (image == null) throw Exception('Page render returned null');
@@ -346,7 +347,13 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
             final pageNumber = index + 1;
             final isSelected = _selectedPages.contains(pageNumber);
 
-            _thumbnailFutures[pageNumber] ??= _loadThumbnail(pageNumber);
+            final dpr = MediaQuery.devicePixelRatioOf(context);
+            const logicalWidth = 180.0;
+            final renderWidth = logicalWidth * dpr;
+            final cacheKey = '${pageNumber}_${renderWidth.toInt()}';
+
+            _thumbnailFutures[cacheKey] ??= _loadThumbnail(pageNumber, renderWidth);
+            final thumbnailFuture = _thumbnailFutures[cacheKey]!;
 
             return InkWell(
               onTap: () {
@@ -376,7 +383,7 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
                     fit: StackFit.expand,
                     children: [
                       FutureBuilder<Uint8List?>(
-                        future: _thumbnailFutures[pageNumber],
+                        future: thumbnailFuture,
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             return const Center(
@@ -399,7 +406,8 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
 
                           return Image.memory(
                             snapshot.data!,
-                            fit: BoxFit.cover,
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.medium,
                             gaplessPlayback: true,
                           );
                         },

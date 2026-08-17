@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/services/document_extraction_service.dart';
-import '../../core/services/text_normalization_service.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_bar.dart';
@@ -67,7 +66,7 @@ class _AnalysisPreviewScreenState extends State<AnalysisPreviewScreen> {
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   FormattedStudyText(
-                    text: TextNormalizationService.reconstruct(widget.text),
+                    text: widget.text,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],

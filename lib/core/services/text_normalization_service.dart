@@ -14,7 +14,7 @@ class TextNormalizationService {
 
   /// Cleans text for use as an AI prompt.
   static String cleanForPrompt(String rawText, {int maxChars = _defaultMaxPromptChars}) {
-    String cleaned = reconstruct(rawText);
+    String cleaned = rawText;
 
     // 1. Drop lines that are only a single character (often OCR artifacts).
     final lines = cleaned.split('\n');

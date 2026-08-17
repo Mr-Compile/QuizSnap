@@ -17,7 +17,11 @@ abstract class UnifiedTextCleaner {
     String text = rawText.replaceAll('\r\n', '\n').replaceAll('\r', '\n').trim();
 
     // 2. Reconstruct paragraphs/vertical text/broken words.
-    text = ImportedTextReconstructor.reconstruct(text);
+    if (sourceHint == 'pdf') {
+      text = _pdfReconstruct(text);
+    } else {
+      text = ImportedTextReconstructor.reconstruct(text);
+    }
 
     // 3. Source-specific extra passes.
     switch (sourceHint) {
@@ -97,6 +101,111 @@ abstract class UnifiedTextCleaner {
           RegExp(r'([:,;])([A-Za-z])'),
           (m) => '${m.group(1)} ${m.group(2)}',
         );
+  }
+
+  /// PDF-specific reconstruction that preserves the physical layout from the
+  /// extractor while joining wrapped lines, removing line-wrap hyphens, and
+  /// keeping paragraph/heading boundaries.
+  static String _pdfReconstruct(String rawText) {
+    // 1. Normalize line endings.
+    String text = rawText.replaceAll('\r\n', '\n').replaceAll('\r', '\n').trim();
+
+    // 2. Remove line-wrap hyphens (e.g., "sen-\ntence" -> "sentence").
+    text = text.replaceAllMapped(
+      RegExp(r'([a-zA-Z]{2,})-\n([a-zA-Z]{2,})'),
+      (m) {
+        final before = m.group(1)!;
+        final after = m.group(2)!;
+        final combined = '$before$after';
+        if (combined.length < 30 && RegExp(r'[aeiouAEIOU]').hasMatch(combined)) {
+          return combined;
+        }
+        return '$before-$after';
+      },
+    );
+
+    // 3. Reconstruct wrapped paragraphs.
+    final lines = text.split('\n');
+    final paragraphs = <String>[];
+    final current = StringBuffer();
+
+    for (var i = 0; i < lines.length; i++) {
+      final line = lines[i].replaceAll(RegExp(r'[ \t]+'), ' ').trimRight();
+      if (line.isEmpty) {
+        if (current.isNotEmpty) {
+          paragraphs.add(current.toString().trim());
+          current.clear();
+        }
+        paragraphs.add('');
+        continue;
+      }
+
+      final isLast = i == lines.length - 1;
+      final next = isLast ? null : lines[i + 1].replaceAll(RegExp(r'[ \t]+'), ' ').trimRight();
+      final shouldJoin = !isLast &&
+          next != null &&
+          next.isNotEmpty &&
+          _shouldJoinPdfLines(line, next);
+
+      if (current.isNotEmpty) {
+        if (shouldJoin) {
+          current.write(' ');
+        } else {
+          paragraphs.add(current.toString().trim());
+          current.clear();
+        }
+      }
+      current.write(line);
+    }
+
+    if (current.isNotEmpty) {
+      paragraphs.add(current.toString().trim());
+    }
+
+    text = paragraphs.join('\n');
+
+    // 4. Collapse 3+ consecutive line breaks to a paragraph break.
+    text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+    return text.trim();
+  }
+
+  static bool _shouldJoinPdfLines(String current, String next) {
+    final trimmedCurrent = current.trim();
+    final trimmedNext = next.trim();
+
+    if (trimmedCurrent.isEmpty || trimmedNext.isEmpty) return false;
+
+    // Never join headings or list items with the following/previous line.
+    if (_isPdfHeadingLine(trimmedCurrent) || _isPdfListLine(trimmedCurrent)) return false;
+    if (_isPdfHeadingLine(trimmedNext) || _isPdfListLine(trimmedNext)) return false;
+
+    // End of a sentence is the end of a paragraph.
+    if (RegExp(r'[.!?]$').hasMatch(trimmedCurrent)) return false;
+
+    final last = trimmedCurrent[trimmedCurrent.length - 1];
+    final first = trimmedNext[0];
+
+    // Continue a sentence that is broken at punctuation.
+    if (last == ',' || last == ';' || last == ':') {
+      return true;
+    }
+
+    // Continue when the current line is open and the next starts with a
+    // lowercase word (likely the same wrapped paragraph).
+    final currentOpen = last.toLowerCase() == last;
+    final nextContinues = first.toLowerCase() == first;
+    return currentOpen && nextContinues;
+  }
+
+  static bool _isPdfHeadingLine(String line) {
+    return RegExp(r'^(Chapter|Section|Topic|Unit|Lesson|Module)\s+\d+', caseSensitive: false).hasMatch(line) ||
+        RegExp(r'^(\d+\.[\d.]*\s+)').hasMatch(line) ||
+        (line == line.toUpperCase() && line.contains(RegExp(r'[A-Z]')));
+  }
+
+  static bool _isPdfListLine(String line) {
+    return RegExp(r'^(\d+[).-]\s+|[-*•]\s+)').hasMatch(line);
   }
 }
 
