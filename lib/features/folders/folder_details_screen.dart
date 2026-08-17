@@ -43,6 +43,7 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
   DatabaseProvider? _dbProvider;
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -190,7 +191,7 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
                     title: 'No decks in this folder',
                     subtitle: 'Create a deck in this folder to see it here',
                     action: ElevatedButton.icon(
-                      onPressed: () => _navigateToCreateDeck(context),
+                      onPressed: _navigateToCreateDeck,
                       icon: const Icon(Icons.add),
                       label: const Text('Create Deck'),
                     ),
@@ -226,7 +227,7 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToCreateDeck(context),
+        onPressed: _navigateToCreateDeck,
         tooltip: 'Create Deck in this folder',
         child: const Icon(Icons.add),
       ),
@@ -235,7 +236,7 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
 
   Widget _buildDeckCard(BuildContext context, Deck deck) {
     return CustomCard(
-      onTap: () => _navigateToDeckDetails(context, deck),
+      onTap: _isDeleting ? null : () => _navigateToDeckDetails(deck),
       child: Row(
         children: [
           Container(
@@ -277,7 +278,8 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
           // arena for its own area, so tapping it opens the menu
           // instead of navigating to Deck Details.
           PopupMenuButton<String>(
-            onSelected: (value) => _onDeckMenuSelected(context, deck, value),
+            enabled: !_isDeleting,
+            onSelected: (value) => _onDeckMenuSelected(deck, value),
             itemBuilder: (context) => const [
               PopupMenuItem(value: 'view', child: Text('View Deck')),
               PopupMenuItem(value: 'edit', child: Text('Edit Deck')),
@@ -290,11 +292,11 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
     );
   }
 
-  void _navigateToDeckDetails(BuildContext context, Deck deck) {
+  void _navigateToDeckDetails(Deck deck) {
     GoRouter.of(context).push('/decks/${deck.id}');
   }
 
-  void _navigateToCreateDeck(BuildContext context) {
+  void _navigateToCreateDeck() {
     GoRouter.of(context).push('${AppRoutes.createDeck}?folderId=${widget.folderId}');
   }
 
@@ -343,11 +345,11 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
     }
   }
 
-  Future<void> _onDeckMenuSelected(BuildContext context, Deck deck, String value) async {
-    if (!context.mounted) return;
+  Future<void> _onDeckMenuSelected(Deck deck, String value) async {
+    if (!mounted) return;
 
     if (value == 'view') {
-      _navigateToDeckDetails(context, deck);
+      _navigateToDeckDetails(deck);
       return;
     }
 
@@ -358,7 +360,7 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
           builder: (context) => EditDeckScreen(deckId: deck.id),
         ),
       );
-      if (context.mounted) await _refresh();
+      if (mounted) await _refresh();
       return;
     }
 
@@ -372,7 +374,7 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
           currentFolderId: deck.folderId,
         ),
       );
-      if (context.mounted) await _refresh();
+      if (mounted) await _refresh();
       return;
     }
 
@@ -391,27 +393,33 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
         isDestructive: true,
       );
 
-      if (confirmed != true || !context.mounted) return;
+      if (confirmed != true || !mounted) return;
+
+      setState(() => _isDeleting = true);
 
       final dbProvider = context.read<DatabaseProvider>();
       try {
         await dbProvider.deckRepository.deleteDeck(deck.id);
         dbProvider.refreshAll();
-        if (context.mounted) {
-          context.read<TrashProvider>().load();
-        }
-        if (context.mounted) {
-          await DialogService.showSuccess(
-            context,
-            'Deck moved to Trash',
-            title: 'Deck deleted',
-          );
-        }
+        if (mounted) await _dataFuture;
+        if (!mounted) return;
+
+        context.read<TrashProvider>().load();
+
+        setState(() => _isDeleting = false);
+        if (!mounted) return;
+
+        await DialogService.showSuccess(
+          context,
+          'Deck moved to Trash',
+          title: 'Deck deleted',
+        );
         // Remain in Folder Details — the deck is already gone from the
         // list because _onProviderChanged triggers _refresh() via
-        // dbProvider.notifyListeners().
+        // dbProvider.notifyListeners() and we waited for the new data.
       } catch (e) {
-        if (context.mounted) {
+        if (mounted) {
+          setState(() => _isDeleting = false);
           await DialogService.showError(context, 'Error deleting deck: $e');
         }
       }

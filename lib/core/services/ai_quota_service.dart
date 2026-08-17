@@ -7,7 +7,7 @@ class AiQuotaService {
 
   AiQuotaService(this._databaseProvider);
 
-  static const int defaultDailyLimit = 15;
+  static const int defaultDailyLimit = 10;
 
   /// Get remaining quota for today
   Future<int> getRemainingQuota() async {
