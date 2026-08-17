@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../core/models/prompt_template.dart';
 import '../../core/models/recent_generation.dart';
 import '../../core/providers/groq_provider.dart';
 import '../../core/providers/ai_quota_provider.dart';
+import '../../core/providers/database_provider.dart';
 import '../../core/services/connectivity_guard.dart';
 import '../../core/services/dialog_service.dart';
+import '../../core/services/content_capacity_service.dart';
 import '../../core/repositories/recent_generation_repository.dart';
 import '../../core/services/question_generation_service.dart';
 import '../../core/services/text_normalization_service.dart';
+import '../../core/navigation/app_routes.dart';
 import 'package:provider/provider.dart';
 import '../../shared/widgets/stepper_header.dart';
 import 'question_review_screen.dart';
@@ -38,6 +42,96 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
   bool _isGenerating = false;
   String _generationStep = '';
   double _generationProgress = 0.0;
+  CapacityResult? _capacityResult;
+  bool _hasActiveFolder = false;
+  bool _hasActiveDeck = false;
+  int? _firstFolderId;
+
+  @override
+  void initState() {
+    super.initState();
+    _recalculateCapacity();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPrerequisites());
+  }
+
+  void _recalculateCapacity() {
+    _capacityResult = ContentCapacityService.estimate(
+      widget.sourceText,
+      _selectedType,
+      _questionCount,
+    );
+  }
+
+  Future<void> _checkPrerequisites() async {
+    if (!mounted) return;
+    final dbProvider = Provider.of<DatabaseProvider>(context, listen: false);
+
+    try {
+      final folders = await dbProvider.folderRepository.getAllFolders();
+      final decks = await dbProvider.deckRepository.getAllDecks();
+
+      if (!mounted) return;
+      setState(() {
+        _hasActiveFolder = folders.isNotEmpty;
+        _hasActiveDeck = decks.isNotEmpty;
+        _firstFolderId = folders.isNotEmpty ? folders.first.id : null;
+      });
+
+      if (folders.isEmpty) {
+        await _showNoFolderDialog();
+      } else if (decks.isEmpty) {
+        await _showNoDeckDialog();
+      }
+    } catch (e) {
+      debugPrint('Prerequisite check error: $e');
+    }
+  }
+
+  Future<void> _showNoFolderDialog() async {
+    if (!mounted) return;
+    await DialogService.showError(
+      context,
+      'Your generated flashcards need a folder and deck before they can be saved.',
+      title: 'Create a folder first',
+      primaryAction: 'Create Folder',
+      onPrimaryAction: () => context.push(AppRoutes.createFolder),
+      secondaryAction: 'Learn How It Works',
+      onSecondaryAction: () => context.push(AppRoutes.userManual),
+    );
+  }
+
+  Future<void> _showNoDeckDialog() async {
+    if (!mounted) return;
+    final route = _firstFolderId != null
+        ? '${AppRoutes.createDeck}?folderId=$_firstFolderId'
+        : AppRoutes.createDeck;
+    await DialogService.showError(
+      context,
+      'Choose or create a deck where your generated flashcards will be saved.',
+      title: 'Create a deck first',
+      primaryAction: 'Create Deck',
+      onPrimaryAction: () => context.push(route),
+      secondaryAction: 'Close',
+      onSecondaryAction: () {},
+    );
+  }
+
+  Future<void> _showCapacityDialog(CapacityResult result) async {
+    if (!mounted) return;
+    await DialogService.showError(
+      context,
+      result.reason,
+      title: 'Not enough content',
+      primaryAction: 'OK',
+      onPrimaryAction: () {},
+      secondaryAction: 'Close',
+      onSecondaryAction: () {},
+    );
+  }
+
+  bool get _canGenerate {
+    return _capacityResult?.isValid == true && _hasActiveFolder && _hasActiveDeck;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +175,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _isGenerating ? null : _startGeneration,
+              onPressed: _isGenerating || !_canGenerate ? null : _startGeneration,
               child: _isGenerating
                   ? _buildGeneratingButton()
                   : const Text('Generate Questions'),
@@ -170,6 +264,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
             if (value != null) {
               setState(() {
                 _selectedType = value;
+                _recalculateCapacity();
               });
             }
           },
@@ -217,7 +312,11 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
   }
 
   Widget _buildQuestionCountSelector() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isOverCapacity = !(_capacityResult?.isValid ?? true);
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Slider(
           value: _questionCount.toDouble(),
@@ -228,6 +327,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
           onChanged: (value) {
             setState(() {
               _questionCount = value.round();
+              _recalculateCapacity();
             });
           },
         ),
@@ -235,21 +335,59 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
           child: Text(
             '$_questionCount questions',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
+              color: isOverCapacity ? colorScheme.error : colorScheme.primary,
             ),
           ),
         ),
-        Text(
-          'More questions may take longer to generate',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        if (_capacityResult != null) ...[
+          const SizedBox(height: 8),
+          Center(
+            child: Text(
+              'Estimated capacity: ${_capacityResult!.estimatedCapacity} questions',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: isOverCapacity ? colorScheme.error : colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
-        ),
+          if (isOverCapacity) ...[
+            const SizedBox(height: 8),
+            Text(
+              _capacityResult!.reason,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colorScheme.error,
+              ),
+            ),
+          ],
+        ] else ...[
+          Text(
+            'More questions may take longer to generate',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+        ],
       ],
     );
   }
 
   Future<void> _startGeneration() async {
+    _recalculateCapacity();
+    final capacity = _capacityResult;
+    if (capacity != null && !capacity.isValid) {
+      if (mounted) await _showCapacityDialog(capacity);
+      return;
+    }
+
+    if (!_hasActiveFolder) {
+      if (mounted) await _showNoFolderDialog();
+      return;
+    }
+
+    if (!_hasActiveDeck) {
+      if (mounted) await _showNoDeckDialog();
+      return;
+    }
+
     final groqProvider = Provider.of<GroqProvider>(context, listen: false);
     final quotaProvider = Provider.of<AiQuotaProvider>(context, listen: false);
 
@@ -380,7 +518,14 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
 
       if (mounted) {
         final message = e.toString().toLowerCase();
-        if (message.contains('socket') ||
+        if (message.contains('document does not contain enough usable content')) {
+          final friendlyMessage = e.toString().replaceFirst('Exception: ', '');
+          await DialogService.showError(
+            context,
+            friendlyMessage,
+            title: 'Not enough content',
+          );
+        } else if (message.contains('socket') ||
             message.contains('network') ||
             message.contains('connection') ||
             message.contains('host') ||

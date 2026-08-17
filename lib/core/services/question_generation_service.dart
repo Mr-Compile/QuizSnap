@@ -4,6 +4,7 @@ import '../../core/models/exam.dart';
 import '../../core/services/groq_service.dart';
 import '../../core/services/document_extraction_service.dart';
 import '../../core/services/text_normalization_service.dart';
+import '../../core/services/content_capacity_service.dart';
 import '../../core/services/question_validation_service.dart';
 
 /// Maps a question type string back to its [PromptType].
@@ -147,6 +148,14 @@ class QuestionGenerationService {
     // Clean and reconstruct extracted text, then truncate if too long.
     final content = sourceText ?? '';
     final cleanedText = TextNormalizationService.cleanForPrompt(content);
+
+    // Validate that the selected content can reasonably support the requested
+    // number of unique questions before spending tokens on AI generation.
+    final capacity = ContentCapacityService.estimate(cleanedText, type, questionCount);
+    if (!capacity.isValid) {
+      throw Exception(capacity.reason);
+    }
+
     final truncatedText = DocumentExtractionService.truncateText(cleanedText);
 
     // Generate questions using Groq service
