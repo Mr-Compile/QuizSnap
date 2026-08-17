@@ -92,7 +92,10 @@ class _AnalysisPreviewScreenState extends State<AnalysisPreviewScreen> {
             _buildInfoRow('Scope', _scopeDisplayName()),
             _buildInfoRow('Characters', charCount.toString()),
             _buildInfoRow('Est. tokens', '~$estimatedTokens'),
-            _buildInfoRow('Pages', widget.totalPages > 0 ? '${widget.totalPages}' : 'N/A'),
+            _buildInfoRow(
+              widget.source.toUpperCase().contains('PPT') ? 'Slides' : 'Pages',
+              widget.totalPages > 0 ? '${widget.totalPages}' : 'N/A',
+            ),
           ],
         ),
       ),
@@ -154,11 +157,12 @@ class _AnalysisPreviewScreenState extends State<AnalysisPreviewScreen> {
   }
 
   String _scopeDisplayName() {
+    final isPpt = widget.source.toUpperCase().contains('PPT');
     switch (widget.scopeType) {
       case 'all':
-        return 'Entire Document';
+        return isPpt ? 'Entire Presentation' : 'Entire Document';
       case 'pages':
-        return 'Specific Pages';
+        return isPpt ? 'Specific Slides' : 'Specific Pages';
       case 'headings':
         return 'By Chapter/Heading';
       case 'highlight':
@@ -173,7 +177,8 @@ class _AnalysisPreviewScreenState extends State<AnalysisPreviewScreen> {
     switch (widget.scopeType) {
       case 'pages':
         final ranges = details['rangeText'] as String? ?? '';
-        return 'Pages: $ranges';
+        final isPpt = widget.source.toUpperCase().contains('PPT');
+        return '${isPpt ? 'Slides' : 'Pages'}: $ranges';
       case 'headings':
         final headings = (details['headings'] as List?)?.cast<String>() ?? [];
         if (headings.isEmpty) return 'All detected headings';

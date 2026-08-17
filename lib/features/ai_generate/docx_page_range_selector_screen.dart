@@ -31,6 +31,12 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
   List<String> _pageTexts = const [];
   final Set<int> _selectedPages = {};
 
+  bool get _isSlideMode => widget.documentType == 'PPTX' || widget.documentType == 'PPT';
+
+  String get _pageLabel => _isSlideMode ? 'Slide' : 'Page';
+
+  String get _pagesLabel => _isSlideMode ? 'Slides' : 'Pages';
+
   @override
   void initState() {
     super.initState();
@@ -49,7 +55,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Failed to load ${widget.documentType} pages: $e';
+        _errorMessage = 'Failed to load ${widget.documentType} ${_isSlideMode ? 'slides' : 'pages'}: $e';
       });
     }
   }
@@ -58,7 +64,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(
-        title: 'Select ${widget.documentType} Pages',
+        title: 'Select ${widget.documentType} ${_isSlideMode ? 'Slides' : 'Pages'}',
         actions: [
           if (_selectedPages.isNotEmpty)
             TextButton.icon(
@@ -145,7 +151,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
       child: Row(
         children: [
           Icon(
-            Icons.description,
+            _isSlideMode ? Icons.slideshow : Icons.description,
             size: 24,
             color: Theme.of(context).colorScheme.primary,
           ),
@@ -160,7 +166,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  '${_pageTexts.length} pages',
+                  '${_pageTexts.length} ${_isSlideMode ? 'slides' : 'pages'}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -184,7 +190,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Select Pages',
+              'Select $_pagesLabel',
               style: textTheme.titleMedium,
             ),
             Row(
@@ -277,7 +283,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
                           color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           child: Text(
-                            'Page $pageNumber',
+                            '$_pageLabel $pageNumber',
                             textAlign: TextAlign.center,
                             style: textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.w600,
@@ -341,7 +347,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
               ),
               const SizedBox(width: 8),
               Text(
-                '${_selectedPages.length} pages selected',
+                '${_selectedPages.length} ${_isSlideMode ? 'slides' : 'pages'} selected',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                 ),
@@ -439,7 +445,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
         MaterialPageRoute(
           builder: (context) => AnalysisPreviewScreen(
             text: text,
-            source: '${widget.documentType} selected pages',
+            source: '${widget.documentType} selected ${_isSlideMode ? 'slides' : 'pages'}',
             scopeType: 'pages',
             scopeDetails: {
               'pages': sortedPages,

@@ -206,6 +206,10 @@ class _CachedDocumentsScreenState extends State<CachedDocumentsScreen> {
         return Theme.of(context).colorScheme.primary;
       case DocumentType.docx:
         return Theme.of(context).colorScheme.secondary;
+      case DocumentType.pptx:
+        return const Color(0xFFF97316); // Orange
+      case DocumentType.ppt:
+        return const Color(0xFFEA580C); // Dark Orange
     }
   }
 
@@ -217,6 +221,10 @@ class _CachedDocumentsScreenState extends State<CachedDocumentsScreen> {
         return Icons.text_snippet;
       case DocumentType.docx:
         return Icons.description;
+      case DocumentType.pptx:
+        return Icons.slideshow;
+      case DocumentType.ppt:
+        return Icons.slideshow_outlined;
     }
   }
 
@@ -228,6 +236,10 @@ class _CachedDocumentsScreenState extends State<CachedDocumentsScreen> {
         return 'Text File';
       case DocumentType.docx:
         return 'Word Document';
+      case DocumentType.pptx:
+        return 'PowerPoint (PPTX)';
+      case DocumentType.ppt:
+        return 'PowerPoint (PPT)';
     }
   }
 

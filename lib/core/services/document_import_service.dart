@@ -10,6 +10,8 @@ enum DocumentType {
   pdf,
   txt,
   docx,
+  pptx,
+  ppt,
 }
 
 class ImportResult {
@@ -262,7 +264,7 @@ class DocumentImportService {
   Future<FilePickerResult?> _pickFile() async {
     return await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'txt', 'docx'],
+      allowedExtensions: ['pdf', 'txt', 'docx', 'ppt', 'pptx'],
     );
   }
 
@@ -277,6 +279,12 @@ class DocumentImportService {
         break;
       case DocumentType.docx:
         extension = 'docx';
+        break;
+      case DocumentType.pptx:
+        extension = 'pptx';
+        break;
+      case DocumentType.ppt:
+        extension = 'ppt';
         break;
     }
 
@@ -295,6 +303,10 @@ class DocumentImportService {
         return DocumentType.txt;
       case 'docx':
         return DocumentType.docx;
+      case 'pptx':
+        return DocumentType.pptx;
+      case 'ppt':
+        return DocumentType.ppt;
       default:
         return DocumentType.txt;
     }
@@ -309,6 +321,10 @@ class DocumentImportService {
         return DocumentType.txt;
       case 'docx':
         return DocumentType.docx;
+      case 'pptx':
+        return DocumentType.pptx;
+      case 'ppt':
+        return DocumentType.ppt;
       default:
         return DocumentType.txt;
     }

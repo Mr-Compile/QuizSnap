@@ -46,7 +46,8 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
     });
 
     try {
-      if (widget.fileType == 'pdf' || widget.fileType == 'docx' || widget.fileType == 'txt') {
+      if (widget.fileType == 'pdf' || widget.fileType == 'docx' || widget.fileType == 'txt' ||
+          widget.fileType == 'pptx' || widget.fileType == 'ppt') {
         final int pageCount;
         switch (widget.fileType) {
           case 'pdf':
@@ -55,6 +56,10 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
             pageCount = await DocumentExtractionService.getDocxPageCount(widget.file);
           case 'txt':
             pageCount = await DocumentExtractionService.getTxtPageCount(widget.file);
+          case 'pptx':
+            pageCount = await DocumentExtractionService.getPptxSlideCount(widget.file);
+          case 'ppt':
+            pageCount = await DocumentExtractionService.getPptSlideCount(widget.file);
           default:
             pageCount = 0;
         }
@@ -161,19 +166,30 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
           // Scope option cards
           _buildScopeCard(
             context,
-            title: 'Entire Document',
-            description: 'Analyze all pages from the document',
-            icon: Icons.description,
+            title: widget.fileType == 'pptx' || widget.fileType == 'ppt'
+                ? 'Entire Presentation'
+                : 'Entire Document',
+            description: widget.fileType == 'pptx' || widget.fileType == 'ppt'
+                ? 'Analyze all slides from the presentation'
+                : 'Analyze all pages from the document',
+            icon: widget.fileType == 'pptx' || widget.fileType == 'ppt'
+                ? Icons.slideshow
+                : Icons.description,
             color: Theme.of(context).colorScheme.secondary,
             onTap: () => _analyzeEntireDocument(),
           ),
           const SizedBox(height: 16),
           
-          if (widget.fileType == 'pdf' || widget.fileType == 'docx' || widget.fileType == 'txt')
+          if (widget.fileType == 'pdf' || widget.fileType == 'docx' || widget.fileType == 'txt' ||
+              widget.fileType == 'pptx' || widget.fileType == 'ppt')
             _buildScopeCard(
               context,
-              title: 'Specific Pages',
-              description: 'Select specific page ranges to analyze',
+              title: widget.fileType == 'pptx' || widget.fileType == 'ppt'
+                  ? 'Specific Slides'
+                  : 'Specific Pages',
+              description: widget.fileType == 'pptx' || widget.fileType == 'ppt'
+                  ? 'Select specific slides to analyze'
+                  : 'Select specific page ranges to analyze',
               icon: Icons.pageview,
               color: Theme.of(context).colorScheme.primary,
               onTap: () => _navigateToPageSelector(),
@@ -258,7 +274,9 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
           if (_totalPages != null && _totalPages! > 1) ...[
             const SizedBox(height: 12),
             Text(
-              '$_totalPages pages',
+              widget.fileType == 'pptx' || widget.fileType == 'ppt'
+                  ? '$_totalPages slides'
+                  : '$_totalPages pages',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -277,6 +295,10 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
         return Icons.text_snippet;
       case 'docx':
         return Icons.description;
+      case 'pptx':
+        return Icons.slideshow;
+      case 'ppt':
+        return Icons.slideshow_outlined;
       default:
         return Icons.description;
     }
@@ -394,6 +416,32 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
             file: widget.file,
             pageExtractor: DocumentExtractionService.extractTxtPages,
             documentType: 'TXT',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (widget.fileType == 'pptx') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => DocxPageRangeSelectorScreen(
+            file: widget.file,
+            pageExtractor: DocumentExtractionService.extractPptxSlides,
+            documentType: 'PPTX',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (widget.fileType == 'ppt') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => DocxPageRangeSelectorScreen(
+            file: widget.file,
+            pageExtractor: DocumentExtractionService.extractPptSlides,
+            documentType: 'PPT',
           ),
         ),
       );

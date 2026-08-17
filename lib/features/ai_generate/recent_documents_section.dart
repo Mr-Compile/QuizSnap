@@ -127,6 +127,10 @@ class RecentDocumentsSection extends StatelessWidget {
       case 'txt':
       case 'all':
         return Icons.text_snippet;
+      case 'pptx':
+        return Icons.slideshow;
+      case 'ppt':
+        return Icons.slideshow_outlined;
       default:
         return Icons.insert_drive_file;
     }

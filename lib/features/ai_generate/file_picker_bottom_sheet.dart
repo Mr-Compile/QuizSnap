@@ -152,6 +152,18 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
             allowedExtensions: ['docx'],
           );
           break;
+        case 'pptx':
+          result = await FilePicker.platform.pickFiles(
+            type: FileType.custom,
+            allowedExtensions: ['pptx'],
+          );
+          break;
+        case 'ppt':
+          result = await FilePicker.platform.pickFiles(
+            type: FileType.custom,
+            allowedExtensions: ['ppt'],
+          );
+          break;
         case 'image':
           result = await FilePicker.platform.pickFiles(
             type: FileType.image,
@@ -222,6 +234,17 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
               DialogService.showError(context, 'Failed to extract text: $e');
             }
           } else if (widget.fileType.toLowerCase() == 'docx') {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => DocumentScopeSelectionScreen(
+                  file: copiedFile,
+                  fileType: widget.fileType,
+                  showImportSuccess: true,
+                ),
+              ),
+            );
+          } else if (widget.fileType.toLowerCase() == 'pptx' ||
+              widget.fileType.toLowerCase() == 'ppt') {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => DocumentScopeSelectionScreen(

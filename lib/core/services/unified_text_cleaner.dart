@@ -31,6 +31,8 @@ abstract class UnifiedTextCleaner {
         text = _txtExtraClean(text);
       case 'ocr':
         text = _ocrExtraClean(text);
+      case 'pptx':
+        text = _pptxExtraClean(text);
       case 'pdf':
       default:
         break;
@@ -88,6 +90,23 @@ abstract class UnifiedTextCleaner {
     }
     // Collapse runs of blank lines beyond a single paragraph break.
     return kept.join('\n').replaceAll(RegExp(r'\n{3,}'), '\n\n');
+  }
+
+  /// PPTX-specific: remove leftover XML namespace artifacts, collapse
+  /// excessive whitespace from tag stripping, and preserve slide structure.
+  static String _pptxExtraClean(String text) {
+    // Remove leftover XML namespace prefixes that may survive tag stripping.
+    text = text.replaceAll(RegExp(r'\b(a|p|r|c):[A-Za-z]+\b'), '');
+    // Collapse multiple spaces on each line but preserve newlines.
+    text = text.replaceAllMapped(
+      RegExp(r'[ \t]+'),
+      (_) => ' ',
+    );
+    // Trim each line.
+    text = text.split('\n').map((l) => l.trim()).join('\n');
+    // Collapse 3+ consecutive line breaks to a paragraph break.
+    text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+    return text.trim();
   }
 
   static String _normalizePunctuation(String text) {
@@ -222,4 +241,9 @@ class TxtTextCleaner {
 /// Cleaner tuned for camera/OCR text.
 class OcrTextCleaner {
   static String clean(String rawText) => UnifiedTextCleaner._allSourcesClean(rawText, sourceHint: 'ocr');
+}
+
+/// Cleaner tuned for PPTX/PPT extracted slide text.
+class PptxTextCleaner {
+  static String clean(String rawText) => UnifiedTextCleaner._allSourcesClean(rawText, sourceHint: 'pptx');
 }

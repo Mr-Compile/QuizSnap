@@ -185,6 +185,26 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                   ),
                   _buildImportCard(
                     context,
+                    title: 'PPTX',
+                    icon: Icons.slideshow,
+                    color: const Color(0xFFF97316), // Orange
+                    onTap: () => _ensureApiKeyConfigured(
+                      context,
+                      () => _showFilePicker(context, 'pptx'),
+                    ),
+                  ),
+                  _buildImportCard(
+                    context,
+                    title: 'PPT',
+                    icon: Icons.slideshow_outlined,
+                    color: const Color(0xFFEA580C), // Dark Orange
+                    onTap: () => _ensureApiKeyConfigured(
+                      context,
+                      () => _showFilePicker(context, 'ppt'),
+                    ),
+                  ),
+                  _buildImportCard(
+                    context,
                     title: 'Camera OCR',
                     icon: Icons.camera_alt,
                     color: const Color(0xFF22C55E), // Green
