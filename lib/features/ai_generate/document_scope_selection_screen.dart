@@ -11,6 +11,7 @@ import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/stepper_header.dart';
 import 'page_range_selector_screen.dart';
 import 'docx_page_range_selector_screen.dart';
+import 'pptx_page_range_selector_screen.dart';
 import 'analysis_preview_screen.dart';
 
 class DocumentScopeSelectionScreen extends StatefulWidget {
@@ -425,10 +426,8 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
     if (widget.fileType == 'pptx') {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => DocxPageRangeSelectorScreen(
-            file: widget.file,
-            pageExtractor: DocumentExtractionService.extractPptxSlides,
-            documentType: 'PPTX',
+          builder: (context) => PptxPageRangeSelectorScreen(
+            pptxFile: widget.file,
           ),
         ),
       );

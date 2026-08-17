@@ -66,6 +66,7 @@ dependencies:
   printing: ^5.11.0
   open_filex: ^4.3.2
   flutter_svg: ^2.3.0
+  pdf_manipulator: ^4.1.0
 
 dev_dependencies:
   flutter_test:
