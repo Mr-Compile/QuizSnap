@@ -48,6 +48,7 @@ class AppRoutes {
   static const String pdfPreview = '/ai-generate/pdf-preview';
   static const String textPreview = '/ai-generate/text-preview';
   static const String questionReview = '/ai-generate/review';
+  static const String generationHistory = '/ai-generate/history';
 
   // Analytics routes
   static const String analyticsDashboard = '/analytics';

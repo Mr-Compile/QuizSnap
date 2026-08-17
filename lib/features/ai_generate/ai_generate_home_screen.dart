@@ -208,14 +208,31 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
             },
           ),
           const SizedBox(height: 24),
-          Text(
-            'Recent Generations',
-            style: Theme.of(context).textTheme.titleLarge,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Recent Generations',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              Consumer<RecentGenerationRepository>(
+                builder: (context, repo, _) {
+                  if (repo.generations.length <= 5) {
+                    return const SizedBox.shrink();
+                  }
+                  return TextButton(
+                    onPressed: () => GoRouter.of(context)
+                        .push(AppRoutes.generationHistory),
+                    child: const Text('View All'),
+                  );
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Consumer<RecentGenerationRepository>(
             builder: (context, repo, _) {
-              final generations = repo.generations;
+              final generations = repo.getRecentGenerations(5);
               if (generations.isEmpty) {
                 return const EmptyState(
                   icon: Icons.history,

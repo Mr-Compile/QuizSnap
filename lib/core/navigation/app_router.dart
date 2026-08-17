@@ -26,6 +26,7 @@ import '../../features/ai_generate/camera_ocr_screen.dart';
 import '../../features/ai_generate/pdf_preview_screen.dart' as ai;
 import '../../features/ai_generate/text_preview_screen.dart';
 import '../../features/ai_generate/question_review_screen.dart';
+import '../../features/ai_generate/generation_history_screen.dart';
 import '../../core/models/prompt_template.dart';
 import '../../core/models/exam.dart';
 import '../../core/models/export.dart';
@@ -286,6 +287,10 @@ class AppRouter {
                 sourceText: extra?['sourceText'] ?? '',
               );
             },
+          ),
+          GoRoute(
+            path: 'history',
+            builder: (context, state) => const GenerationHistoryScreen(),
           ),
         ],
       ),

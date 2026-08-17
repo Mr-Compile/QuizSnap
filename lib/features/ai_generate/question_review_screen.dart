@@ -1062,8 +1062,11 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _questionController;
   late final TextEditingController _answerController;
+  late final TextEditingController _explanationController;
   late final List<TextEditingController> _optionControllers;
+  late final List<TextEditingController> _enumerationControllers;
   late int _correctAnswerIndex;
+  late QuestionType _questionType;
   bool _hasUnsavedChanges = false;
 
   @override
@@ -1071,19 +1074,40 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
     super.initState();
     _questionController = TextEditingController(text: widget.question.question);
     _answerController = TextEditingController(text: widget.question.answer ?? '');
+    _explanationController = TextEditingController(text: widget.question.explanation ?? '');
     _optionControllers = widget.question.options
         .map((option) => TextEditingController(text: option))
         .toList();
     _correctAnswerIndex = widget.question.options.isEmpty
         ? 0
         : widget.question.correctAnswerIndex.clamp(0, widget.question.options.length - 1);
+
+    _questionType = QuestionValidationService.determineQuestionType(
+      type: widget.question.type,
+      options: widget.question.options,
+      answer: widget.question.answer,
+    );
+
+    final enumItems = _questionType == QuestionType.enumeration
+        ? EnumerationFormatter.splitItems(widget.question.answer ?? '')
+        : <String>[];
+    _enumerationControllers = enumItems
+        .map((item) => TextEditingController(text: item))
+        .toList();
+    if (_enumerationControllers.isEmpty) {
+      _enumerationControllers.add(TextEditingController());
+    }
   }
 
   @override
   void dispose() {
     _questionController.dispose();
     _answerController.dispose();
+    _explanationController.dispose();
     for (final controller in _optionControllers) {
+      controller.dispose();
+    }
+    for (final controller in _enumerationControllers) {
       controller.dispose();
     }
     super.dispose();
@@ -1117,11 +1141,13 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                _buildTypeIndicator(),
+                const SizedBox(height: 16),
                 _buildQuestionField(),
                 const SizedBox(height: 16),
-                _buildAnswerField(),
+                ..._buildTypeSpecificFields(),
                 const SizedBox(height: 16),
-                _buildOptionsSection(),
+                _buildExplanationField(),
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: _hasUnsavedChanges ? _saveChanges : null,
@@ -1137,6 +1163,51 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
         ),
       ),
     );
+  }
+
+  Widget _buildTypeIndicator() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final (label, icon) = switch (_questionType) {
+      QuestionType.multipleChoice => ('Multiple Choice', Icons.quiz),
+      QuestionType.identification => ('Identification', Icons.search),
+      QuestionType.enumeration => ('Enumeration', Icons.list),
+      QuestionType.mixedFormat => ('Mixed Format', Icons.auto_awesome_mosaic),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: colorScheme.onPrimaryContainer),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildTypeSpecificFields() {
+    switch (_questionType) {
+      case QuestionType.multipleChoice:
+        return [_buildOptionsSection()];
+      case QuestionType.identification:
+      case QuestionType.mixedFormat:
+        return [_buildAnswerField()];
+      case QuestionType.enumeration:
+        return [_buildEnumerationSection()];
+    }
   }
 
   Widget _buildQuestionField() {
@@ -1175,6 +1246,19 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
     );
   }
 
+  Widget _buildExplanationField() {
+    return TextFormField(
+      controller: _explanationController,
+      maxLines: 3,
+      decoration: const InputDecoration(
+        labelText: 'Explanation (optional)',
+        border: OutlineInputBorder(),
+        helperText: 'Shown after answering to explain the correct answer',
+      ),
+      onChanged: (_) => setState(() => _hasUnsavedChanges = true),
+    );
+  }
+
   Widget _buildOptionsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1187,7 +1271,7 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             TextButton.icon(
-              onPressed: _addOption,
+              onPressed: _optionControllers.length < 6 ? _addOption : null,
               icon: const Icon(Icons.add),
               label: const Text('Add Option'),
             ),
@@ -1259,6 +1343,85 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
     );
   }
 
+  Widget _buildEnumerationSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Answer Items',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            TextButton.icon(
+              onPressed: _addEnumerationItem,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Item'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ..._enumerationControllers.asMap().entries.map((entry) {
+          final index = entry.key;
+          final controller = entry.value;
+          return _buildEnumerationField(index, controller);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildEnumerationField(int index, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+            child: Center(
+              child: Text(
+                '${index + 1}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: TextFormField(
+              controller: controller,
+              decoration: InputDecoration(
+                labelText: 'Item ${index + 1}',
+                border: const OutlineInputBorder(),
+                suffixIcon: _enumerationControllers.length > 1
+                    ? IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => _removeEnumerationItem(index),
+                      )
+                    : null,
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Item cannot be empty';
+                }
+                return null;
+              },
+              onChanged: (_) => setState(() => _hasUnsavedChanges = true),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _addOption() {
     setState(() {
       _optionControllers.add(TextEditingController());
@@ -1268,7 +1431,7 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
 
   void _removeOption(int index) {
     if (_optionControllers.length <= 2) return;
-    
+
     setState(() {
       _optionControllers[index].dispose();
       _optionControllers.removeAt(index);
@@ -1279,30 +1442,77 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
     });
   }
 
+  void _addEnumerationItem() {
+    setState(() {
+      _enumerationControllers.add(TextEditingController());
+      _hasUnsavedChanges = true;
+    });
+  }
+
+  void _removeEnumerationItem(int index) {
+    if (_enumerationControllers.length <= 1) return;
+
+    setState(() {
+      _enumerationControllers[index].dispose();
+      _enumerationControllers.removeAt(index);
+      _hasUnsavedChanges = true;
+    });
+  }
+
   void _saveChanges() {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final options = _optionControllers.map((c) => c.text.trim()).toList();
+    String question = _questionController.text.trim();
+    String? answer;
+    List<String> options = const [];
+    int correctAnswerIndex = 0;
+    String? explanation = _explanationController.text.trim().isEmpty
+        ? null
+        : _explanationController.text.trim();
 
-    if (options.isNotEmpty) {
-      if (options.length < 2) {
-        _showValidationError('Multiple-choice questions need at least 2 options');
-        return;
-      }
-      if (_correctAnswerIndex < 0 || _correctAnswerIndex >= options.length) {
-        _showValidationError('Please mark the correct answer');
-        return;
-      }
+    switch (_questionType) {
+      case QuestionType.multipleChoice:
+        options = _optionControllers.map((c) => c.text.trim()).toList();
+        if (options.length < 2) {
+          _showValidationError('Multiple-choice questions need at least 2 options');
+          return;
+        }
+        if (_correctAnswerIndex < 0 || _correctAnswerIndex >= options.length) {
+          _showValidationError('Please mark the correct answer');
+          return;
+        }
+        correctAnswerIndex = _correctAnswerIndex;
+        answer = options[correctAnswerIndex];
+        break;
+      case QuestionType.identification:
+      case QuestionType.mixedFormat:
+        answer = _answerController.text.trim();
+        if (answer.isEmpty) {
+          _showValidationError('Answer cannot be empty');
+          return;
+        }
+        break;
+      case QuestionType.enumeration:
+        final items = _enumerationControllers
+            .map((c) => c.text.trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+        if (items.isEmpty) {
+          _showValidationError('At least one answer item is required');
+          return;
+        }
+        answer = EnumerationFormatter.format(items.join(', '));
+        break;
     }
 
     final editedQuestion = GeneratedQuestion(
-      question: _questionController.text.trim(),
-      answer: _answerController.text.trim().isEmpty ? null : _answerController.text.trim(),
+      question: question,
+      answer: answer,
       options: options,
-      correctAnswerIndex: _correctAnswerIndex,
-      explanation: widget.question.explanation,
+      correctAnswerIndex: correctAnswerIndex,
+      explanation: explanation,
       type: widget.question.type,
       difficulty: widget.question.difficulty,
       source: widget.question.source,
@@ -1335,7 +1545,7 @@ class _GeneratedQuestionEditorScreenState extends State<GeneratedQuestionEditorS
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              Navigator.of(context).pop(); // Pop the editor screen
+              Navigator.of(context).pop();
             },
             child: const Text('Discard'),
           ),

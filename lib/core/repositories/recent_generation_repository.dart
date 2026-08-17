@@ -19,6 +19,11 @@ class RecentGenerationRepository with ChangeNotifier {
 
   List<RecentGeneration> get generations => List.unmodifiable(_generations);
 
+  /// Returns the most recent [limit] generations (already sorted newest-first).
+  List<RecentGeneration> getRecentGenerations(int limit) {
+    return List.unmodifiable(_generations.take(limit));
+  }
+
   void _load() {
     final raw = _prefs.getString(_key);
     if (raw == null || raw.isEmpty) {

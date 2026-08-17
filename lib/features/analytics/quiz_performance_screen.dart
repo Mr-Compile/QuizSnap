@@ -270,7 +270,7 @@ class _QuizPerformanceScreenState extends State<QuizPerformanceScreen> {
           style: AppTheme.titleLarge,
         ),
         const SizedBox(height: AppTheme.spacingMd),
-        ...results.take(10).map((result) => _buildResultItem(context, result)),
+        ...results.take(5).map((result) => _buildResultItem(context, result)),
       ],
     );
   }
