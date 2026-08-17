@@ -10,6 +10,7 @@ import '../../core/services/dialog_service.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/stepper_header.dart';
 import 'page_range_selector_screen.dart';
+import 'docx_page_range_selector_screen.dart';
 import 'analysis_preview_screen.dart';
 
 class DocumentScopeSelectionScreen extends StatefulWidget {
@@ -45,8 +46,10 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
     });
 
     try {
-      if (widget.fileType == 'pdf') {
-        final pageCount = await DocumentExtractionService.getPageCount(widget.file);
+      if (widget.fileType == 'pdf' || widget.fileType == 'docx') {
+        final pageCount = widget.fileType == 'pdf'
+            ? await DocumentExtractionService.getPageCount(widget.file)
+            : await DocumentExtractionService.getDocxPageCount(widget.file);
         setState(() {
           _totalPages = pageCount;
           _isLoading = false;
@@ -158,7 +161,7 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
           ),
           const SizedBox(height: 16),
           
-          if (widget.fileType == 'pdf')
+          if (widget.fileType == 'pdf' || widget.fileType == 'docx')
             _buildScopeCard(
               context,
               title: 'Specific Pages',
@@ -363,6 +366,15 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
   }
 
   void _navigateToPageSelector() {
+    if (widget.fileType == 'docx') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => DocxPageRangeSelectorScreen(file: widget.file),
+        ),
+      );
+      return;
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PageRangeSelectorScreen(file: widget.file),

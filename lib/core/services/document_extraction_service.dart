@@ -77,45 +77,112 @@ class DocumentExtractionService {
   }
 
   /// Extract text from a DOCX file
-  static Future<String> extractFromDocx(File file) async {
+  static Future<String> extractFromDocx(File file, {List<int>? pages}) async {
     try {
-      // DOCX files are ZIP archives containing XML files
-      // The main content is in word/document.xml
-      final bytes = await file.readAsBytes();
-      final archive = ZipDecoder().decodeBytes(bytes);
-      
-      // Find the document.xml file
-      ArchiveFile? documentFile;
-      for (final file in archive.files) {
-        if (file.name == 'word/document.xml' || file.name.endsWith('word/document.xml')) {
-          documentFile = file;
-          break;
-        }
-      }
-      
-      if (documentFile == null) {
-        throw Exception('Could not find document.xml in DOCX file');
-      }
-      
-      // Extract and decode the XML content
-      final content = documentFile.content as List<int>;
-      final xmlString = utf8.decode(content);
-      
-      // Extract text from XML - remove all tags and decode HTML entities
-      String extractedText = _extractTextFromXml(xmlString);
-      
-      // Clean up the extracted text and reconstruct readable paragraphs.
-      extractedText = _cleanDocxText(extractedText);
-      final normalized = DocxTextCleaner.clean(extractedText);
+      final allPages = await extractDocxPages(file);
 
-      if (normalized.trim().isEmpty) {
+      if (allPages.isEmpty) {
         throw Exception('No text could be extracted from DOCX');
       }
 
-      return normalized;
+      final selected = (pages == null || pages.isEmpty)
+          ? List.generate(allPages.length, (i) => i + 1)
+          : pages.where((p) => p >= 1 && p <= allPages.length).toSet().toList()..sort();
+
+      final buffer = StringBuffer();
+      for (final page in selected) {
+        if (buffer.isNotEmpty) buffer.write('\n\n');
+        buffer.write(allPages[page - 1]);
+      }
+
+      final result = buffer.toString().trim();
+      if (result.isEmpty) {
+        throw Exception('No text could be extracted from DOCX');
+      }
+
+      return result;
     } catch (e) {
       throw Exception('Failed to extract text from DOCX: $e');
     }
+  }
+
+  /// Returns the number of DOCX pages/segments determined from explicit page
+  /// breaks in the document or a deterministic chunk size fallback.
+  static Future<int> getDocxPageCount(File file) async {
+    final pages = await extractDocxPages(file);
+    return pages.length;
+  }
+
+  /// Extracts DOCX content as a list of page/segment strings.
+  static Future<List<String>> extractDocxPages(File file) async {
+    final bytes = await file.readAsBytes();
+    final archive = ZipDecoder().decodeBytes(bytes);
+
+    ArchiveFile? documentFile;
+    for (final file in archive.files) {
+      if (file.name == 'word/document.xml' || file.name.endsWith('word/document.xml')) {
+        documentFile = file;
+        break;
+      }
+    }
+
+    if (documentFile == null) {
+      throw Exception('Could not find document.xml in DOCX file');
+    }
+
+    final content = documentFile.content as List<int>;
+    final xmlString = utf8.decode(content);
+    String raw = _extractTextFromXml(xmlString);
+
+    // DOCX often has no real page breaks. Keep the raw form-feed markers for
+    // explicit breaks, then segment deterministically if none are present.
+    final parts = raw.split('\f');
+    final pages = <String>[];
+    for (final part in parts) {
+      if (part.trim().isEmpty) continue;
+      final cleaned = DocxTextCleaner.clean(part);
+      if (cleaned.trim().isNotEmpty) {
+        pages.add(cleaned.trim());
+      }
+    }
+
+    if (pages.isEmpty) return const [];
+
+    // If the document has no explicit page breaks, split the content into
+    // page-like chunks at paragraph boundaries so the user can still select
+    // specific portions of a long document.
+    const targetChars = 2000;
+    if (pages.length == 1 && pages.first.length > targetChars) {
+      return _splitDocxTextIntoChunks(pages.first, targetChars);
+    }
+
+    return pages;
+  }
+
+  /// Splits a long DOCX text into page-like chunks at paragraph boundaries.
+  static List<String> _splitDocxTextIntoChunks(String text, int targetChars) {
+    final paragraphs = text.split('\n\n');
+    final chunks = <String>[];
+    final current = StringBuffer();
+
+    for (final paragraph in paragraphs) {
+      final trimmed = paragraph.trim();
+      if (trimmed.isEmpty) continue;
+
+      if (current.isNotEmpty && current.length + trimmed.length + 2 > targetChars) {
+        chunks.add(current.toString().trim());
+        current.clear();
+      }
+
+      if (current.isNotEmpty) current.write('\n\n');
+      current.write(trimmed);
+    }
+
+    if (current.isNotEmpty) {
+      chunks.add(current.toString().trim());
+    }
+
+    return chunks.isEmpty ? [text.trim()] : chunks;
   }
   
   /// Extract text content from XML by removing tags while preserving the
@@ -150,6 +217,20 @@ class DocumentExtractionService {
       RegExp(r'<w:tab\s*/?>', caseSensitive: false),
       (_) => '\t',
     );
+    // Preserve explicit DOCX page breaks so consumers can split by real pages
+    // or fall back to a deterministic segmentation.
+    text = text.replaceAllMapped(
+      RegExp(r'<w:lastRenderedPageBreak\s*/?>', caseSensitive: false),
+      (_) => '\f',
+    );
+    text = text.replaceAllMapped(
+      RegExp(r'''<w:br[^>]*?\btype=["\']page["\'][^>]*?/?>''', caseSensitive: false),
+      (_) => '\f',
+    );
+    text = text.replaceAllMapped(
+      RegExp(r'''(<w:p[^>]*?\bpageBreakBefore\s*=\s*["\']1["\'][^>]*>)''', caseSensitive: false),
+      (m) => '\f${m.group(1)}',
+    );
 
     // Remove all remaining XML tags.
     text = text.replaceAll(RegExp(r'<[^>]*>'), ' ');
@@ -165,33 +246,6 @@ class DocumentExtractionService {
     return text;
   }
 
-  /// Clean DOCX extracted text while preserving paragraph breaks, blank lines,
-  /// list markers, headings, and indentation.
-  ///
-  /// Only spaces/tabs are collapsed (never newlines), and runs of more than
-  /// two newlines are reduced to a single paragraph break. This keeps the
-  /// document human-readable in review screens and AI prompts.
-  static String _cleanDocxText(String text) {
-    // Normalize line endings.
-    String cleaned = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
-
-    // Collapse runs of spaces/tabs into a single space, but preserve newlines.
-    cleaned = cleaned.replaceAll(RegExp(r'[ \t]+'), ' ');
-
-    // Trim trailing whitespace on each line (keeps indentation via leading
-    // spaces being already collapsed above; we only strip trailing noise).
-    cleaned = cleaned.split('\n').map((l) => l.trimRight()).join('\n');
-
-    // Collapse 3+ newlines into a single paragraph break (\n\n).
-    cleaned = cleaned.replaceAll(RegExp(r'\n{3,}'), '\n\n');
-
-    // Remove control characters that interfere with processing, but keep
-    // newlines (\n) and tabs (\t).
-    cleaned = cleaned.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F]'), '');
-
-    return cleaned.trim();
-  }
-
   /// Extract text based on file type
   static Future<String> extractFromFile(File file, {List<int>? pages}) async {
     final extension = file.path.split('.').last.toLowerCase();
@@ -202,7 +256,7 @@ class DocumentExtractionService {
       case 'txt':
         return extractFromTxt(file);
       case 'docx':
-        return extractFromDocx(file);
+        return extractFromDocx(file, pages: pages);
       default:
         throw Exception('Unsupported file type: $extension');
     }
