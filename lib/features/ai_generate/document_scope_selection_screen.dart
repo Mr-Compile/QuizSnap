@@ -46,10 +46,18 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
     });
 
     try {
-      if (widget.fileType == 'pdf' || widget.fileType == 'docx') {
-        final pageCount = widget.fileType == 'pdf'
-            ? await DocumentExtractionService.getPageCount(widget.file)
-            : await DocumentExtractionService.getDocxPageCount(widget.file);
+      if (widget.fileType == 'pdf' || widget.fileType == 'docx' || widget.fileType == 'txt') {
+        final int pageCount;
+        switch (widget.fileType) {
+          case 'pdf':
+            pageCount = await DocumentExtractionService.getPageCount(widget.file);
+          case 'docx':
+            pageCount = await DocumentExtractionService.getDocxPageCount(widget.file);
+          case 'txt':
+            pageCount = await DocumentExtractionService.getTxtPageCount(widget.file);
+          default:
+            pageCount = 0;
+        }
         setState(() {
           _totalPages = pageCount;
           _isLoading = false;
@@ -161,7 +169,7 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
           ),
           const SizedBox(height: 16),
           
-          if (widget.fileType == 'pdf' || widget.fileType == 'docx')
+          if (widget.fileType == 'pdf' || widget.fileType == 'docx' || widget.fileType == 'txt')
             _buildScopeCard(
               context,
               title: 'Specific Pages',
@@ -369,7 +377,24 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
     if (widget.fileType == 'docx') {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => DocxPageRangeSelectorScreen(file: widget.file),
+          builder: (context) => DocxPageRangeSelectorScreen(
+            file: widget.file,
+            pageExtractor: DocumentExtractionService.extractDocxPages,
+            documentType: 'DOCX',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (widget.fileType == 'txt') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => DocxPageRangeSelectorScreen(
+            file: widget.file,
+            pageExtractor: DocumentExtractionService.extractTxtPages,
+            documentType: 'TXT',
+          ),
         ),
       );
       return;

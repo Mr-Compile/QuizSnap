@@ -64,16 +64,128 @@ class DocumentExtractionService {
   }
 
   /// Extract text from a TXT file, preserving UTF-8 encoding and line breaks.
-  static Future<String> extractFromTxt(File file) async {
+  static Future<String> extractFromTxt(File file, {List<int>? pages}) async {
     try {
-      final content = await file.readAsString(encoding: utf8);
-      // Normalize line endings, then run the TXT-specific cleaner.
-      return TxtTextCleaner.clean(
-        content.replaceAll('\r\n', '\n').replaceAll('\r', '\n'),
-      );
+      final allPages = await extractTxtPages(file);
+
+      if (allPages.isEmpty) {
+        throw Exception('No text could be extracted from TXT');
+      }
+
+      final selected = (pages == null || pages.isEmpty)
+          ? List.generate(allPages.length, (i) => i + 1)
+          : pages.where((p) => p >= 1 && p <= allPages.length).toSet().toList()..sort();
+
+      final buffer = StringBuffer();
+      for (final page in selected) {
+        if (buffer.isNotEmpty) buffer.write('\n\n');
+        buffer.write(allPages[page - 1]);
+      }
+
+      final result = buffer.toString().trim();
+      if (result.isEmpty) {
+        throw Exception('No text could be extracted from TXT');
+      }
+
+      return result;
     } catch (e) {
       throw Exception('Failed to extract text from TXT: $e');
     }
+  }
+
+  /// Returns the number of logical TXT pages/segments.
+  static Future<int> getTxtPageCount(File file) async {
+    final pages = await extractTxtPages(file);
+    return pages.length;
+  }
+
+  /// Extracts a TXT file as a list of logical page/segment strings.
+  static Future<List<String>> extractTxtPages(File file) async {
+    final content = await file.readAsString(encoding: utf8);
+    final normalized = content.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    final cleaned = TxtTextCleaner.clean(normalized);
+
+    if (cleaned.trim().isEmpty) {
+      return const [];
+    }
+
+    // Split into paragraphs and group them into logical pages.
+    final paragraphs = cleaned.split(RegExp(r'\n{2,}'));
+    const targetChars = 2000;
+    return _groupParagraphsIntoPages(paragraphs, targetChars);
+  }
+
+  static List<String> _groupParagraphsIntoPages(List<String> paragraphs, int targetChars) {
+    final pages = <String>[];
+    final current = StringBuffer();
+
+    for (final raw in paragraphs) {
+      final paragraph = raw.trim();
+      if (paragraph.isEmpty) continue;
+
+      final chunks = _splitLargeParagraph(paragraph, targetChars);
+      for (final chunk in chunks) {
+        if (current.isNotEmpty && current.length + 2 + chunk.length > targetChars) {
+          pages.add(current.toString().trim());
+          current.clear();
+        }
+        if (current.isNotEmpty) current.write('\n\n');
+        current.write(chunk);
+      }
+    }
+
+    if (current.isNotEmpty) {
+      pages.add(current.toString().trim());
+    }
+
+    return pages;
+  }
+
+  /// Splits a single large paragraph at a sentence or word boundary.
+  static List<String> _splitLargeParagraph(String paragraph, int targetChars) {
+    if (paragraph.length <= targetChars) {
+      return [paragraph];
+    }
+
+    final chunks = <String>[];
+    var start = 0;
+
+    while (start < paragraph.length) {
+      if (paragraph.length - start <= targetChars) {
+        chunks.add(paragraph.substring(start).trim());
+        break;
+      }
+
+      var end = start + targetChars;
+      var bestEnd = end;
+
+      // Prefer breaking at a sentence end.
+      for (var i = end; i > start + targetChars ~/ 2; i--) {
+        if (i < paragraph.length - 1 &&
+            RegExp(r'[.!?]').hasMatch(paragraph[i]) &&
+            paragraph[i + 1] == ' ') {
+          bestEnd = i + 1;
+          break;
+        }
+      }
+
+      if (bestEnd == end) {
+        // Fall back to the nearest word boundary.
+        final space = paragraph.lastIndexOf(' ', end);
+        if (space > start) {
+          bestEnd = space;
+        }
+      }
+
+      chunks.add(paragraph.substring(start, bestEnd).trim());
+      start = bestEnd;
+
+      while (start < paragraph.length && paragraph[start] == ' ') {
+        start++;
+      }
+    }
+
+    return chunks;
   }
 
   /// Extract text from a DOCX file
@@ -254,7 +366,7 @@ class DocumentExtractionService {
       case 'pdf':
         return extractFromPdf(file, pages: pages);
       case 'txt':
-        return extractFromTxt(file);
+        return extractFromTxt(file, pages: pages);
       case 'docx':
         return extractFromDocx(file, pages: pages);
       default:

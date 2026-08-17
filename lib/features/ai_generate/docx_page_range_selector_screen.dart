@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/services/document_extraction_service.dart';
 import '../../core/services/document_cache_service.dart';
 import '../../core/services/cached_document_service.dart';
 import '../../core/providers/database_provider.dart';
@@ -12,10 +11,14 @@ import 'analysis_preview_screen.dart';
 
 class DocxPageRangeSelectorScreen extends StatefulWidget {
   final File file;
+  final Future<List<String>> Function(File) pageExtractor;
+  final String documentType;
 
   const DocxPageRangeSelectorScreen({
     super.key,
     required this.file,
+    required this.pageExtractor,
+    required this.documentType,
   });
 
   @override
@@ -31,12 +34,12 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
   @override
   void initState() {
     super.initState();
-    _loadDocxPages();
+    _loadPages();
   }
 
-  Future<void> _loadDocxPages() async {
+  Future<void> _loadPages() async {
     try {
-      final pages = await DocumentExtractionService.extractDocxPages(widget.file);
+      final pages = await widget.pageExtractor(widget.file);
       if (!mounted) return;
       setState(() {
         _pageTexts = pages;
@@ -46,7 +49,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Failed to load DOCX pages: $e';
+        _errorMessage = 'Failed to load ${widget.documentType} pages: $e';
       });
     }
   }
@@ -55,7 +58,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(
-        title: 'Select DOCX Pages',
+        title: 'Select ${widget.documentType} Pages',
         actions: [
           if (_selectedPages.isNotEmpty)
             TextButton.icon(
@@ -95,7 +98,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
           ),
           const SizedBox(height: 16),
           Text(
-            'Failed to load DOCX',
+            'Failed to load ${widget.documentType}',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
@@ -427,7 +430,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
         rawText: text,
         selectedScope: 'pages',
         totalPages: _pageTexts.length,
-        source: 'DOCX ($rangeText)',
+        source: '${widget.documentType} ($rangeText)',
       );
 
       if (!mounted) return;
@@ -436,7 +439,7 @@ class _DocxPageRangeSelectorScreenState extends State<DocxPageRangeSelectorScree
         MaterialPageRoute(
           builder: (context) => AnalysisPreviewScreen(
             text: text,
-            source: 'DOCX selected pages',
+            source: '${widget.documentType} selected pages',
             scopeType: 'pages',
             scopeDetails: {
               'pages': sortedPages,
