@@ -92,7 +92,7 @@ class FlashcardQuestionFormState extends State<FlashcardQuestionForm> {
   late final TextEditingController _optionCController;
   late final TextEditingController _optionDController;
   late String _correctOption;
-  late List<String> _enumerationItems;
+  late final List<TextEditingController> _enumerationControllers;
 
   @override
   void initState() {
@@ -107,9 +107,13 @@ class FlashcardQuestionFormState extends State<FlashcardQuestionForm> {
     _optionCController = TextEditingController(text: f?.optionC ?? '');
     _optionDController = TextEditingController(text: f?.optionD ?? '');
     _correctOption = f?.correctOption ?? '';
-    _enumerationItems = QuestionTypeHelper.decodeEnumerationItems(
+    _enumerationControllers = QuestionTypeHelper.decodeEnumerationItems(
       f?.enumerationItems,
-    );
+    ).map((item) => TextEditingController(text: item)).toList();
+    if (_questionType == QuestionTypeHelper.enumeration &&
+        _enumerationControllers.isEmpty) {
+      _enumerationControllers.add(TextEditingController());
+    }
   }
 
   @override
@@ -121,6 +125,9 @@ class FlashcardQuestionFormState extends State<FlashcardQuestionForm> {
     _optionBController.dispose();
     _optionCController.dispose();
     _optionDController.dispose();
+    for (final controller in _enumerationControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -134,8 +141,18 @@ class FlashcardQuestionFormState extends State<FlashcardQuestionForm> {
           _optionBController.text.trim().isNotEmpty ||
           _optionCController.text.trim().isNotEmpty ||
           _optionDController.text.trim().isNotEmpty ||
-          _enumerationItems.isNotEmpty;
+          _getTrimmedEnumerationItems().isNotEmpty;
     }
+
+    if (_questionType != f.questionType) return true;
+
+    if (_questionType == QuestionTypeHelper.enumeration) {
+      final initial = QuestionTypeHelper.decodeEnumerationItems(f.enumerationItems);
+      if (!_listEquals(_getTrimmedEnumerationItems(), initial)) {
+        return true;
+      }
+    }
+
     return _questionController.text.trim() != f.question ||
         _answerController.text.trim() != f.answer ||
         _explanationController.text.trim() != (f.explanation ?? '') ||
@@ -143,18 +160,29 @@ class FlashcardQuestionFormState extends State<FlashcardQuestionForm> {
         _optionBController.text.trim() != (f.optionB ?? '') ||
         _optionCController.text.trim() != (f.optionC ?? '') ||
         _optionDController.text.trim() != (f.optionD ?? '') ||
-        _correctOption != (f.correctOption ?? '') ||
-        _questionType != f.questionType;
+        _correctOption != (f.correctOption ?? '');
+  }
+
+  List<String> _getTrimmedEnumerationItems() {
+    return _enumerationControllers
+        .map((c) => c.text.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  bool _listEquals<T>(List<T> a, List<T> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
     // Trim empty enumeration items before saving.
-    final trimmedItems = _enumerationItems
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
+    final trimmedItems = _getTrimmedEnumerationItems();
 
     String answer;
     String? enumJson;
@@ -206,7 +234,7 @@ class FlashcardQuestionFormState extends State<FlashcardQuestionForm> {
         _optionBController.text.trim().isNotEmpty ||
         _optionCController.text.trim().isNotEmpty ||
         _optionDController.text.trim().isNotEmpty ||
-        _enumerationItems.isNotEmpty;
+        _getTrimmedEnumerationItems().isNotEmpty;
     if (!hasData) return true;
 
     return await showDialog<bool>(
@@ -323,7 +351,13 @@ class FlashcardQuestionFormState extends State<FlashcardQuestionForm> {
                     newType,
                   );
               if (!confirmed || !mounted) return;
-              setState(() => _questionType = newType);
+              setState(() {
+                _questionType = newType;
+                if (_questionType == QuestionTypeHelper.enumeration &&
+                    _enumerationControllers.isEmpty) {
+                  _enumerationControllers.add(TextEditingController());
+                }
+              });
             },
           ),
         ),
@@ -389,128 +423,95 @@ class FlashcardQuestionFormState extends State<FlashcardQuestionForm> {
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Items', style: AppTheme.labelLarge),
+          Text('Answers', style: AppTheme.labelLarge),
           TextButton.icon(
             onPressed: _addEnumerationItem,
             icon: const Icon(Icons.add),
-            label: const Text('Add Item'),
+            label: const Text('Add Answer'),
           ),
         ],
       ),
-      if (_enumerationItems.isEmpty)
+      if (_enumerationControllers.isEmpty)
         Padding(
           padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
           child: Text(
-            'Add at least one item.',
+            'Add at least one answer.',
             style: AppTheme.bodySmall.copyWith(
               color: Theme.of(context).colorScheme.error,
             ),
           ),
         ),
-      ReorderableListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        buildDefaultDragHandles: false,
-        itemCount: _enumerationItems.length,
-        onReorderItem: (oldIndex, newIndex) {
-          setState(() {
-            final item = _enumerationItems.removeAt(oldIndex);
-            _enumerationItems.insert(newIndex, item);
-          });
-        },
-        proxyDecorator: (child, index, animation) => Material(
-          color: Colors.transparent,
-          child: child,
-        ),
-        itemBuilder: (context, index) {
-          return _buildEnumerationItemTile(index, _enumerationItems[index]);
-        },
-      ),
+      ..._enumerationControllers.asMap().entries.map((entry) {
+        return _buildEnumerationField(entry.key, entry.value);
+      }),
     ];
   }
 
-  Widget _buildEnumerationItemTile(int index, String item) {
-    return Dismissible(
-      key: ValueKey('enum_${index}_$item'),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => _removeEnumerationItem(index),
-      background: Container(
-        alignment: Alignment.centerRight,
-        color: Theme.of(context).colorScheme.error,
-        child: const Padding(
-          padding: EdgeInsets.only(right: AppTheme.spacingMd),
-          child: Icon(Icons.delete, color: Colors.white),
-        ),
-      ),
-      child: Padding(
-        key: ValueKey('enum_tile_$index'),
-        padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
-        child: Row(
-          children: [
-            ReorderableDragStartListener(
-              index: index,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
-                child: Icon(Icons.drag_indicator),
+  Widget _buildEnumerationField(int index, TextEditingController controller) {
+    return Padding(
+      key: ObjectKey(controller),
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            margin: const EdgeInsets.only(right: AppTheme.spacingSm),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+            child: Center(
+              child: Text(
+                '${index + 1}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ),
-            Text('${index + 1}.', style: AppTheme.labelMedium),
-            const SizedBox(width: AppTheme.spacingSm),
-            Expanded(child: Text(item)),
-            IconButton(
-              icon: const Icon(Icons.close, size: 20),
-              onPressed: () => _removeEnumerationItem(index),
-              tooltip: 'Remove item',
+          ),
+          Expanded(
+            child: TextFormField(
+              controller: controller,
+              decoration: InputDecoration(
+                labelText: 'Answer ${index + 1}',
+                hintText: 'Enter answer',
+                border: const OutlineInputBorder(),
+                suffixIcon: _enumerationControllers.length > 1
+                    ? IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => _removeEnumerationItem(index),
+                        tooltip: 'Remove answer',
+                      )
+                    : null,
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Answer cannot be empty';
+                }
+                return null;
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   void _addEnumerationItem() {
-    final controller = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Add Item ${_enumerationItems.length + 1}'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Item',
-            border: OutlineInputBorder(),
-          ),
-          onSubmitted: (value) {
-            final trimmed = value.trim();
-            if (trimmed.isNotEmpty) {
-              setState(() => _enumerationItems.add(trimmed));
-            }
-            Navigator.of(context).pop();
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              final trimmed = controller.text.trim();
-              if (trimmed.isNotEmpty) {
-                setState(() => _enumerationItems.add(trimmed));
-              }
-              Navigator.of(context).pop();
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    ).then((_) => controller.dispose());
+    setState(() => _enumerationControllers.add(TextEditingController()));
   }
 
   void _removeEnumerationItem(int index) {
-    setState(() => _enumerationItems.removeAt(index));
+    if (_enumerationControllers.length <= 1) return;
+
+    setState(() {
+      _enumerationControllers[index].dispose();
+      _enumerationControllers.removeAt(index);
+    });
   }
 
   List<Widget> _buildMultipleChoiceFields() {
