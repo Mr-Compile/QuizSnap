@@ -21,6 +21,8 @@ class DeckRepository {
 
   Future<void> restoreDeck(int id) => _database.restoreDeck(id);
 
+  Future<void> restoreDeckToFolder(int id, int folderId) => _database.restoreDeckToFolder(id, folderId);
+
   Future<List<Deck>> getDeletedDecks() => _database.getDeletedDecks();
 
   Future<void> permanentlyDeleteDeck(int id) => _database.permanentlyDeleteDeck(id);

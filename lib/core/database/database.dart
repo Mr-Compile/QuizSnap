@@ -208,29 +208,49 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> updateFolder(Folder folder) => update(folders).replace(folder);
 
   Future<bool> deleteFolder(int id) async {
-    // Soft-delete the folder.  We intentionally do NOT unassign decks
-    // (set folderId = null) here, because:
-    //   1. The Library screen only shows active folders (deletedAt IS NULL),
-    //      so a soft-deleted folder disappears from normal lists.
-    //   2. Its decks keep their folderId, so they don't become orphan
-    //      "unfiled" decks that the folder-first Library can't display.
-    //   3. When the folder is restored, the decks automatically belong
-    //      to it again — no manual reassignment needed.
-    // Decks are only unassigned in permanentlyDeleteFolder().
-    final folder = await getFolderById(id);
-    final updatedFolder = folder.copyWith(deletedAt: Value(DateTime.now()));
-    return await update(folders).replace(updatedFolder);
+    // Soft-delete the folder and all of its active child decks (and their
+    // flashcards) in a single transaction.  This prevents active decks from
+    // appearing without an active parent folder and ensures the records remain
+    // in the Trash for restoration.
+    return transaction(() async {
+      final now = DateTime.now();
+      final folder = await getFolderById(id);
+      final childDecks = await getDecksByFolder(id);
+      for (final deck in childDecks) {
+        await deleteDeck(deck.id);
+      }
+      final updatedFolder = folder.copyWith(
+        deletedAt: Value(now),
+        updatedAt: now,
+      );
+      return await update(folders).replace(updatedFolder);
+    });
   }
 
   Future<bool> restoreFolder(int id) async {
     // NOTE: We intentionally do NOT use getFolderById() here because
     // that method filters deletedAt.isNull(), which would throw for
     // a soft-deleted folder.  Instead we select by id only.
-    final folder = await (select(folders)
-          ..where((tbl) => tbl.id.equals(id)))
-        .getSingle();
-    final updatedFolder = folder.copyWith(deletedAt: const Value(null));
-    return await update(folders).replace(updatedFolder);
+    //
+    // Restore the folder and any of its deleted child decks (and their
+    // flashcards) in one transaction so the original hierarchy is recovered.
+    return transaction(() async {
+      final folder = await (select(folders)
+            ..where((tbl) => tbl.id.equals(id)))
+          .getSingle();
+      final updatedFolder = folder.copyWith(deletedAt: const Value(null));
+      await update(folders).replace(updatedFolder);
+
+      final childDecks = await (select(decks)
+            ..where((tbl) => tbl.folderId.equals(id))
+            ..where((tbl) => tbl.deletedAt.isNotNull()))
+          .get();
+      for (final deck in childDecks) {
+        await restoreDeck(deck.id);
+      }
+
+      return true;
+    });
   }
 
   Future<List<Folder>> getDeletedFolders() => (select(folders)
@@ -251,7 +271,7 @@ class AppDatabase extends _$AppDatabase {
 
   // Deck Queries
   Future<List<Deck>> getAllDecks() => (select(decks)
-        ..where((tbl) => tbl.deletedAt.isNull())
+        ..where((tbl) => tbl.deletedAt.isNull() & tbl.folderId.isNotNull())
         ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
       .get();
 
@@ -317,11 +337,46 @@ class AppDatabase extends _$AppDatabase {
     return await update(decks).replace(updatedDeck);
   }
 
+  Future<bool> restoreDeckToFolder(int id, int newFolderId) async {
+    // Restore a deleted deck and place it under a new active folder.
+    final deck = await (select(decks)
+          ..where((tbl) => tbl.id.equals(id)))
+        .getSingle();
+    final updatedDeck = deck.copyWith(
+      folderId: Value(newFolderId),
+      deletedAt: const Value(null),
+      updatedAt: DateTime.now(),
+    );
+    await (update(flashcards)
+          ..where((tbl) => tbl.deckId.equals(id)))
+        .write(const FlashcardsCompanion(deletedAt: Value(null)));
+    final result = await update(decks).replace(updatedDeck);
+    await updateDeckCardCount(id);
+    return result;
+  }
+
   Future<bool> restoreDeck(int id) async {
     final deck = await (select(decks)
           ..where((tbl) => tbl.id.equals(id)))
         .getSingle();
-    final updatedDeck = deck.copyWith(deletedAt: const Value(null));
+
+    // An active deck must always belong to an active folder. If the original
+    // folder is missing or deleted, do not silently restore as an orphan.
+    if (deck.folderId == null) {
+      throw Exception('This deck has no folder. Move it to a folder before restoring.');
+    }
+    final parent = await (select(folders)
+          ..where((tbl) => tbl.id.equals(deck.folderId!))
+          ..where((tbl) => tbl.deletedAt.isNull()))
+        .getSingleOrNull();
+    if (parent == null) {
+      throw Exception('This deck belongs to a folder that is unavailable. Move it to another folder before restoring.');
+    }
+
+    final updatedDeck = deck.copyWith(
+      deletedAt: const Value(null),
+      updatedAt: DateTime.now(),
+    );
     // Restore related flashcards along with the deck.
     await (update(flashcards)
           ..where((tbl) => tbl.deckId.equals(id)))

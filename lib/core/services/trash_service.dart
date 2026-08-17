@@ -89,7 +89,7 @@ class TrashService {
   }
 
   Future<void> restoreAll() async {
-    // Folders
+    // Folders first so their child decks have an active parent.
     if (folderRepository != null) {
       final deletedFolders = await folderRepository!.getDeletedFolders();
       for (final folder in deletedFolders) {
@@ -101,8 +101,16 @@ class TrashService {
       }
     }
 
+    // Only restore decks whose parent folder is still active to avoid orphans.
+    final activeFolderIds = folderRepository != null
+        ? (await folderRepository!.getAllFolders()).map((f) => f.id).toSet()
+        : <int>{};
     final deletedDecks = await deckRepository.getDeletedDecks();
     for (final deck in deletedDecks) {
+      if (deck.folderId == null || !activeFolderIds.contains(deck.folderId)) {
+        debugPrint('Skipping restore of deck ${deck.id}: folder not active');
+        continue;
+      }
       try {
         await deckRepository.restoreDeck(deck.id);
       } catch (e) {

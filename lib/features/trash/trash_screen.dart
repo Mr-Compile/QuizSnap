@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/database/database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/trash_provider.dart';
 import '../../core/services/dialog_service.dart';
@@ -11,6 +12,7 @@ import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/error_state.dart';
 import '../../shared/widgets/loading_skeleton.dart';
 import '../../shared/widgets/confirmation_dialog.dart';
+import '../../features/folders/move_deck_to_folder_dialog.dart';
 
 class TrashScreen extends StatefulWidget {
   const TrashScreen({super.key});
@@ -354,7 +356,7 @@ class _TrashScreenState extends State<TrashScreen> {
                       child: IconButton(
                         icon: const Icon(Icons.restore, size: 20),
                         tooltip: 'Restore deck',
-                        onPressed: () => _restoreDeck(context, deck.id),
+                        onPressed: () => _restoreDeck(deck),
                       ),
                     ),
                     Semantics(
@@ -581,21 +583,59 @@ class _TrashScreenState extends State<TrashScreen> {
     }
   }
 
-  void _restoreDeck(BuildContext context, int id) {
+  Future<void> _restoreDeck(Deck deck) async {
     final provider = context.read<TrashProvider>();
     final db = context.read<DatabaseProvider>();
-    provider.restoreDeck(id).then((_) {
-      // Refresh all dependent screens (Library, FolderDetails).
+
+    // A deck must always belong to an active folder.
+    final activeFolders = await db.folderRepository.getAllFolders();
+    if (!mounted) return;
+    final isFolderActive = deck.folderId != null &&
+        activeFolders.any((f) => f.id == deck.folderId);
+
+    if (!isFolderActive) {
+      await DialogService.showError(
+        context,
+        'This deck belongs to a folder that is currently unavailable. Choose another folder before restoring it.',
+        title: 'Cannot restore deck',
+        primaryAction: 'Move to Folder',
+        onPrimaryAction: () {
+          if (!mounted) return;
+          showDialog<bool>(
+            context: context,
+            builder: (context) => MoveDeckToFolderDialog(
+              deckId: deck.id,
+              currentFolderId: deck.folderId,
+              forRestore: true,
+            ),
+          ).then((result) {
+            if (result == true && mounted) {
+              provider.load();
+              db.refreshAll();
+              setState(() {});
+            }
+          });
+        },
+        secondaryAction: 'Cancel',
+        onSecondaryAction: () {},
+      );
+      return;
+    }
+
+    try {
+      await provider.restoreDeck(deck.id);
+      // Refresh all dependent screens (Library, FolderDetails, Trash).
+      await provider.load();
       db.refreshAll();
-      if (context.mounted) {
+      if (mounted) {
         DialogService.showSuccess(context, 'Deck restored');
         setState(() {});
       }
-    }).catchError((e) {
-      if (context.mounted) {
+    } catch (e) {
+      if (mounted) {
         DialogService.showFriendlyError(context, 'Error restoring deck: $e');
       }
-    });
+    }
   }
 
   void _permanentlyDeleteDeck(BuildContext context, int id) async {

@@ -8,10 +8,15 @@ class MoveDeckToFolderDialog extends StatefulWidget {
   final int deckId;
   final int? currentFolderId;
 
+  /// When true, the deck being moved is currently in the Trash and the
+  /// operation should restore it into the selected folder.
+  final bool forRestore;
+
   const MoveDeckToFolderDialog({
     super.key,
     required this.deckId,
     this.currentFolderId,
+    this.forRestore = false,
   });
 
   @override
@@ -25,7 +30,9 @@ class _MoveDeckToFolderDialogState extends State<MoveDeckToFolderDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedFolderId = widget.currentFolderId;
+    // A deleted deck's previous folder may no longer be active; force a
+    // deliberate re-selection in that case.
+    _selectedFolderId = widget.forRestore ? null : widget.currentFolderId;
   }
 
   @override
@@ -33,7 +40,7 @@ class _MoveDeckToFolderDialogState extends State<MoveDeckToFolderDialog> {
     final dbProvider = context.read<DatabaseProvider>();
 
     return AlertDialog(
-      title: const Text('Move to Folder'),
+      title: Text(widget.forRestore ? 'Choose a Folder' : 'Move to Folder'),
       content: SizedBox(
         width: double.maxFinite,
         child: FutureBuilder<List<Folder>>(
@@ -88,7 +95,7 @@ class _MoveDeckToFolderDialogState extends State<MoveDeckToFolderDialog> {
         ),
         ElevatedButton(
           onPressed: _isSaving ? null : () => _move(_selectedFolderId),
-          child: const Text('Move'),
+          child: Text(widget.forRestore ? 'Move & Restore' : 'Move'),
         ),
       ],
     );
@@ -110,16 +117,23 @@ class _MoveDeckToFolderDialogState extends State<MoveDeckToFolderDialog> {
 
     final dbProvider = context.read<DatabaseProvider>();
     try {
-      await dbProvider.deckRepository.moveDeckToFolder(widget.deckId, folderId);
-      // Trigger dependent consumers (LibraryScreen, FolderDetailsScreen) to rebuild.
+      if (widget.forRestore) {
+        await dbProvider.deckRepository.restoreDeckToFolder(widget.deckId, folderId);
+      } else {
+        await dbProvider.deckRepository.moveDeckToFolder(widget.deckId, folderId);
+      }
+      // Trigger dependent consumers (LibraryScreen, FolderDetailsScreen, Trash) to rebuild.
       dbProvider.refreshAll();
       if (mounted) {
-        await DialogService.showSuccess(context, 'Deck moved successfully');
+        await DialogService.showSuccess(
+          context,
+          widget.forRestore ? 'Deck restored successfully' : 'Deck moved successfully',
+        );
         if (mounted) Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
-        await DialogService.showError(context, 'Error moving deck: $e');
+        await DialogService.showError(context, 'Error ${widget.forRestore ? 'restoring' : 'moving'} deck: $e');
       }
     } finally {
       if (mounted) {

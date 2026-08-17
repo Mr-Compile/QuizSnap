@@ -317,9 +317,13 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
         await _refresh();
       }
     } else if (value == 'delete') {
+      final deckCount = data.count;
+      final confirmationMessage = deckCount == 0
+          ? 'Delete folder "${data.folder.name}"?'
+          : 'Delete folder "${data.folder.name}"? This folder contains $deckCount deck${deckCount == 1 ? '' : 's'}. Deleting it will move the folder and its decks to Trash.';
       final confirmed = await DialogService.showConfirmation(
         context,
-        'Delete folder "${data.folder.name}"? Decks in this folder will become ungrouped.',
+        confirmationMessage,
         isDestructive: true,
       );
       if (confirmed != true || !mounted) return;
@@ -327,7 +331,10 @@ class _FolderDetailsScreenState extends State<FolderDetailsScreen> {
         await dbProvider.folderRepository.deleteFolder(widget.folderId);
         dbProvider.refreshAll();
         if (mounted) {
-          await DialogService.showSuccess(context, 'Folder deleted');
+          context.read<TrashProvider>().load();
+        }
+        if (mounted) {
+          await DialogService.showSuccess(context, 'Folder moved to Trash');
           if (mounted) GoRouter.of(context).pop();
         }
       } catch (e) {
