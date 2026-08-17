@@ -384,7 +384,7 @@ class _SessionWarningHandlerState extends State<_SessionWarningHandler> {
         _dismissDialog();
       }
       service.clearSessionLoggedOut();
-      AppRouter.router.go(AppRoutes.home);
+      AppRouter.router.go('/');
       return;
     }
 

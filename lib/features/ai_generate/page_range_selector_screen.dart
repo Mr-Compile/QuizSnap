@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../shared/widgets/app_bar.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,7 @@ import '../../core/services/document_extraction_service.dart';
 import '../../core/services/document_cache_service.dart';
 import '../../core/services/cached_document_service.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/page_selection_provider.dart';
 import '../../core/services/dialog_service.dart';
 import '../../shared/widgets/stepper_header.dart';
 import 'analysis_preview_screen.dart';
@@ -30,33 +32,82 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
   final TextEditingController _rangeController = TextEditingController();
   final Set<int> _selectedPages = {};
   List<List<int>> _parsedRanges = [];
+  final Map<int, Future<Uint8List?>> _thumbnailFutures = {};
   PdfController? _pdfController;
+  PdfDocument? _pdfDocument;
+  late final PageSelectionProvider _pageSelection;
 
   @override
   void initState() {
     super.initState();
+    _pageSelection = context.read<PageSelectionProvider>();
     _loadPdfInfo();
   }
 
   @override
   void dispose() {
+    // Persist the current selection to the existing provider so it survives
+    // navigation away from and back to this screen.
+    _pageSelection.clear();
+    _pageSelection.applyRangeInput(_rangeController.text);
     _rangeController.dispose();
     _pdfController?.dispose();
+    try {
+      _pdfDocument?.close();
+    } catch (_) {
+      // Document may already be closed.
+    }
     super.dispose();
+  }
+
+  Future<Uint8List?> _loadThumbnail(int pageNumber) async {
+    if (_pdfDocument == null) return null;
+
+    try {
+      final page = await _pdfDocument!.getPage(pageNumber);
+      try {
+        final aspect = page.height / page.width;
+        const targetWidth = 150.0;
+        final image = await page.render(
+          width: targetWidth,
+          height: targetWidth * aspect,
+          format: PdfPageImageFormat.jpeg,
+          backgroundColor: '#FFFFFF',
+        );
+        if (image == null) throw Exception('Page render returned null');
+        return image.bytes;
+      } finally {
+        await page.close();
+      }
+    } catch (e) {
+      debugPrint('PDF thumbnail render error for page $pageNumber: $e');
+      return null;
+    }
   }
 
   Future<void> _loadPdfInfo() async {
     try {
-      final pageCount = await DocumentExtractionService.getPageCount(widget.file);
-
-      // Prepare the PDF viewer controller without rendering every page.
       final bytes = await widget.file.readAsBytes();
+
+      // Open the PDF once with the existing pdfx implementation and get
+      // both the document and the page count from the same source.
       _pdfController = PdfController(
         document: PdfDocument.openData(bytes),
       );
+      _pdfDocument = await _pdfController!.document;
+
+      // Preserve the user's previous selection only when the page count
+      // matches (same document). Otherwise start fresh to avoid stale data.
+      final previousTotal = _pageSelection.totalPages;
+      _pageSelection.setTotalPages(_pdfDocument!.pagesCount);
+      if (previousTotal == _pdfDocument!.pagesCount) {
+        _selectedPages.addAll(_pageSelection.selectedPages);
+        _rangeController.text = _pageSelection.rangeInput;
+        _parsedRanges = _parseRangesToList(_pageSelection.rangeInput);
+      }
 
       setState(() {
-        _totalPages = pageCount;
+        _totalPages = _pdfDocument!.pagesCount;
         _isLoading = false;
       });
     } catch (e) {
@@ -254,6 +305,9 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
   }
 
   Widget _buildPageGrid() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -262,7 +316,7 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
           children: [
             Text(
               'Select Pages',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: textTheme.titleMedium,
             ),
             if (_selectedPages.isNotEmpty)
               TextButton(
@@ -281,17 +335,19 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 5,
-            childAspectRatio: 1,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 180,
+            childAspectRatio: 0.7,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
           ),
           itemCount: _totalPages,
           itemBuilder: (context, index) {
             final pageNumber = index + 1;
             final isSelected = _selectedPages.contains(pageNumber);
-            
+
+            _thumbnailFutures[pageNumber] ??= _loadThumbnail(pageNumber);
+
             return InkWell(
               onTap: () {
                 setState(() {
@@ -303,26 +359,82 @@ class _PageRangeSelectorScreenState extends State<PageRangeSelectorScreen> {
                   _updateRangeText();
                 });
               },
+              borderRadius: BorderRadius.circular(8),
               child: Container(
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.outline,
+                        ? colorScheme.primary
+                        : colorScheme.outline.withValues(alpha: 0.3),
+                    width: isSelected ? 2 : 1,
                   ),
                 ),
-                child: Center(
-                  child: Text(
-                    pageNumber.toString(),
-                    style: TextStyle(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.onSurface,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      FutureBuilder<Uint8List?>(
+                        future: _thumbnailFutures[pageNumber],
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          }
+
+                          if (snapshot.hasError || snapshot.data == null) {
+                            return Center(
+                              child: Icon(
+                                Icons.broken_image,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            );
+                          }
+
+                          return Image.memory(
+                            snapshot.data!,
+                            fit: BoxFit.cover,
+                            gaplessPlayback: true,
+                          );
+                        },
                       ),
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.85),
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Text(
+                            'Page $pageNumber',
+                            textAlign: TextAlign.center,
+                            style: textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (isSelected)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: CircleAvatar(
+                            radius: 12,
+                            backgroundColor: colorScheme.primary,
+                            child: Icon(
+                              Icons.check,
+                              size: 14,
+                              color: colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
