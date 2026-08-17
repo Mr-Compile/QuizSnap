@@ -35,11 +35,13 @@ class SessionInactivityService with ChangeNotifier {
   DateTime? _lastActivityTime;
   bool _isWarningPhase = false;
   bool _isPaused = false;
+  bool _sessionLoggedOut = false;
   int _countdown = 0;
 
   bool get isWarningPhase => _isWarningPhase;
   int get countdown => _countdown;
   bool get isPaused => _isPaused;
+  bool get isSessionLoggedOut => _sessionLoggedOut;
   bool get isFocusMode => _focusModeProvider?.isFocusMode ?? false;
 
   SessionInactivityService(this._securityProvider);
@@ -97,10 +99,36 @@ class SessionInactivityService with ChangeNotifier {
     _securityProvider.lockSession();
   }
 
+  /// Immediately log out the session (used by "Log Out" button when no PIN).
+  void logoutNow() {
+    _cancelWarning();
+    if (_securityProvider.isPinEnabled) {
+      _securityProvider.lockSession();
+    } else if (!_sessionLoggedOut) {
+      _sessionLoggedOut = true;
+      _securityProvider.clearAllSecurityData();
+      _tickTimer?.cancel();
+      _tickTimer = null;
+      _isPaused = true;
+      notifyListeners();
+    }
+  }
+
   /// Dismiss the warning phase and reset.
   void dismissWarning() {
     _cancelWarning();
     recordActivity();
+  }
+
+  /// Clear the session-logged-out flag and restart tracking after the UI
+  /// has handled the logout.
+  void clearSessionLoggedOut() {
+    if (_sessionLoggedOut) {
+      _sessionLoggedOut = false;
+      _isPaused = false;
+      start();
+      notifyListeners();
+    }
   }
 
   void _cancelWarning() {
@@ -125,11 +153,15 @@ class SessionInactivityService with ChangeNotifier {
       // Session timeout reached.
       _cancelWarning();
       if (_securityProvider.isPinEnabled) {
-        // Only actually lock if a PIN is configured — otherwise just
-        // reset the timer so the user isn't locked out with no way back.
         _securityProvider.lockSession();
-      } else {
-        _lastActivityTime = DateTime.now();
+      } else if (!_sessionLoggedOut) {
+        // No PIN configured: perform a real session logout.
+        _sessionLoggedOut = true;
+        _securityProvider.clearAllSecurityData();
+        _tickTimer?.cancel();
+        _tickTimer = null;
+        _isPaused = true;
+        notifyListeners();
       }
       return;
     }
@@ -142,8 +174,13 @@ class SessionInactivityService with ChangeNotifier {
         _cancelWarning();
         if (_securityProvider.isPinEnabled) {
           _securityProvider.lockSession();
-        } else {
-          _lastActivityTime = DateTime.now();
+        } else if (!_sessionLoggedOut) {
+          _sessionLoggedOut = true;
+          _securityProvider.clearAllSecurityData();
+          _tickTimer?.cancel();
+          _tickTimer = null;
+          _isPaused = true;
+          notifyListeners();
         }
         return;
       }

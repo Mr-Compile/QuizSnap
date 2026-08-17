@@ -84,6 +84,13 @@ DISTRACTOR QUALITY RULES (for multiple choice questions):
 5. All distractors must be unique and distinct from each other.
 6. Distractors should test common misconceptions or related concepts.
 7. EXAMPLE: If the question is "Who proclaimed the Philippine independence on June 12, 1898?" and the correct answer is "Emilio Aguinaldo", good distractors would be "Andres Bonifacio", "Jose Rizal", "Emilio Jacinto" - NOT "Incorrect option 1", "Wrong answer", etc.
+
+QUESTION TYPE RULES:
+- Multiple Choice: Output EXACTLY four options labelled A, B, C, and D. There must never be an E option. The correct answer must be one of A, B, C, or D.
+- Identification: Output NO multiple-choice options. Provide the correct answer as a short phrase. The user will type the answer.
+- Enumeration: Output NO multiple-choice options. Provide the correct answer as a numbered or comma-separated list of items.
+- Mixed Format: Output a valid mixture of the three types above; each question must clearly follow its own type's rules.
+
 8. Prefer returning a single JSON object when the user asks for it; otherwise follow the requested format exactly.''';
   }
 
@@ -235,11 +242,14 @@ Question: $question
 User's Answer: ${userAnswer ?? 'No answer'}
 Correct Answer: $correctAnswer
 ${optionsText.isNotEmpty ? 'Options:\n$optionsText\n' : ''}
-The user's answer may be wrong, incomplete, or missing. Do not treat it as correct. Explain why the correct answer is right and, if the user was wrong, why their answer is wrong without being harsh.
+
+Determine whether the user's answer is correct by normalizing both answers: trim whitespace, ignore case, and ignore minor punctuation differences. For enumeration, compare the items as a set unless the question explicitly requires order. Treat "No Poverty" and "no poverty" as the same answer.
+
+The user's answer may be wrong, incomplete, or missing. Do NOT treat it as correct. First state the correct answer. Then explain why the correct answer is right. If the user's answer is wrong, briefly explain why it is wrong. Always base the explanation on the Correct Answer above; never explain the user's answer as though it were correct.
 
 ${_questionTypeSpecificInstruction(questionType)}
 
-Keep the response concise (1-3 sentences).''';
+Structure the explanation into short, readable paragraphs (1-3 sentences each).''';
 
     try {
       _client!.startChat();

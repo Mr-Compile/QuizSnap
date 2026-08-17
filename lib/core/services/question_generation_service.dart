@@ -96,7 +96,9 @@ class GeneratedQuestion {
 
     if (questionType == QuestionType.identification) {
       final trimmed = answer?.trim();
-      correctAnswerText = trimmed?.isNotEmpty == true ? trimmed : null;
+      correctAnswerText = trimmed?.isNotEmpty == true
+          ? IdentificationAnswerValidator.format(trimmed!)
+          : null;
     } else if (questionType == QuestionType.enumeration) {
       final trimmed = answer?.trim();
       if (trimmed != null && trimmed.isNotEmpty) {
@@ -319,7 +321,7 @@ class QuestionGenerationService {
             questions = _sanitizeQuestions(_parseEnumerationQuestions(response));
             break;
           case PromptType.mixedFormat:
-            questions = _sanitizeQuestions(_tryParseJsonQuestions(response));
+            questions = _sanitizeQuestions(_parseMixedFormatQuestions(response));
             break;
         }
       } catch (e) {
@@ -459,6 +461,57 @@ class QuestionGenerationService {
     ];
   }
 
+  /// Parses a mixed-format response by first trying strict JSON, then
+  /// classifying each question block as multiple-choice, identification,
+  /// or enumeration based on its structure.
+  List<GeneratedQuestion> _parseMixedFormatQuestions(String response) {
+    final jsonQuestions = _tryParseJsonQuestions(response);
+    if (jsonQuestions.isNotEmpty) return jsonQuestions;
+
+    final prepared = response
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n')
+        .trim();
+
+    // Split on explicit "Question:" markers.
+    var blocks = prepared.split(RegExp(r'(?=^Question:)', multiLine: true));
+    if (blocks.length <= 1) {
+      // Try legacy markers such as Q1. or 1. and normalize to "Question:".
+      blocks = prepared.split(RegExp(r'(?=^Q\d+[:.]|^\d+\.)', multiLine: true));
+      blocks = blocks.map((b) => b.replaceFirstMapped(
+        RegExp(r'^(?:Q\d+|\d+)[:.]?\s*'),
+        (match) => 'Question: ',
+      )).toList();
+    }
+
+    final questions = <GeneratedQuestion>[];
+    for (final block in blocks) {
+      if (block.trim().isEmpty) continue;
+
+      // Try multiple choice first (requires exactly four A-D options).
+      final mc = parseSingleMultipleChoice(block, questionType: 'multiple_choice');
+      if (mc != null) {
+        questions.add(mc);
+        continue;
+      }
+
+      // Try enumeration (list-style answer with multiple items).
+      final enumQ = _parseSingleEnumeration(block);
+      if (enumQ != null) {
+        questions.add(enumQ);
+        continue;
+      }
+
+      // Finally try identification.
+      final idQ = _parseSingleIdentification(block);
+      if (idQ != null) {
+        questions.add(idQ);
+      }
+    }
+
+    return questions.isNotEmpty ? questions : _fallbackSingleQuestion(response);
+  }
+
   /// Parse multiple choice questions from the template format:
   ///
   /// Question: [text]
@@ -509,7 +562,7 @@ class QuestionGenerationService {
   /// Only accepts option labels in the form `A.`, `A)`, `a.`, `a)`.
   /// Lines beginning with `Correct Answer`, `Answer`, `Explanation`, `Reason`,
   /// or `Rationale` are never treated as options.
-  static GeneratedQuestion? parseSingleMultipleChoice(String block) {
+  static GeneratedQuestion? parseSingleMultipleChoice(String block, {String? questionType}) {
     final normalized = block
         .replaceAll('\r\n', '\n')
         .replaceAll('\r', '\n');
@@ -572,6 +625,7 @@ class QuestionGenerationService {
       correctAnswerIndex: correctIndex,
       explanation: explanation,
       answer: correctLetter,
+      type: questionType ?? 'multiple_choice',
     );
   }
 
@@ -678,9 +732,11 @@ class QuestionGenerationService {
       dotAll: true,
       multiLine: true,
     ).firstMatch(block);
-    final answer = answerMatch?.group(1)?.trim();
+    var answer = answerMatch?.group(1)?.trim();
 
     if (answer == null || answer.isEmpty) return null;
+    answer = IdentificationAnswerValidator.format(answer);
+    if (answer.isEmpty) return null;
 
     return GeneratedQuestion(
       question: questionText,

@@ -377,6 +377,17 @@ class _SessionWarningHandlerState extends State<_SessionWarningHandler> {
       return;
     }
 
+    // Session logout without PIN: navigate to home and clear the flag.
+    if (service.isSessionLoggedOut) {
+      if (_dialogShown) {
+        _dialogShown = false;
+        _dismissDialog();
+      }
+      service.clearSessionLoggedOut();
+      AppRouter.router.go(AppRoutes.home);
+      return;
+    }
+
     if (service.isWarningPhase && !_dialogShown) {
       _dialogShown = true;
       _showWarningDialog(service);
@@ -423,6 +434,9 @@ class _SessionWarningHandlerState extends State<_SessionWarningHandler> {
               onStillHere: () => service.dismissWarning(),
               onLockNow: (_securityProvider?.isPinEnabled ?? false)
                   ? () => service.lockNow()
+                  : null,
+              onLogout: !(_securityProvider?.isPinEnabled ?? false)
+                  ? () => service.logoutNow()
                   : null,
             );
           },

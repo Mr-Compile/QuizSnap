@@ -55,26 +55,46 @@ class HeadingDetectionService {
       return level.clamp(1, 4).toInt();
     }
 
-    // Keyword headings.
+    // Keyword headings such as "CHAPTER 1" or "SECTION A".
     final keyword = RegExp(
-      r'^(Chapter|Section|Module|Unit|Lesson|Topic)\s+\d+',
+      r'^(Chapter|Section|Module|Unit|Lesson|Topic|Part|Appendix)\s+[A-Z0-9]+',
       caseSensitive: false,
     );
     if (keyword.hasMatch(line)) return 1;
 
-    // All-caps short line (likely a heading if not too long).
+    // Roman-numeral headings such as "I. Introduction" or "II. Background".
+    final roman = RegExp(r'^(I{1,3}|IV|V|VI{0,3}|IX|X)\s*[).-]?\s+', caseSensitive: false);
+    if (roman.hasMatch(line)) {
+      return 1;
+    }
+
+    // All-caps short line is a heading only when it is isolated, short,
+    // and does not end with sentence punctuation. This prevents classifying
+    // normal uppercase paragraphs or lists as headings.
     if (line.length > 2 &&
-        line.length <= 80 &&
+        line.length <= 45 &&
+        previousLine.isEmpty &&
         line == line.toUpperCase() &&
+        !line.endsWith('.') &&
+        !line.endsWith(',') &&
+        !line.endsWith('!') &&
+        !line.endsWith('?') &&
         !RegExp(r'[0-9]$').hasMatch(previousLine)) {
       return 1;
     }
 
-    // Isolated short line ending with punctuation? Probably not a heading.
-    if (line.length > 80 || line.endsWith('.') || line.endsWith(',')) return null;
+    // Isolated short line ending without punctuation? Possibly a sub-heading.
+    if (line.length > 45 ||
+        line.length > 80 ||
+        line.endsWith('.') ||
+        line.endsWith(',') ||
+        line.endsWith('!') ||
+        line.endsWith('?')) {
+      return null;
+    }
 
     // Short line surrounded by blank lines (paragraph spacing).
-    if (previousLine.isEmpty && line.length <= 60) {
+    if (previousLine.isEmpty && line.length <= 45) {
       return 2;
     }
 

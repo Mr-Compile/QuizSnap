@@ -16,12 +16,14 @@ class InactivityWarningDialog extends StatelessWidget {
   final int countdown;
   final VoidCallback onStillHere;
   final VoidCallback? onLockNow;
+  final VoidCallback? onLogout;
 
   const InactivityWarningDialog({
     super.key,
     required this.countdown,
     required this.onStillHere,
     this.onLockNow,
+    this.onLogout,
   });
 
   @override
@@ -67,7 +69,9 @@ class InactivityWarningDialog extends StatelessWidget {
               Text(
                 onLockNow != null
                     ? "You've been inactive for a while. The app will lock in $countdown seconds."
-                    : "You've been inactive for a while. Tap below to continue.",
+                    : onLogout != null
+                        ? "You've been inactive for a while. Your session will end in $countdown seconds."
+                        : "You've been inactive for a while. Tap below to continue.",
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.8),
                 ),
@@ -115,6 +119,13 @@ class InactivityWarningDialog extends StatelessWidget {
         OutlinedButton(
           onPressed: onLockNow,
           child: const Text('Lock Now'),
+        ),
+      );
+    } else if (onLogout != null) {
+      actions.add(
+        OutlinedButton(
+          onPressed: onLogout,
+          child: const Text('Log Out'),
         ),
       );
     }

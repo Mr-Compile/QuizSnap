@@ -43,7 +43,11 @@ class DocumentExtractionService {
         }
         extractedText = buffer.toString();
       } else {
-        extractedText = textExtractor.extractText();
+        extractedText = textExtractor.extractText(
+          startPageIndex: 0,
+          endPageIndex: document.pages.count - 1,
+          layoutText: true,
+        );
       }
 
       document.dispose();

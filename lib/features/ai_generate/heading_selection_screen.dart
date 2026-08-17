@@ -8,6 +8,7 @@ import '../../core/services/document_cache_service.dart';
 import '../../core/services/cached_document_service.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/services/dialog_service.dart';
+import '../../shared/widgets/stepper_header.dart';
 import 'analysis_preview_screen.dart';
 
 class DocumentHeading {
@@ -179,13 +180,23 @@ class _HeadingSelectionScreenState extends State<HeadingSelectionScreen> {
             ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? _buildErrorState()
-              : _headings.isEmpty
-                  ? _buildEmptyState()
-                  : _buildHeadingList(),
+      body: Column(
+        children: [
+          const StepperHeader(
+            currentStep: 1,
+            steps: kAiWizardSteps,
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                    ? _buildErrorState()
+                    : _headings.isEmpty
+                        ? _buildEmptyState()
+                        : _buildHeadingList(),
+          ),
+        ],
+      ),
     );
   }
 
