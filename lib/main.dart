@@ -20,7 +20,6 @@ import 'core/services/explanation_cache_service.dart';
 import 'core/services/study_session_persistence.dart';
 import 'core/repositories/recent_generation_repository.dart';
 import 'core/repositories/cached_document_repository.dart';
-import 'core/providers/highlighted_selection_provider.dart';
 import 'core/providers/page_selection_provider.dart';
 import 'core/providers/trash_provider.dart';
 import 'core/providers/flashcard_selection_provider.dart';
@@ -242,7 +241,6 @@ class _QuizSnapAppState extends State<QuizSnapApp> with WidgetsBindingObserver {
             return old;
           },
         ),
-        provider_pkg.ChangeNotifierProvider(create: (_) => HighlightedSelectionProvider()),
         provider_pkg.ChangeNotifierProvider(create: (_) => PageSelectionProvider()),
         provider_pkg.ChangeNotifierProvider(create: (_) => FlashcardSelectionProvider()),
         provider_pkg.ChangeNotifierProxyProvider<DatabaseProvider, TrashProvider>(

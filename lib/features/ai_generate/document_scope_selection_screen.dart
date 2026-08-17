@@ -10,16 +10,7 @@ import '../../core/services/dialog_service.dart';
 import '../../shared/widgets/custom_card.dart';
 import '../../shared/widgets/stepper_header.dart';
 import 'page_range_selector_screen.dart';
-import 'heading_tree_selection_screen.dart';
-import 'text_highlight_selection_screen.dart';
 import 'analysis_preview_screen.dart';
-
-enum DocumentScope {
-  entireDocument,
-  specificPages,
-  byHeadings,
-  highlightedText,
-}
 
 class DocumentScopeSelectionScreen extends StatefulWidget {
   final File file;
@@ -176,29 +167,6 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
               color: Theme.of(context).colorScheme.primary,
               onTap: () => _navigateToPageSelector(),
             ),
-          
-          if (widget.fileType == 'pdf')
-            const SizedBox(height: 16),
-          
-          _buildScopeCard(
-            context,
-            title: 'By Chapter/Heading',
-            description: 'Select chapters or headings to analyze',
-            icon: Icons.format_list_bulleted,
-            color: Theme.of(context).colorScheme.tertiary,
-            onTap: () => _navigateToHeadingSelector(),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          _buildScopeCard(
-            context,
-            title: 'Highlighted Text',
-            description: 'Select specific text from the document',
-            icon: Icons.highlight,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            onTap: () => _navigateToHighlightSelector(),
-          ),
         ],
       ),
     );
@@ -398,25 +366,6 @@ class _DocumentScopeSelectionScreenState extends State<DocumentScopeSelectionScr
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PageRangeSelectorScreen(file: widget.file),
-      ),
-    );
-  }
-
-  void _navigateToHeadingSelector() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => HeadingTreeSelectionScreen(file: widget.file),
-      ),
-    );
-  }
-
-  void _navigateToHighlightSelector() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => TextHighlightSelectionScreen(
-          file: widget.file,
-          fileType: widget.fileType,
-        ),
       ),
     );
   }

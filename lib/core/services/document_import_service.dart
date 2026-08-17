@@ -12,13 +12,6 @@ enum DocumentType {
   docx,
 }
 
-enum DocumentScope {
-  entireDocument,
-  specificPages,
-  byHeadings,
-  highlightedText,
-}
-
 class ImportResult {
   final int? id;
   final bool success;
@@ -192,25 +185,6 @@ class DocumentImportService {
         documentType: type,
       );
     }
-  }
-
-  /// Cache extracted document with specific scope
-  Future<int> cacheDocumentWithScope({
-    required String fileName,
-    required String filePath,
-    required String extractedText,
-    required DocumentScope scope,
-    Map<String, dynamic>? scopeDetails,
-    int? totalPages,
-  }) async {
-    return await _cacheService.cacheDocument(
-      fileName: fileName,
-      filePath: filePath,
-      extractedText: extractedText,
-      selectedScope: scope.name,
-      scopeDetails: scopeDetails,
-      totalPages: totalPages,
-    );
   }
 
   /// Get cached document by ID
