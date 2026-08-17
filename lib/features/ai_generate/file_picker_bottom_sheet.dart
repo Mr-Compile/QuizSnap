@@ -48,7 +48,7 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
             ),
           ),
           Text(
-            'Select ${widget.fileType.toUpperCase()} File',
+            _pickerTitle(),
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
@@ -152,16 +152,10 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
             allowedExtensions: ['docx'],
           );
           break;
-        case 'pptx':
+        case 'powerpoint':
           result = await FilePicker.platform.pickFiles(
             type: FileType.custom,
-            allowedExtensions: ['pptx'],
-          );
-          break;
-        case 'ppt':
-          result = await FilePicker.platform.pickFiles(
-            type: FileType.custom,
-            allowedExtensions: ['ppt'],
+            allowedExtensions: ['ppt', 'pptx'],
           );
           break;
         case 'image':
@@ -243,13 +237,15 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
                 ),
               ),
             );
-          } else if (widget.fileType.toLowerCase() == 'pptx' ||
+          } else if (widget.fileType.toLowerCase() == 'powerpoint' ||
+              widget.fileType.toLowerCase() == 'pptx' ||
               widget.fileType.toLowerCase() == 'ppt') {
+            final actualType = _actualFileType(copiedFile);
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => DocumentScopeSelectionScreen(
                   file: copiedFile,
-                  fileType: widget.fileType,
+                  fileType: actualType,
                   showImportSuccess: true,
                 ),
               ),
@@ -267,6 +263,18 @@ class _FilePickerBottomSheetState extends State<FilePickerBottomSheet> {
         _errorMessage = 'Failed to pick file: $e';
       });
     }
+  }
+
+  String _pickerTitle() {
+    final type = widget.fileType.toLowerCase();
+    if (type == 'powerpoint') return 'Select PowerPoint File';
+    return 'Select ${widget.fileType.toUpperCase()} File';
+  }
+
+  String _actualFileType(File file) {
+    final extension = file.path.split('.').last.toLowerCase();
+    if (extension == 'ppt' || extension == 'pptx') return extension;
+    return widget.fileType;
   }
 
   Future<void> _processSelectedImages(List<PlatformFile> selectedFiles) async {

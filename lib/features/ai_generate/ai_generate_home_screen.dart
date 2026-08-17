@@ -185,22 +185,13 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
                   ),
                   _buildImportCard(
                     context,
-                    title: 'PPTX',
+                    title: 'PowerPoint',
+                    subtitle: 'PPT • PPTX',
                     icon: Icons.slideshow,
                     color: const Color(0xFFF97316), // Orange
                     onTap: () => _ensureApiKeyConfigured(
                       context,
-                      () => _showFilePicker(context, 'pptx'),
-                    ),
-                  ),
-                  _buildImportCard(
-                    context,
-                    title: 'PPT',
-                    icon: Icons.slideshow_outlined,
-                    color: const Color(0xFFEA580C), // Dark Orange
-                    onTap: () => _ensureApiKeyConfigured(
-                      context,
-                      () => _showFilePicker(context, 'ppt'),
+                      () => _showFilePicker(context, 'powerpoint'),
                     ),
                   ),
                   _buildImportCard(
@@ -298,6 +289,7 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
   Widget _buildImportCard(
     BuildContext context, {
     required String title,
+    String? subtitle,
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
@@ -324,6 +316,15 @@ class _AiGenerateHomeScreenState extends State<AiGenerateHomeScreen> {
             title,
             style: Theme.of(context).textTheme.titleMedium,
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ],
       ),
     );
