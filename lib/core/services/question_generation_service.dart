@@ -140,6 +140,7 @@ class QuestionGenerationService {
     required PromptType type,
     required Difficulty difficulty,
     required int questionCount,
+    QuestionStyle style = QuestionStyle.distractors,
     String? model,
     String? source,
     int? sourcePage,
@@ -164,11 +165,12 @@ class QuestionGenerationService {
       type: type,
       questionCount: questionCount,
       difficulty: difficulty,
+      style: style,
       model: model,
     );
 
     // Parse the response into structured questions
-    final questions = _parseGeneratedQuestions(
+    var questions = _parseGeneratedQuestions(
       response,
       type,
       source: source,
@@ -176,15 +178,68 @@ class QuestionGenerationService {
       sourcePage: sourcePage,
       sourceSection: sourceSection,
     );
-    final filteredQuestions = _filterPlaceholderDistractors(questions);
-    
+    var filteredQuestions = _filterPlaceholderDistractors(questions);
+
+    // Mixed Format must actually contain a mix of types. If the AI returned
+    // only one type, retry once with an explicit corrective instruction so we
+    // do not silently present a single-type batch as "Mixed Format".
+    if (type == PromptType.mixedFormat &&
+        questionCount >= 3 &&
+        !_hasMixedTypeDistribution(filteredQuestions)) {
+      final retryResponse = await _groqService.generateQuestionsWithBuiltInTemplate(
+        content: truncatedText,
+        type: type,
+        questionCount: questionCount,
+        difficulty: difficulty,
+        style: style,
+        model: model,
+        promptPrefix:
+            'CORRECTION: Your previous response only contained one question type. This is MIXED FORMAT. You MUST include multiple_choice, identification, AND enumeration in this response. Distribute the $questionCount questions across all three types as evenly as possible. Do not return only one type.',
+      );
+      final retryQuestions = _parseGeneratedQuestions(
+        retryResponse,
+        type,
+        source: source,
+        sourceText: sourceText,
+        sourcePage: sourcePage,
+        sourceSection: sourceSection,
+      );
+      final retryFiltered = _filterPlaceholderDistractors(retryQuestions);
+      if (_hasMixedTypeDistribution(retryFiltered)) {
+        filteredQuestions = retryFiltered;
+      } else if (retryFiltered.length > filteredQuestions.length) {
+        // Use whichever batch is larger if neither is fully mixed.
+        filteredQuestions = retryFiltered;
+      }
+    }
+
     // If too many questions were filtered out, log a warning but continue with what we have
     if (filteredQuestions.length < questions.length / 2) {
       // More than half were filtered out - this indicates poor AI generation
       // In production, you might want to retry generation here
     }
-    
+
     return _deduplicateQuestions(filteredQuestions);
+  }
+
+  /// Returns true when [questions] contains at least one of each concrete type
+  /// (multiple choice, identification, enumeration). Used to validate that a
+  /// Mixed Format request actually produced a mix rather than a single type.
+  bool _hasMixedTypeDistribution(List<GeneratedQuestion> questions) {
+    bool hasMc = false;
+    bool hasId = false;
+    bool hasEnum = false;
+    for (final q in questions) {
+      final t = QuestionValidationService.determineQuestionType(
+        type: q.type,
+        options: q.options,
+        answer: q.answer,
+      );
+      if (t == QuestionType.multipleChoice) hasMc = true;
+      if (t == QuestionType.identification) hasId = true;
+      if (t == QuestionType.enumeration) hasEnum = true;
+    }
+    return hasMc && hasId && hasEnum;
   }
 
   /// Remove near-duplicate questions using normalized text similarity.

@@ -87,6 +87,38 @@ enum PromptType {
   mixedFormat,
 }
 
+/// Generation style for AI questions. This is NOT a question type — it only
+/// influences how the AI phrases questions. The stored question type remains
+/// one of the values in [PromptType]/[QuestionType].
+enum QuestionStyle {
+  /// Standard Multiple Choice generation with plausible distractors.
+  /// The question is asked directly (no scenario wrapper).
+  distractors,
+
+  /// Application-based questions framed around realistic scenarios.
+  situational,
+}
+
+extension QuestionStyleExtension on QuestionStyle {
+  String get displayName {
+    switch (this) {
+      case QuestionStyle.distractors:
+        return 'With Distractors';
+      case QuestionStyle.situational:
+        return 'Situational';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case QuestionStyle.distractors:
+        return 'Direct questions with 4 options and 3 plausible distractors';
+      case QuestionStyle.situational:
+        return 'Application-based questions with realistic scenarios';
+    }
+  }
+}
+
 enum Difficulty {
   easy,
   medium,

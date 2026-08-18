@@ -26,6 +26,7 @@ class QuestionReviewScreen extends StatefulWidget {
   final List<GeneratedQuestion> questions;
   final PromptType type;
   final Difficulty difficulty;
+  final QuestionStyle style;
   final String source;
   final String sourceText;
   final String? generationId;
@@ -37,6 +38,7 @@ class QuestionReviewScreen extends StatefulWidget {
     required this.questions,
     required this.type,
     required this.difficulty,
+    this.style = QuestionStyle.distractors,
     required this.source,
     this.sourceText = '',
     this.generationId,
@@ -148,6 +150,24 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
+              if (_shouldShowStyleBadge())
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      widget.style.displayName,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSecondaryContainer,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
@@ -181,6 +201,11 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
         ],
       ),
     );
+  }
+
+  bool _shouldShowStyleBadge() {
+    return widget.type == PromptType.multipleChoice ||
+        widget.type == PromptType.mixedFormat;
   }
 
   Widget _buildQuestionCard(GeneratedQuestion question, int index, bool isSelected) {
@@ -566,58 +591,180 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
 
   List<Widget> _buildMultipleChoiceContent(GeneratedQuestion question) {
     final colorScheme = Theme.of(context).colorScheme;
-    return [
-      const SizedBox(height: 12),
-      ...question.options.take(4).toList().asMap().entries.map((entry) {
-        final optionIndex = entry.key;
-        final optionText = entry.value;
-        return Padding(
-          padding: const EdgeInsets.only(left: 16, bottom: 4),
-          child: Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: colorScheme.outline.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Center(
-                  child: Text(
-                    String.fromCharCode(65 + optionIndex),
-                    style: TextStyle(
-                      color: colorScheme.onSurface,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+    final options = question.options.take(4).toList();
+    final correctIndex = question.correctAnswerIndex.clamp(0, options.length - 1);
+    final widgets = <Widget>[];
+
+    widgets.add(const SizedBox(height: 12));
+    for (final entry in options.asMap().entries) {
+      final optionIndex = entry.key;
+      final optionText = entry.value;
+      final isCorrect = optionIndex == correctIndex;
+      widgets.add(Padding(
+        padding: const EdgeInsets.only(left: 16, bottom: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: isCorrect
+                    ? colorScheme.primaryContainer
+                    : colorScheme.outline.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(4),
+                border: isCorrect
+                    ? Border.all(color: colorScheme.primary, width: 1.5)
+                    : null,
+              ),
+              child: Center(
+                child: Text(
+                  String.fromCharCode(65 + optionIndex),
+                  style: TextStyle(
+                    color: isCorrect
+                        ? colorScheme.onPrimaryContainer
+                        : colorScheme.onSurface,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FormattedStudyText(
-                  text: _cleanOptionText(optionText),
-                  style: Theme.of(context).textTheme.bodySmall,
-                  showActions: false,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: FormattedStudyText(
+                text: _cleanOptionText(optionText),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: isCorrect ? FontWeight.bold : FontWeight.normal,
+                    ),
+                showActions: false,
+              ),
+            ),
+            if (isCorrect)
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Icon(
+                  Icons.check_circle,
+                  size: 18,
+                  color: colorScheme.primary,
+                  semanticLabel: 'Correct answer',
                 ),
               ),
-            ],
-          ),
-        );
-      }),
-    ];
+          ],
+        ),
+      ));
+    }
+
+    // Explicit correct answer line so it is always visible without editing.
+    final correctLetter = String.fromCharCode(65 + correctIndex);
+    final correctText = _cleanOptionText(options[correctIndex]);
+    widgets.add(const SizedBox(height: 8));
+    widgets.add(_buildCorrectAnswerBox('$correctLetter. $correctText'));
+
+    return widgets;
   }
 
   List<Widget> _buildIdentificationContent(GeneratedQuestion question) {
-    return [
-      const SizedBox(height: 8),
-    ];
+    final answer = (question.answer ?? '').trim();
+    final widgets = <Widget>[];
+    widgets.add(const SizedBox(height: 8));
+    if (answer.isNotEmpty) {
+      widgets.add(_buildCorrectAnswerBox(answer));
+    } else {
+      widgets.add(_buildMissingAnswerBox());
+    }
+    return widgets;
   }
 
   List<Widget> _buildEnumerationContent(GeneratedQuestion question) {
-    return [
-      const SizedBox(height: 8),
-    ];
+    final answer = question.answer ?? '';
+    final items = EnumerationFormatter.splitItems(answer);
+    final widgets = <Widget>[];
+    widgets.add(const SizedBox(height: 8));
+    if (items.isNotEmpty) {
+      final buffer = StringBuffer();
+      for (var i = 0; i < items.length; i++) {
+        buffer.writeln('${i + 1}. ${items[i]}');
+      }
+      widgets.add(_buildCorrectAnswerBox(buffer.toString().trim()));
+    } else {
+      widgets.add(_buildMissingAnswerBox());
+    }
+    return widgets;
+  }
+
+  Widget _buildCorrectAnswerBox(String answer) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.check_circle,
+              size: 18,
+              color: colorScheme.primary,
+              semanticLabel: 'Correct answer',
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Correct Answer',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                FormattedStudyText(
+                  text: answer,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMissingAnswerBox() {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning, size: 18, color: colorScheme.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'No correct answer was generated. Use Edit to add one or Regenerate.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onErrorContainer,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildExplanationBox(String? explanation) {
@@ -712,6 +859,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
             type: widget.type,
             difficulty: widget.difficulty,
             questionCount: _currentQuestions.length,
+            style: widget.style,
             model: groqProvider.selectedModel,
             source: widget.source,
             sourcePage: widget.sourcePage,
@@ -726,6 +874,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
             type: widget.type,
             difficulty: widget.difficulty,
             questionCount: _selectedQuestions.length,
+            style: widget.style,
             model: groqProvider.selectedModel,
             source: widget.source,
             sourcePage: widget.sourcePage,
@@ -742,6 +891,7 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
               type: widget.type,
               difficulty: widget.difficulty,
               questionCount: rejectedCount,
+              style: widget.style,
               model: groqProvider.selectedModel,
               source: widget.source,
               sourcePage: widget.sourcePage,

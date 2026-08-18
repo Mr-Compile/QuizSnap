@@ -101,6 +101,7 @@ class RecentGenerationDetailsScreen extends StatelessWidget {
           questions: questions,
           type: generation.type,
           difficulty: generation.difficulty,
+          style: generation.style,
           source: generation.sourceFile,
           sourceText: generation.sourceText,
         ),

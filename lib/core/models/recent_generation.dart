@@ -11,6 +11,7 @@ class RecentGeneration {
   final List<Map<String, dynamic>> questionsJson;
   final PromptType type;
   final Difficulty difficulty;
+  final QuestionStyle style;
   final String sourceText;
 
   RecentGeneration({
@@ -23,6 +24,7 @@ class RecentGeneration {
     required this.questionsJson,
     required this.type,
     required this.difficulty,
+    this.style = QuestionStyle.distractors,
     this.sourceText = '',
   });
 
@@ -36,6 +38,7 @@ class RecentGeneration {
         'questionsJson': questionsJson,
         'typeIndex': type.index,
         'difficultyIndex': difficulty.index,
+        'styleIndex': style.index,
         'sourceText': sourceText,
       };
 
@@ -50,6 +53,7 @@ class RecentGeneration {
       questionsJson: List<Map<String, dynamic>>.from(json['questionsJson'] as List? ?? []),
       type: PromptType.values[json['typeIndex'] as int? ?? 0],
       difficulty: Difficulty.values[json['difficultyIndex'] as int? ?? 1],
+      style: QuestionStyle.values[json['styleIndex'] as int? ?? 0],
       sourceText: json['sourceText'] as String? ?? '',
     );
   }
@@ -68,6 +72,7 @@ class RecentGeneration {
       questionsJson: questionsJson,
       type: type,
       difficulty: difficulty,
+      style: style,
       sourceText: sourceText,
     );
   }

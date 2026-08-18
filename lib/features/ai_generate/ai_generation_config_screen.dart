@@ -38,6 +38,7 @@ class AiGenerationConfigScreen extends StatefulWidget {
 class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
   PromptType _selectedType = PromptType.multipleChoice;
   Difficulty _selectedDifficulty = Difficulty.medium;
+  QuestionStyle _selectedStyle = QuestionStyle.distractors;
   int _questionCount = 10;
   bool _isGenerating = false;
   String _generationStep = '';
@@ -158,7 +159,16 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
           const SizedBox(height: 12),
           _buildQuestionTypeSelector(),
           const SizedBox(height: 24),
-          
+
+          // Question style (only for Multiple Choice and Mixed Format)
+          if (_selectedType == PromptType.multipleChoice ||
+              _selectedType == PromptType.mixedFormat) ...[
+            _buildSectionTitle('Question Style'),
+            const SizedBox(height: 12),
+            _buildQuestionStyleSelector(),
+            const SizedBox(height: 24),
+          ],
+
           // Difficulty selection
           _buildSectionTitle('Difficulty'),
           const SizedBox(height: 12),
@@ -277,14 +287,38 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
   String _getTypeDescription(PromptType type) {
     switch (type) {
       case PromptType.multipleChoice:
-        return 'Application-based questions with realistic scenarios and 4 answer options';
+        return 'Questions with 4 answer options. Choose With Distractors or Situational below.';
       case PromptType.identification:
         return 'Direct answer questions';
       case PromptType.enumeration:
         return 'List-based questions';
       case PromptType.mixedFormat:
-        return 'Multiple formats in one request (multiple choice, identification, enumeration)';
+        return 'Multiple formats in one request (multiple choice, identification, enumeration). Choose With Distractors or Situational below.';
     }
+  }
+
+  Widget _buildQuestionStyleSelector() {
+    return Column(
+      children: QuestionStyle.values.map((style) {
+        final isSelected = _selectedStyle == style;
+        return RadioListTile<QuestionStyle>(
+          title: Text(style.displayName),
+          subtitle: Text(style.description),
+          value: style,
+          // ignore: deprecated_member_use
+          groupValue: _selectedStyle,
+          // ignore: deprecated_member_use
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _selectedStyle = value;
+              });
+            }
+          },
+          selected: isSelected,
+        );
+      }).toList(),
+    );
   }
 
   Widget _buildDifficultySelector() {
@@ -442,6 +476,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
         type: _selectedType,
         difficulty: _selectedDifficulty,
         questionCount: _questionCount,
+        style: _selectedStyle,
         model: groqProvider.selectedModel,
         source: widget.source,
         sourcePage: widget.sourcePage,
@@ -489,6 +524,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
         questionsJson: questions.map((q) => q.toJson()).toList(),
         type: _selectedType,
         difficulty: _selectedDifficulty,
+        style: _selectedStyle,
         sourceText: cleanedSource,
       );
       context.read<RecentGenerationRepository>().addGeneration(recent);
@@ -500,6 +536,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
             questions: questions,
             type: _selectedType,
             difficulty: _selectedDifficulty,
+            style: _selectedStyle,
             source: widget.source,
             sourceText: cleanedSource,
             sourcePage: widget.sourcePage,
@@ -508,12 +545,24 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
           ),
         ),
       );
+
+      // Reset the generation state now that the review screen owns the flow.
+      // Without this, returning from Review leaves the Configure screen stuck
+      // in an infinite "Generating Questions..." state.
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+          _generationProgress = 0.0;
+          _generationStep = '';
+        });
+      }
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
         _isGenerating = false;
         _generationProgress = 0.0;
+        _generationStep = '';
       });
 
       if (mounted) {
