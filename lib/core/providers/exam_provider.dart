@@ -1,8 +1,13 @@
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import '../models/exam.dart';
+import '../models/answer_explanation.dart';
 import '../services/exam_service.dart';
 import '../services/explanation_cache_service.dart';
 import '../services/groq_service.dart';
+import '../services/ai_response_validator.dart';
+import '../services/fallback_explanation_generator.dart';
+import '../utils/explanation_sanitizer.dart';
 import '../repositories/flashcard_repository.dart';
 
 class ExamProvider with ChangeNotifier {
@@ -312,7 +317,7 @@ class ExamProvider with ChangeNotifier {
     );
   }
 
-  Future<String> generateExplanation(ExamQuestion question, {UserAnswer? userAnswer}) async {
+  Future<AnswerExplanation> generateExplanation(ExamQuestion question, {UserAnswer? userAnswer}) async {
     if (_groqService == null || !_groqService.isInitialized) {
       throw Exception('AI service not available');
     }
@@ -377,27 +382,100 @@ class ExamProvider with ChangeNotifier {
           break;
       }
 
-      final explanation = await _groqService.generateExplanation(
-        question: question.question,
-        userAnswer: userAnswerText,
-        correctAnswer: question.correctAnswerText,
-        questionType: resolvedType,
-        options: options,
-        model: _groqService.currentModel,
+      final isCorrect = answer?.isCorrect ?? false;
+      final correctAnswerText = question.correctAnswerText.trim();
+
+      // Attempt AI generation with validation + one safe regeneration.
+      String? aiExplanation;
+
+      for (int attempt = 0; attempt < 2; attempt++) {
+        final rawResponse = await _groqService.generateExplanation(
+          question: question.question,
+          userAnswer: userAnswerText,
+          correctAnswer: correctAnswerText,
+          questionType: resolvedType,
+          isCorrect: isCorrect,
+          options: options,
+          sourceText: question.sourceText,
+          model: _groqService.currentModel,
+        );
+
+        final validation = AIResponseValidator.validate(rawResponse);
+        if (validation.isValid) {
+          aiExplanation = ExplanationSanitizer.sanitize(rawResponse);
+          break;
+        }
+
+        if (kDebugMode) {
+          developer.log(
+            'AI explanation validation failed (attempt ${attempt + 1}): ${validation.reason}',
+          );
+        }
+      }
+
+      // If AI response is still invalid after regeneration, use fallback.
+      if (aiExplanation == null || aiExplanation.trim().isEmpty) {
+        aiExplanation = FallbackExplanationGenerator.generate(
+          question: question,
+          userAnswer: answer,
+        );
+        _isLoading = false;
+        notifyListeners();
+        return AnswerExplanation(
+          correctAnswer: correctAnswerText,
+          studentAnswer: userAnswerText,
+          isCorrect: isCorrect,
+          explanation: aiExplanation,
+          isFallback: true,
+        );
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return AnswerExplanation(
+        correctAnswer: correctAnswerText,
+        studentAnswer: userAnswerText,
+        isCorrect: isCorrect,
+        explanation: aiExplanation,
+      );
+    } catch (e) {
+      // AI generation failed entirely — use fallback, never expose raw errors.
+      final fallback = FallbackExplanationGenerator.generate(
+        question: question,
+        userAnswer: userAnswer ?? _currentAnswers?.firstWhere(
+          (a) => a.questionId == question.id,
+          orElse: () => UserAnswer(
+            questionId: question.id,
+            isCorrect: false,
+            answeredAt: DateTime.now(),
+            timeSpent: Duration.zero,
+          ),
+        ),
       );
 
       _isLoading = false;
       notifyListeners();
-      return explanation;
-    } catch (e) {
-      final message = e.toString().toLowerCase();
-      _errorMessage = message.contains('token') || message.contains('quota') || message.contains('limit')
-          ? 'AI Limit Reached. You have used today\'s AI generation limit. You can try again tomorrow or ask the administrator for additional quota.'
-          : 'An error occurred while generating the explanation. Please try again.';
-      _isLoading = false;
-      notifyListeners();
-      throw Exception(_errorMessage);
+      return AnswerExplanation(
+        correctAnswer: question.correctAnswerText.trim(),
+        studentAnswer: _userAnswerText(question, userAnswer),
+        isCorrect: userAnswer?.isCorrect ?? false,
+        explanation: fallback,
+        isFallback: true,
+      );
     }
+  }
+
+  String _userAnswerText(ExamQuestion question, UserAnswer? answer) {
+    if (answer == null) return 'No answer';
+    final index = answer.selectedAnswerIndex;
+    if (index != null && index >= 0 && index < question.options.length) {
+      return question.options[index];
+    }
+    final text = answer.textAnswer?.trim();
+    if (text != null && text.isNotEmpty) return text;
+    final list = answer.listAnswer;
+    if (list != null && list.isNotEmpty) return list.join(', ');
+    return 'No answer';
   }
 
   Future<List<CachedExplanation>> getAllCachedExplanations() async {

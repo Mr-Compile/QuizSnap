@@ -40,8 +40,14 @@ class ExplanationSanitizer {
   static String sanitize(String? explanation, {int maxSentences = 0}) {
     if (explanation == null || explanation.trim().isEmpty) return '';
 
+    // 0. Remove <think>...</think> blocks entirely (internal reasoning).
+    String cleaned = explanation
+        .replaceAll(RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false), '')
+        .replaceAll(RegExp(r'<think>', caseSensitive: false), '')
+        .replaceAll(RegExp(r'</think>', caseSensitive: false), '');
+
     // 1. Normalize line endings.
-    String cleaned = explanation.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    cleaned = cleaned.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
 
     // 2. Strip fenced code blocks and inline code, links, and images.
     cleaned = cleaned
@@ -87,5 +93,55 @@ class ExplanationSanitizer {
 
     // 8. Final tidy: collapse any blank lines that may have reappeared.
     return cleaned.replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
+  }
+
+  /// Returns true if the [text] contains obvious prompt-leakage patterns
+  /// that should never appear in a student-facing explanation.
+  ///
+  /// This is a secondary safety check used by the UI layer to avoid
+  /// displaying any content that slipped through validation.
+  static bool hasPromptLeakage(String? text) {
+    if (text == null || text.trim().isEmpty) return false;
+
+    final lower = text.toLowerCase();
+
+    //  tags or internal reasoning markers.
+    if (lower.contains('<think>') || lower.contains('</think>')) return true;
+    if (lower.contains("here's my thinking") || lower.contains("here is my thinking")) return true;
+
+    // Prompt template field labels at the start of any line.
+    final promptPatterns = <RegExp>[
+      RegExp(r'^question\s+type\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^user'?s?\s+answer\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^correct\s+answer\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^options\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^learning\s+context\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^difficulty\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^task\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^analysis\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^reasoning\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^application\s+grading\s+result\s*:', caseSensitive: false, multiLine: true),
+    ];
+
+    for (final pattern in promptPatterns) {
+      if (pattern.hasMatch(text)) return true;
+    }
+
+    // Unresolved template variables / placeholders.
+    final placeholderPatterns = <RegExp>[
+      RegExp(r'\$\d+'),
+      RegExp(r'\{question\}', caseSensitive: false),
+      RegExp(r'\{answer\}', caseSensitive: false),
+      RegExp(r'\{correctAnswer\}', caseSensitive: false),
+      RegExp(r'\{studentAnswer\}', caseSensitive: false),
+      RegExp(r'\{options\}', caseSensitive: false),
+      RegExp(r'\{difficulty\}', caseSensitive: false),
+    ];
+
+    for (final pattern in placeholderPatterns) {
+      if (pattern.hasMatch(text)) return true;
+    }
+
+    return false;
   }
 }

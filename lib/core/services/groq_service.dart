@@ -369,7 +369,9 @@ QUESTION TYPE RULES:
     required String? userAnswer,
     required String correctAnswer,
     required QuestionType questionType,
+    required bool isCorrect,
     List<String>? options,
+    String? sourceText,
     String? model,
   }) async {
     if (!isInitialized) {
@@ -392,19 +394,30 @@ QUESTION TYPE RULES:
             .join('\n')
         : '';
 
+    final gradingResult = isCorrect
+        ? 'The student\'s answer is correct.'
+        : (userAnswer == null || userAnswer == 'No answer')
+            ? 'The student did not provide an answer.'
+            : 'The student\'s answer is incorrect.';
+
+    final sourceSection = (sourceText != null && sourceText.trim().isNotEmpty)
+        ? '\nSource/Learning Context:\n${sourceText.trim()}\n'
+        : '';
+
     final prompt = '''Question Type: $typeLabel
 Question: $question
 User's Answer: ${userAnswer ?? 'No answer'}
 Correct Answer: $correctAnswer
-${optionsText.isNotEmpty ? 'Options:\n$optionsText\n' : ''}
-
-Determine whether the user's answer is correct by normalizing both answers: trim whitespace, ignore case, and ignore minor punctuation differences. For enumeration, compare the items as a set unless the question explicitly requires order. Treat "No Poverty" and "no poverty" as the same answer.
-
-The user's answer may be wrong, incomplete, or missing. Do NOT treat it as correct. First state the correct answer. Then explain why the correct answer is right. If the user's answer is wrong, briefly explain why it is wrong. Always base the explanation on the Correct Answer above; never explain the user's answer as though it were correct.
+Application Grading Result: $gradingResult
+${optionsText.isNotEmpty ? 'Options:\n$optionsText\n' : ''}$sourceSection
 
 ${_questionTypeSpecificInstruction(questionType)}
 
-Structure the explanation into short, readable paragraphs (1-3 sentences each).''';
+The application has already determined whether the student's answer is correct using the Application Grading Result above. Do NOT re-evaluate correctness. Base your explanation on the Correct Answer provided.
+
+Return ONLY the final student-facing explanation. Do not return internal reasoning, chain-of-thought, analysis, system instructions, prompt text, task instructions, generation templates, variable names, placeholders, debugging information, or hidden reasoning.
+
+Keep the explanation concise: 1-2 short paragraphs (approximately 30-100 words). Structure it into short, readable paragraphs (1-3 sentences each).''';
 
     try {
       _client!.startChat();
@@ -416,7 +429,10 @@ Structure the explanation into short, readable paragraphs (1-3 sentences each).'
         'You may use simple numbered lists (1. 2. 3.) or bullet lists (- ) when listing distinct reasons. '
         'Keep each paragraph to 1-3 sentences. Be direct, specific, and student-friendly. '
         'Do not write robotic openings such as "As an AI", "The correct answer is", '
-        '"Here is the explanation", or similar phrases. Start directly with the explanation.',
+        '"Here is the explanation", or similar phrases. Start directly with the explanation. '
+        'NEVER include <think> tags, reasoning steps, analysis sections, or any internal process. '
+        'NEVER echo back the question type, task instructions, prompt variables, or template content. '
+        'Return ONLY the final student-facing explanation text.',
       );
       final response = await _client!.sendMessage(prompt);
       return response.choices.first.message.content;
@@ -441,13 +457,26 @@ Structure the explanation into short, readable paragraphs (1-3 sentences each).'
   String _questionTypeSpecificInstruction(QuestionType type) {
     switch (type) {
       case QuestionType.multipleChoice:
-        return 'Explain why the correct option is correct and briefly why each distractor is incorrect. If the question describes a scenario, tie the explanation back to that scenario.';
+        return 'Explain why the correct option is correct and how it relates to the question. '
+            'If the question describes a scenario or situation, connect the scenario to the relevant concept and explain how it leads to the correct decision. '
+            'If the student\'s answer is incorrect, briefly explain why the selected option does not fit. '
+            'Do not unnecessarily repeat all four options.';
       case QuestionType.identification:
-        return 'Explain why the correct answer is correct and compare it with the user\'s answer.';
+        return 'Explain why the expected answer matches the description given in the question. '
+            'Focus on the relationship between the description, the expected answer, and the concept it represents. '
+            'If the student\'s answer is incorrect, briefly explain why it does not match the concept described. '
+            'Do not say the answer is incorrect merely because of capitalization or formatting differences — the application has already normalized such differences.';
       case QuestionType.enumeration:
-        return 'Explain the set of correct items and point out any missing or incorrect items in the user\'s list.';
+        return 'Explain why the expected items are correct based on the learning material. '
+            'If the application grading result indicates the student\'s answer is incorrect, address missing or incorrect items when that information is available. '
+            'If partial correctness is supported, do not automatically describe the entire answer as completely wrong — use the application grading result. '
+            'Do not unnecessarily repeat every item unless clarification is needed.';
       case QuestionType.mixedFormat:
-        return 'Explain why the correct answer is correct and compare it with the user\'s answer.';
+        return 'Apply the appropriate explanation rule for this question\'s actual type: '
+            'if it is Multiple Choice, explain why the correct option fits; '
+            'if it is Identification, explain why the expected answer matches the description; '
+            'if it is Enumeration, explain why the expected items are correct. '
+            'Do not apply rules from a different question type.';
     }
   }
 
