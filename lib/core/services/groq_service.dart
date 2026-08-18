@@ -71,6 +71,15 @@ CRITICAL OUTPUT RULES:
 5. Each item must be labeled with a difficulty: [Easy], [Medium], or [Hard].
 6. Use plain text only. Numbers and letters for lists are allowed.
 
+SITUATIONAL MULTIPLE CHOICE RULES:
+1. Multiple Choice questions MUST be situational and application-based. Present a realistic scenario grounded in the source material, then ask the student to identify, choose, recommend, apply, determine, prioritize, classify, evaluate, or decide.
+2. DO NOT write simple recall questions such as "What is X?", "What does X mean?", "Which of the following defines X?", or "Who is X?" unless the source material genuinely requires factual recall.
+3. Prefer openings such as: "A student encounters...", "A business experiences...", "A teacher needs to...", "An organization decides...", "A system administrator notices...", "A user attempts to...", "Given this situation...", "What should be done?", "Which approach is most appropriate?", "Which concept is being demonstrated?".
+4. The scenario must remain grounded in the uploaded material. Do NOT invent facts unrelated to the source document.
+5. The question must be answerable using the provided learning material.
+6. Easy = simple application; Medium = interpretation; Hard = comparison or judgment. Do not simply make the scenario longer to make it "hard".
+7. The explanation must explain WHY the correct answer applies to the scenario, not just define the term.
+
 DISTRACTOR QUALITY RULES (for multiple choice questions):
 1. NEVER use placeholder text like "Incorrect option 1", "Incorrect option 2", "Incorrect option 3", "Wrong answer", "Distractor", or "Placeholder".
 2. NEVER use phrases like "none of the above" or "all of the above".
@@ -86,10 +95,10 @@ DISTRACTOR QUALITY RULES (for multiple choice questions):
 7. EXAMPLE: If the question is "Who proclaimed the Philippine independence on June 12, 1898?" and the correct answer is "Emilio Aguinaldo", good distractors would be "Andres Bonifacio", "Jose Rizal", "Emilio Jacinto" - NOT "Incorrect option 1", "Wrong answer", etc.
 
 QUESTION TYPE RULES:
-- Multiple Choice: Output EXACTLY four options labelled A, B, C, and D. There must never be an E option. The correct answer must be one of A, B, C, or D.
+- Multiple Choice: Output EXACTLY four options labelled A, B, C, and D. There must never be an E option. The correct answer must be one of A, B, C, or D. The question must be situational/application-based as described above.
 - Identification: Output NO multiple-choice options. Provide the correct answer as a short phrase. The user will type the answer.
 - Enumeration: Output NO multiple-choice options. Provide the correct answer as a numbered or comma-separated list of items.
-- Mixed Format: Output a valid mixture of the three types above; each question must clearly follow its own type's rules.
+- Mixed Format: Output a valid mixture of the three types above; each question must clearly follow its own type's rules. Multiple choice items in a mixed batch must also be situational/application-based.
 
 8. Prefer returning a single JSON object when the user asks for it; otherwise follow the requested format exactly.''';
   }
@@ -286,7 +295,7 @@ Structure the explanation into short, readable paragraphs (1-3 sentences each).'
   String _questionTypeSpecificInstruction(QuestionType type) {
     switch (type) {
       case QuestionType.multipleChoice:
-        return 'Explain why the correct option is correct and briefly why each distractor is incorrect.';
+        return 'Explain why the correct option is correct in the context of the scenario or situation described in the question. Briefly explain why each distractor is incorrect for that scenario. Do not simply define the correct term; tie the explanation back to the situation.';
       case QuestionType.identification:
         return 'Explain why the correct answer is correct and compare it with the user\'s answer.';
       case QuestionType.enumeration:

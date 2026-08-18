@@ -277,7 +277,7 @@ class _AiGenerationConfigScreenState extends State<AiGenerationConfigScreen> {
   String _getTypeDescription(PromptType type) {
     switch (type) {
       case PromptType.multipleChoice:
-        return 'Questions with multiple answer options';
+        return 'Application-based questions with realistic scenarios and 4 answer options';
       case PromptType.identification:
         return 'Direct answer questions';
       case PromptType.enumeration:
