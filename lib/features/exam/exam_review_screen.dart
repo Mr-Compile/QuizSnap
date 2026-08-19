@@ -7,6 +7,7 @@ import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/custom_card.dart';
 import 'package:intl/intl.dart';
+import '../../core/utils/answer_normalizer.dart';
 import '../../core/utils/question_type_helper.dart';
 import '../../shared/widgets/question_type_chip.dart';
 import 'answer_explanation_bottom_sheet.dart';
@@ -448,11 +449,11 @@ class _ExamReviewScreenState extends State<ExamReviewScreen>
     final userAnswers = answer.listAnswer ?? <String>[];
     final correctAnswers = question.correctAnswers ?? <String>[];
 
-    // Find missing items
-    final missingItems = correctAnswers
-        .where((correct) => !userAnswers.any((user) => 
-            user.toLowerCase().trim() == correct.toLowerCase().trim()))
-        .toList();
+    // Find missing items using centralized normalization.
+    final missingItems = AnswerNormalizer.missingItems(
+      userAnswers,
+      correctAnswers,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

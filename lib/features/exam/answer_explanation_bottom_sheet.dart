@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/exam.dart';
+import '../../core/models/answer_explanation.dart';
 import '../../core/providers/exam_provider.dart';
 import '../../core/services/connectivity_guard.dart';
 import '../../core/services/dialog_service.dart';
@@ -27,7 +28,7 @@ class AnswerExplanationBottomSheet extends StatefulWidget {
 
 class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSheet> {
   bool _isLoading = false;
-  String? _explanation;
+  AnswerExplanation? _explanation;
   String? _errorMessage;
 
   @override
@@ -73,13 +74,25 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
         return;
       }
 
-      // Generate new explanation
+      // Generate new explanation — returns structured AnswerExplanation.
       final explanation = await examProvider.generateExplanation(
         widget.question,
         userAnswer: widget.userAnswer,
       );
 
       if (!mounted) return;
+
+      // Secondary UI-layer validation: never display content with prompt
+      // leakage even if it passed the provider-level checks (Rule 18).
+      if (!explanation.isFallback &&
+          ExplanationSanitizer.hasPromptLeakage(explanation.explanation)) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'unavailable';
+        });
+        return;
+      }
+
       setState(() {
         _explanation = explanation;
         _isLoading = false;
@@ -414,8 +427,9 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
       );
     }
 
-    final sanitized = _explanation != null && _explanation!.isNotEmpty
-        ? ExplanationSanitizer.sanitize(_explanation)
+    final rawExplanation = _explanation?.explanation ?? '';
+    final sanitized = rawExplanation.isNotEmpty
+        ? ExplanationSanitizer.sanitize(rawExplanation)
         : '';
 
     if (sanitized.isEmpty) {
@@ -485,7 +499,8 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
   Widget _buildFooter() {
     final colorScheme = Theme.of(context).colorScheme;
     final hasError = _errorMessage != null;
-    final hasExplanation = _explanation != null && _explanation!.isNotEmpty;
+    final hasExplanation = _explanation != null &&
+        _explanation!.explanation.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingLg),
@@ -522,7 +537,7 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
                             MaterialPageRoute(
                               builder: (context) => FullExplanationScreen(
                                 question: widget.question,
-                                explanation: _explanation,
+                                explanation: _explanation?.explanation,
                                 userAnswer: widget.userAnswer,
                               ),
                             ),

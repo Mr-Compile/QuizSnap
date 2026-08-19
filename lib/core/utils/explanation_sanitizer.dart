@@ -112,7 +112,7 @@ class ExplanationSanitizer {
     // Prompt template field labels at the start of any line.
     final promptPatterns = <RegExp>[
       RegExp(r'^question\s+type\s*:', caseSensitive: false, multiLine: true),
-      RegExp(r'^user'?s?\s+answer\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r"^user'?s?\s+answer\s*:", caseSensitive: false, multiLine: true),
       RegExp(r'^correct\s+answer\s*:', caseSensitive: false, multiLine: true),
       RegExp(r'^options\s*:', caseSensitive: false, multiLine: true),
       RegExp(r'^learning\s+context\s*:', caseSensitive: false, multiLine: true),

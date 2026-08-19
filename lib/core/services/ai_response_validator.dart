@@ -30,12 +30,12 @@ class AIResponseValidator {
   /// Patterns that indicate prompt-template content leaked into the response.
   static final _promptLeakagePatterns = <RegExp>[
     RegExp(r'^question\s+type\s*:', caseSensitive: false, multiLine: true),
-    RegExp(r'^user'?s?\s+answer\s*:', caseSensitive: false, multiLine: true),
+    RegExp(r"^user'?s?\s+answer\s*:", caseSensitive: false, multiLine: true),
     RegExp(r'^correct\s+answer\s*:', caseSensitive: false, multiLine: true),
     RegExp(r'^options\s*:', caseSensitive: false, multiLine: true),
     RegExp(r'^learning\s+context\s*:', caseSensitive: false, multiLine: true),
     RegExp(r'^difficulty\s*:', caseSensitive: false, multiLine: true),
-    RegExp(r'^determine\s+if\s+user'?s?\s+answer\s+is\s+correct', caseSensitive: false, multiLine: true),
+    RegExp(r"^determine\s+if\s+user'?s?\s+answer\s+is\s+correct", caseSensitive: false, multiLine: true),
     RegExp(r'^source\s+material\s*:', caseSensitive: false, multiLine: true),
     RegExp(r'^application\s+grading\s+result\s*:', caseSensitive: false, multiLine: true),
   ];

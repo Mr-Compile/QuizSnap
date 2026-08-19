@@ -7,6 +7,7 @@ import '../services/explanation_cache_service.dart';
 import '../services/groq_service.dart';
 import '../services/ai_response_validator.dart';
 import '../services/fallback_explanation_generator.dart';
+import '../utils/answer_normalizer.dart';
 import '../utils/explanation_sanitizer.dart';
 import '../repositories/flashcard_repository.dart';
 
@@ -210,19 +211,13 @@ class ExamProvider with ChangeNotifier {
   }
 
   bool _validateTextAnswer(String userAnswer, ExamQuestion question) {
-    final correctAnswer = question.correctAnswer?.toLowerCase().trim() ?? '';
-    final userAnswerNormalized = userAnswer.toLowerCase().trim();
-    return userAnswerNormalized == correctAnswer;
+    final correctAnswer = question.correctAnswer ?? '';
+    return AnswerNormalizer.areEqual(userAnswer, correctAnswer);
   }
 
   bool _validateListAnswer(List<String> userAnswers, ExamQuestion question) {
     final correctAnswers = question.correctAnswers ?? [];
-    if (correctAnswers.length != userAnswers.length) return false;
-
-    final normalizedCorrect = correctAnswers.map((e) => e.toLowerCase().trim()).toSet();
-    final normalizedUser = userAnswers.map((e) => e.toLowerCase().trim()).toSet();
-
-    return normalizedCorrect.difference(normalizedUser).isEmpty;
+    return AnswerNormalizer.areListsEqual(userAnswers, correctAnswers);
   }
 
   void goToNextQuestion() {
@@ -400,17 +395,33 @@ class ExamProvider with ChangeNotifier {
           model: _groqService.currentModel,
         );
 
+        // Primary validation: check raw response for prompt leakage.
         final validation = AIResponseValidator.validate(rawResponse);
-        if (validation.isValid) {
-          aiExplanation = ExplanationSanitizer.sanitize(rawResponse);
-          break;
+        if (!validation.isValid) {
+          if (kDebugMode) {
+            developer.log(
+              'AI explanation validation failed (attempt ${attempt + 1}): ${validation.reason}',
+            );
+          }
+          continue;
         }
 
-        if (kDebugMode) {
-          developer.log(
-            'AI explanation validation failed (attempt ${attempt + 1}): ${validation.reason}',
-          );
+        // Sanitize the raw response.
+        final sanitized = ExplanationSanitizer.sanitize(rawResponse);
+
+        // Secondary validation: re-check after sanitization (Rule 17).
+        if (sanitized.isEmpty ||
+            ExplanationSanitizer.hasPromptLeakage(sanitized)) {
+          if (kDebugMode) {
+            developer.log(
+              'AI explanation post-sanitization validation failed (attempt ${attempt + 1})',
+            );
+          }
+          continue;
         }
+
+        aiExplanation = sanitized;
+        break;
       }
 
       // If AI response is still invalid after regeneration, use fallback.

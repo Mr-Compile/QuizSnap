@@ -335,6 +335,29 @@ class FullExplanationScreen extends StatelessWidget {
       );
     }
 
+    // Secondary UI-layer validation: never display prompt leakage (Rule 18).
+    if (ExplanationSanitizer.hasPromptLeakage(explanation)) {
+      return CustomCard(
+        child: Column(
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: AppTheme.spacingMd),
+            Text(
+              'AI explanation is temporarily unavailable.',
+              style: AppTheme.bodyLarge.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
     return CustomCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,8 +466,8 @@ class FullExplanationScreen extends StatelessWidget {
   }
 
   List<String> _extractKeyConcepts() {
-    // Simple concept extraction - in a real app, this would be more sophisticated
     if (explanation == null) return [];
+    if (ExplanationSanitizer.hasPromptLeakage(explanation)) return [];
 
     final concepts = <String>[];
     final words = explanation!.split(' ');
