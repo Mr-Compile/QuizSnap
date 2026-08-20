@@ -18,6 +18,7 @@ import '../../core/services/question_validation_service.dart';
 import '../../core/utils/question_type_helper.dart';
 import '../../shared/widgets/formatted_study_text.dart';
 import '../../shared/widgets/stepper_header.dart';
+import '../../shared/widgets/ai_explanation_card.dart';
 import 'regeneration_options_bottom_sheet.dart';
 import 'text_preview_screen.dart';
 import 'ai_generation_config_screen.dart';
@@ -580,7 +581,10 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
     }
     if (question.explanation != null && question.explanation!.isNotEmpty) {
       children.add(const SizedBox(height: 8));
-      children.add(_buildExplanationBox(question.explanation));
+      children.add(AiExplanationCard(
+        explanation: question.explanation,
+        compact: true,
+      ));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -760,35 +764,6 @@ class _QuestionReviewScreenState extends State<QuestionReviewScreen> {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colorScheme.onErrorContainer,
                   ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExplanationBox(String? explanation) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: colorScheme.tertiaryContainer,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.lightbulb,
-            size: 16,
-            color: colorScheme.tertiary,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: FormattedStudyText(
-              text: explanation ?? '',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colorScheme.onTertiaryContainer,
-              ),
             ),
           ),
         ],

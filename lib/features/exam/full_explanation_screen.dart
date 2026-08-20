@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/models/exam.dart';
-import '../../core/utils/explanation_sanitizer.dart';
 import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/formatted_study_text.dart';
+import '../../core/utils/explanation_sanitizer.dart';
+import '../../shared/widgets/ai_explanation_card.dart';
 import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/custom_card.dart';
 
@@ -314,29 +314,9 @@ class FullExplanationScreen extends StatelessWidget {
   }
 
   Widget _buildExplanationCard(BuildContext context) {
-    if (explanation == null || explanation!.trim().isEmpty) {
-      return CustomCard(
-        child: Column(
-          children: [
-            Icon(
-              Icons.info_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: AppTheme.spacingMd),
-            Text(
-              'No explanation available',
-              style: AppTheme.bodyLarge.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     // Secondary UI-layer validation: never display prompt leakage (Rule 18).
-    if (ExplanationSanitizer.hasPromptLeakage(explanation)) {
+    if (explanation != null && explanation!.isNotEmpty &&
+        ExplanationSanitizer.hasPromptLeakage(explanation)) {
       return CustomCard(
         child: Column(
           children: [
@@ -359,33 +339,9 @@ class FullExplanationScreen extends StatelessWidget {
     }
 
     return CustomCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.psychology_outlined,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: AppTheme.spacingSm),
-              Text(
-                'AI Explanation',
-                style: AppTheme.titleMedium.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.spacingLg),
-          FormattedStudyText(
-            text: ExplanationSanitizer.sanitize(explanation),
-            style: AppTheme.bodyLarge.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            showActions: true,
-          ),
-        ],
+      child: AiExplanationCard(
+        explanation: explanation,
+        showActions: true,
       ),
     );
   }

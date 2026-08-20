@@ -7,9 +7,9 @@ import '../../core/services/connectivity_guard.dart';
 import '../../core/services/dialog_service.dart';
 import '../../core/utils/explanation_sanitizer.dart';
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/ai_explanation_card.dart';
 import '../../shared/widgets/custom_button.dart';
 import '../../shared/widgets/custom_card.dart';
-import '../../shared/widgets/formatted_study_text.dart';
 import 'full_explanation_screen.dart';
 
 class AnswerExplanationBottomSheet extends StatefulWidget {
@@ -43,10 +43,32 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
       _errorMessage = null;
     });
 
+    // ── Single source of truth ──────────────────────────────────────────
+    // The explanation generated during AI Generate is persisted on the
+    // flashcard and carried on the ExamQuestion. Prefer it unconditionally
+    // so Exam Review works offline, without tokens, and shows the SAME
+    // explanation the user saw during AI Generate Review. No connectivity
+    // guard and no AI call are needed when a stored explanation exists.
+    final stored = ExplanationSanitizer.sanitize(widget.question.explanation);
+    if (stored.isNotEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _explanation = AnswerExplanation(
+          correctAnswer: widget.question.correctAnswerText.trim(),
+          studentAnswer: _getUserAnswerText(),
+          isCorrect: widget.userAnswer?.isCorrect ?? false,
+          explanation: stored,
+        );
+        _isLoading = false;
+      });
+      return;
+    }
+
     try {
       final examProvider = context.read<ExamProvider>();
 
-      // AI explanation requires connectivity - guard before the request.
+      // No stored explanation — a live AI request is required, so guard
+      // connectivity before the request.
       final online = await ConnectivityGuard.isOnline();
       if (!mounted) return;
       if (!online) {
@@ -427,72 +449,13 @@ class _AnswerExplanationBottomSheetState extends State<AnswerExplanationBottomSh
       );
     }
 
-    final rawExplanation = _explanation?.explanation ?? '';
-    final sanitized = rawExplanation.isNotEmpty
-        ? ExplanationSanitizer.sanitize(rawExplanation)
-        : '';
-
-    if (sanitized.isEmpty) {
-      return CustomCard(
-        child: Column(
-          children: [
-            Icon(
-              Icons.info_outline,
-              size: 48,
-              color: colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: AppTheme.spacingMd),
-            Text(
-              'Explanation Unavailable',
-              style: AppTheme.labelLarge.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: AppTheme.spacingXs),
-            Text(
-              'No explanation is available for this question yet.',
-              style: AppTheme.bodyMedium.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Semantics(
-      label: 'AI explanation',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.psychology_outlined,
-                color: colorScheme.primary,
-                size: 20,
-              ),
-              const SizedBox(width: AppTheme.spacingSm),
-              Text(
-                'AI Explanation',
-                style: AppTheme.titleMedium.copyWith(
-                  color: colorScheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.spacingMd),
-          CustomCard(
-            child: FormattedStudyText(
-              text: sanitized,
-              style: AppTheme.bodyLarge.copyWith(
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ),
-        ],
-      ),
+    // Render the shared AI explanation card so the Exam Review explanation
+    // uses the same lightbulb / "AI Explanation" visual identity as AI
+    // Generate Review. The widget handles both the empty (unavailable) and
+    // non-empty (detailed) cases and applies ExplanationSanitizer internally.
+    return AiExplanationCard(
+      explanation: _explanation?.explanation,
+      showActions: false,
     );
   }
 

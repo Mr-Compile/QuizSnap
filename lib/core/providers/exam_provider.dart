@@ -313,6 +313,43 @@ class ExamProvider with ChangeNotifier {
   }
 
   Future<AnswerExplanation> generateExplanation(ExamQuestion question, {UserAnswer? userAnswer}) async {
+    // ── Single source of truth ──────────────────────────────────────────
+    // The explanation generated during AI Generate is persisted on the
+    // flashcard and carried on the ExamQuestion. Prefer it unconditionally
+    // so Exam Review never re-calls the AI, never depends on connectivity,
+    // and never shows a different explanation than the one the user saw
+    // during AI Generate Review. Only fall back to a live AI request when
+    // no stored explanation exists (e.g. manually created flashcards).
+    final stored = ExplanationSanitizer.sanitize(question.explanation);
+    if (stored.isNotEmpty) {
+      // Persist into the explanation cache so other surfaces (e.g. the
+      // cached explanations screen) can surface it without re-deriving.
+      try {
+        await _cacheService.cacheExplanation(
+          questionId: question.id,
+          explanation: stored,
+          question: question,
+        );
+      } catch (_) {
+        // Cache write is best-effort; never block the explanation on it.
+      }
+      final answer = userAnswer ?? _currentAnswers?.firstWhere(
+        (a) => a.questionId == question.id,
+        orElse: () => UserAnswer(
+          questionId: question.id,
+          isCorrect: false,
+          answeredAt: DateTime.now(),
+          timeSpent: Duration.zero,
+        ),
+      );
+      return AnswerExplanation(
+        correctAnswer: question.correctAnswerText.trim(),
+        studentAnswer: _userAnswerText(question, answer),
+        isCorrect: answer?.isCorrect ?? false,
+        explanation: stored,
+      );
+    }
+
     if (_groqService == null || !_groqService.isInitialized) {
       throw Exception('AI service not available');
     }
@@ -441,6 +478,18 @@ class ExamProvider with ChangeNotifier {
         );
       }
 
+      // Cache the freshly generated explanation so a later view of the same
+      // question does not trigger another AI call. Best-effort.
+      try {
+        await _cacheService.cacheExplanation(
+          questionId: question.id,
+          explanation: aiExplanation,
+          question: question,
+        );
+      } catch (_) {
+        // Ignore cache write failures.
+      }
+
       _isLoading = false;
       notifyListeners();
       return AnswerExplanation(
@@ -463,6 +512,19 @@ class ExamProvider with ChangeNotifier {
           ),
         ),
       );
+
+      // Cache the freshly generated fallback explanation so a later view of
+      // the same question does not trigger another AI call. Best-effort:
+      // never block returning the explanation on a cache write failure.
+      try {
+        await _cacheService.cacheExplanation(
+          questionId: question.id,
+          explanation: fallback,
+          question: question,
+        );
+      } catch (_) {
+        // Ignore cache write failures.
+      }
 
       _isLoading = false;
       notifyListeners();
