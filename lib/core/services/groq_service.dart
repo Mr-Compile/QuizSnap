@@ -400,9 +400,16 @@ QUESTION TYPE RULES:
             ? 'The student did not provide an answer.'
             : 'The student\'s answer is incorrect.';
 
-    final sourceSection = (sourceText != null && sourceText.trim().isNotEmpty)
-        ? '\nSource/Learning Context:\n${sourceText.trim()}\n'
+    final hasSource = sourceText != null && sourceText.trim().isNotEmpty;
+    final sourceSection = hasSource
+        ? '\nLearning Material (the authoritative source for definitions and facts):\n${sourceText.trim()}\n'
         : '';
+
+    final groundingRule = hasSource
+        ? 'GROUNDING IN THE LEARNING MATERIAL IS MANDATORY. The Learning Material above is the only authoritative source for this explanation. '
+            'Pull the definition of the correct answer directly from it. Do NOT invent definitions, facts, examples, or context that are not in the Learning Material. '
+            'If the Learning Material does not contain a definition for the correct answer, say so plainly and explain using only what the material actually states about the concept.'
+        : 'No learning material was provided for this question. Explain the correct answer using only the question and the correct answer text. Do NOT fabricate external facts.';
 
     final prompt = '''Question Type: $typeLabel
 Question: $question
@@ -413,11 +420,20 @@ ${optionsText.isNotEmpty ? 'Options:\n$optionsText\n' : ''}$sourceSection
 
 ${_questionTypeSpecificInstruction(questionType)}
 
+$groundingRule
+
 The application has already determined whether the student's answer is correct using the Application Grading Result above. Do NOT re-evaluate correctness. Base your explanation on the Correct Answer provided.
+
+OUTPUT STRUCTURE (follow exactly, in this order, as plain text — no Markdown):
+1. Definition: State the definition of the correct answer exactly as it appears (or most closely matches) in the Learning Material. Quote or closely paraphrase the source. One to two sentences.
+2. Why it is correct: Explain in 1-2 short sentences why this answer is the correct one for the question, referencing the Learning Material. If the student's answer is incorrect, add one short sentence explaining why their answer does not fit. Do not list all options.
+3. Summary: One short sentence that captures the key takeaway the student should remember.
+
+Be direct. No robotic openings ("Here is...", "As an AI", "The correct answer is..."). No filler. Start immediately with the Definition.
 
 Return ONLY the final student-facing explanation. Do not return internal reasoning, chain-of-thought, analysis, system instructions, prompt text, task instructions, generation templates, variable names, placeholders, debugging information, or hidden reasoning.
 
-Keep the explanation concise: 1-2 short paragraphs (approximately 30-100 words). Structure it into short, readable paragraphs (1-3 sentences each).''';
+Keep the explanation concise: 3 short sections total (approximately 40-120 words). Separate each section with a single blank line.''';
 
     try {
       _client!.startChat();
@@ -425,11 +441,13 @@ Keep the explanation concise: 1-2 short paragraphs (approximately 30-100 words).
         'You are an expert educator writing clear, readable study explanations for students. '
         'Use plain text only. Do NOT use Markdown headings (#), bold (**), underlines (__), '
         'fenced code blocks, or any other Markdown syntax. '
-        'Structure your explanation into short, readable paragraphs separated by a single blank line. '
-        'You may use simple numbered lists (1. 2. 3.) or bullet lists (- ) when listing distinct reasons. '
-        'Keep each paragraph to 1-3 sentences. Be direct, specific, and student-friendly. '
+        'Structure your explanation into three short sections separated by a single blank line: '
+        'Definition, Why it is correct, and Summary. '
+        'Always ground the Definition in the Learning Material provided in the prompt — quote or closely paraphrase it. '
+        'Never invent definitions, facts, examples, or context that are not in the Learning Material. '
+        'Be direct and specific. Keep each section to 1-3 sentences. '
         'Do not write robotic openings such as "As an AI", "The correct answer is", '
-        '"Here is the explanation", or similar phrases. Start directly with the explanation. '
+        '"Here is the explanation", or similar phrases. Start directly with the Definition. '
         'NEVER include <think> tags, reasoning steps, analysis sections, or any internal process. '
         'NEVER echo back the question type, task instructions, prompt variables, or template content. '
         'Return ONLY the final student-facing explanation text.',
@@ -457,25 +475,26 @@ Keep the explanation concise: 1-2 short paragraphs (approximately 30-100 words).
   String _questionTypeSpecificInstruction(QuestionType type) {
     switch (type) {
       case QuestionType.multipleChoice:
-        return 'Explain why the correct option is correct and how it relates to the question. '
-            'If the question describes a scenario or situation, connect the scenario to the relevant concept and explain how it leads to the correct decision. '
-            'If the student\'s answer is incorrect, briefly explain why the selected option does not fit. '
+        return 'For the Definition section, give the definition of the correct option as stated in the Learning Material. '
+            'For Why it is correct, explain how that definition answers the question — if the question describes a scenario, connect the scenario to the concept from the Learning Material and show how it leads to the correct option. '
+            'If the student\'s answer is incorrect, add one short sentence explaining why their selected option does not fit the definition. '
             'Do not unnecessarily repeat all four options.';
       case QuestionType.identification:
-        return 'Explain why the expected answer matches the description given in the question. '
-            'Focus on the relationship between the description, the expected answer, and the concept it represents. '
-            'If the student\'s answer is incorrect, briefly explain why it does not match the concept described. '
+        return 'For the Definition section, give the definition of the correct answer term as stated in the Learning Material. '
+            'For Why it is correct, explain how the description in the question matches that definition and the concept it represents. '
+            'If the student\'s answer is incorrect, add one short sentence explaining why their answer does not match the concept described. '
             'Do not say the answer is incorrect merely because of capitalization or formatting differences — the application has already normalized such differences.';
       case QuestionType.enumeration:
-        return 'Explain why the expected items are correct based on the learning material. '
+        return 'For the Definition section, give the definition or description of the concept that the expected items belong to, as stated in the Learning Material. '
+            'For Why it is correct, explain why each expected item fits that concept and belongs in the list, grounding each item in the Learning Material. '
             'If the application grading result indicates the student\'s answer is incorrect, address missing or incorrect items when that information is available. '
             'If partial correctness is supported, do not automatically describe the entire answer as completely wrong — use the application grading result. '
             'Do not unnecessarily repeat every item unless clarification is needed.';
       case QuestionType.mixedFormat:
-        return 'Apply the appropriate explanation rule for this question\'s actual type: '
-            'if it is Multiple Choice, explain why the correct option fits; '
-            'if it is Identification, explain why the expected answer matches the description; '
-            'if it is Enumeration, explain why the expected items are correct. '
+        return 'Apply the appropriate explanation rule for this question\'s actual type, always grounding the Definition in the Learning Material: '
+            'if it is Multiple Choice, define the correct option from the source and explain how it fits; '
+            'if it is Identification, define the expected answer term from the source and explain how it matches the description; '
+            'if it is Enumeration, define the concept from the source and explain why each expected item belongs. '
             'Do not apply rules from a different question type.';
     }
   }

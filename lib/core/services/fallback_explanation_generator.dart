@@ -5,7 +5,11 @@ import '../models/exam.dart';
 ///
 /// The fallback is always based on the application's stored question data —
 /// it never calls the AI and never exposes internal prompts, errors, or
-/// debugging information.
+/// debugging information. When the question carries [ExamQuestion.sourceText]
+/// (the original learning material), the fallback grounds the explanation in
+/// that material: it pulls the sentence that defines the correct answer and
+/// builds a Definition / Why it is correct / Summary structure that mirrors
+/// the AI-generated explanation format.
 class FallbackExplanationGenerator {
   FallbackExplanationGenerator._();
 
@@ -33,6 +37,7 @@ class FallbackExplanationGenerator {
         );
       case QuestionType.identification:
         return _identificationFallback(
+          question: question,
           correctAnswer: correctAnswer,
           userAnswerText: userAnswerText,
           isCorrect: isCorrect,
@@ -62,42 +67,73 @@ class FallbackExplanationGenerator {
     required bool isCorrect,
     required bool hasAnswer,
   }) {
-    final buffer = StringBuffer();
-
     if (correctAnswer.isEmpty) {
       return 'The correct answer could not be determined for this question.';
     }
 
-    buffer.write('"$correctAnswer" is correct because it best fits the '
-        'question based on the learning material.');
+    final definition = _definitionFromSource(question, correctAnswer);
+    final buffer = StringBuffer();
+
+    if (definition != null) {
+      buffer.write('Definition: $definition');
+      buffer.write('\n\n');
+      buffer.write('Why it is correct: "$correctAnswer" is the option that '
+          'matches the learning material above.');
+    } else {
+      buffer.write('Definition: $correctAnswer is the correct option based on '
+          'the learning material.');
+      buffer.write('\n\n');
+      buffer.write('Why it is correct: It best fits the question as grounded '
+          'in the source material.');
+    }
 
     if (hasAnswer && !isCorrect) {
-      buffer.write(' The selected answer "$userAnswerText" does not match '
-          'the correct option.');
+      buffer.write(' The selected answer "$userAnswerText" does not match the '
+          'correct option.');
     }
+
+    buffer.write('\n\n');
+    buffer.write('Summary: $correctAnswer is the correct answer per the '
+        'learning material.');
 
     return buffer.toString();
   }
 
   static String _identificationFallback({
+    required ExamQuestion question,
     required String correctAnswer,
     required String userAnswerText,
     required bool isCorrect,
     required bool hasAnswer,
   }) {
-    final buffer = StringBuffer();
-
     if (correctAnswer.isEmpty) {
       return 'The correct answer could not be determined for this question.';
     }
 
-    buffer.write('"$correctAnswer" is correct because the description matches '
-        'the concept represented by this answer.');
+    final definition = _definitionFromSource(question, correctAnswer);
+    final buffer = StringBuffer();
+
+    if (definition != null) {
+      buffer.write('Definition: $definition');
+      buffer.write('\n\n');
+      buffer.write('Why it is correct: The description in the question matches '
+          '"$correctAnswer" as defined in the learning material.');
+    } else {
+      buffer.write('Definition: "$correctAnswer" is the term that matches the '
+          'description in the question, based on the learning material.');
+      buffer.write('\n\n');
+      buffer.write('Why it is correct: The description fits the concept '
+          'represented by this answer.');
+    }
 
     if (hasAnswer && !isCorrect) {
-      buffer.write(' The submitted answer "$userAnswerText" does not match '
-          'the concept described in the question.');
+      buffer.write(' The submitted answer "$userAnswerText" does not match the '
+          'concept described in the question.');
     }
+
+    buffer.write('\n\n');
+    buffer.write('Summary: $correctAnswer is the correct answer per the '
+        'learning material.');
 
     return buffer.toString();
   }
@@ -112,16 +148,30 @@ class FallbackExplanationGenerator {
       return 'The correct items could not be determined for this question.';
     }
 
+    final definition = _definitionFromSource(question, correctItems.first);
     final buffer = StringBuffer();
 
-    buffer.write('The correct items are: ${correctItems.join(", ")}. ');
-    buffer.write('These items represent the expected concepts identified in '
-        'the learning material.');
+    if (definition != null) {
+      buffer.write('Definition: $definition');
+      buffer.write('\n\n');
+    } else {
+      buffer.write('Definition: The expected items belong to the concept '
+          'described in the learning material.');
+      buffer.write('\n\n');
+    }
+
+    buffer.write('Why it is correct: The correct items are '
+        '${correctItems.join(", ")}. These items represent the expected '
+        'concepts identified in the learning material.');
 
     if (hasAnswer && !isCorrect) {
       buffer.write(' Some items may be missing or incorrect in the submitted '
           'answer.');
     }
+
+    buffer.write('\n\n');
+    buffer.write('Summary: ${correctItems.length} correct item(s) are '
+        'expected from the learning material.');
 
     return buffer.toString();
   }
@@ -146,6 +196,7 @@ class FallbackExplanationGenerator {
         );
       case QuestionType.identification:
         return _identificationFallback(
+          question: question,
           correctAnswer: correctAnswer,
           userAnswerText: userAnswerText,
           isCorrect: isCorrect,
@@ -159,6 +210,7 @@ class FallbackExplanationGenerator {
         );
       case QuestionType.mixedFormat:
         return _identificationFallback(
+          question: question,
           correctAnswer: correctAnswer,
           userAnswerText: userAnswerText,
           isCorrect: isCorrect,
@@ -197,5 +249,76 @@ class FallbackExplanationGenerator {
     if (list != null && list.isNotEmpty) return list.join(', ');
 
     return 'No answer';
+  }
+
+  /// Extracts the sentence from the question's [ExamQuestion.sourceText] that
+  /// best defines [term]. Returns null when no source text is available or no
+  /// sentence mentions the term.
+  ///
+  /// The match is case-insensitive and prefers sentences that contain the term
+  /// together with definition cues ("is", "are", "means", "refers to",
+  /// "defined as", "describes"). Falls back to the first sentence that simply
+  /// contains the term.
+  static String? _definitionFromSource(ExamQuestion question, String term) {
+    final source = question.sourceText?.trim();
+    if (source == null || source.isEmpty) return null;
+    final normalizedTerm = term.trim().toLowerCase();
+    if (normalizedTerm.isEmpty) return null;
+
+    final sentences = _splitSentences(source);
+    if (sentences.isEmpty) return null;
+
+    final definitionCues = [
+      ' is ',
+      ' are ',
+      ' means ',
+      ' refers to ',
+      ' defined as ',
+      ' describes ',
+      ' definition of ',
+      ': ',
+    ];
+
+    String? firstContaining;
+    String? bestWithCue;
+
+    for (final sentence in sentences) {
+      final lower = sentence.toLowerCase();
+      if (!lower.contains(normalizedTerm)) continue;
+
+      firstContaining ??= sentence;
+
+      for (final cue in definitionCues) {
+        if (lower.contains(cue)) {
+          bestWithCue ??= sentence;
+          break;
+        }
+      }
+    }
+
+    final chosen = bestWithCue ?? firstContaining;
+    return chosen != null ? _cleanSentence(chosen) : null;
+  }
+
+  /// Splits [text] into sentences on `.`, `!`, `?` followed by whitespace,
+  /// preserving the punctuation. Newlines are treated as hard sentence
+  /// boundaries (common in study notes / bullet material).
+  static List<String> _splitSentences(String text) {
+    final raw = text
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n')
+        .split(RegExp(r'(?<=[.!?])\s+|\n+'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    return raw;
+  }
+
+  static String _cleanSentence(String sentence) {
+    // Collapse internal whitespace and strip stray list markers / colons that
+    // would look odd when prepended with "Definition:".
+    var cleaned = sentence.replaceAll(RegExp(r'\s+'), ' ').trim();
+    cleaned = cleaned.replaceFirst(RegExp(r'^[-*•]\s*'), '');
+    return cleaned;
   }
 }
