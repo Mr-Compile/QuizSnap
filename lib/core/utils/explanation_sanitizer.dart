@@ -67,6 +67,20 @@ class ExplanationSanitizer {
     //    Keep the heading text so it reads as a section label.
     cleaned = cleaned.replaceAll(RegExp(r'^\s{0,3}#{1,6}\s*'), '');
 
+    // 4b. Strip legacy section labels produced by older explanation prompts
+    //     ("Definition:", "Why it is correct:", "Answer Comparison:",
+    //     "Summary:") so cached explanations from before the concise refactor
+    //     do not render with stale multi-section headings. The label prefix
+    //     is removed; any text following it on the same line is preserved.
+    cleaned = cleaned.replaceAll(
+      RegExp(
+        r'^(Definition|Why it is correct|Answer Comparison|Summary)\s*:\s*',
+        caseSensitive: false,
+        multiLine: true,
+      ),
+      '',
+    );
+
     // 5. Normalize spaces/tabs within each line WITHOUT touching newlines,
     //    so words are never concatenated and lists stay on their own lines.
     final lines = cleaned.split('\n');
@@ -116,6 +130,9 @@ class ExplanationSanitizer {
       RegExp(r'^correct\s+answer\s*:', caseSensitive: false, multiLine: true),
       RegExp(r'^options\s*:', caseSensitive: false, multiLine: true),
       RegExp(r'^learning\s+context\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^learning\s+material\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^reference\s+material\s*:', caseSensitive: false, multiLine: true),
+      RegExp(r'^source\s+material\s*:', caseSensitive: false, multiLine: true),
       RegExp(r'^difficulty\s*:', caseSensitive: false, multiLine: true),
       RegExp(r'^task\s*:', caseSensitive: false, multiLine: true),
       RegExp(r'^analysis\s*:', caseSensitive: false, multiLine: true),

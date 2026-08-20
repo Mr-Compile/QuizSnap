@@ -7,9 +7,11 @@ import '../models/exam.dart';
 /// it never calls the AI and never exposes internal prompts, errors, or
 /// debugging information. When the question carries [ExamQuestion.sourceText]
 /// (the original learning material), the fallback grounds the explanation in
-/// that material: it pulls the sentence that defines the correct answer and
-/// builds a Definition / Why it is correct / Summary structure that mirrors
-/// the AI-generated explanation format.
+/// that material by pulling the sentence that defines the correct answer.
+///
+/// Fallbacks are intentionally short and direct (1-3 sentences) and focus on
+/// the correct answer, mirroring the concise style of the AI-generated
+/// explanation.
 class FallbackExplanationGenerator {
   FallbackExplanationGenerator._();
 
@@ -75,26 +77,18 @@ class FallbackExplanationGenerator {
     final buffer = StringBuffer();
 
     if (definition != null) {
-      buffer.write('Definition: $definition');
-      buffer.write('\n\n');
-      buffer.write('Why it is correct: "$correctAnswer" is the option that '
-          'matches the learning material above.');
+      buffer.write(definition);
     } else {
-      buffer.write('Definition: $correctAnswer is the correct option based on '
-          'the learning material.');
-      buffer.write('\n\n');
-      buffer.write('Why it is correct: It best fits the question as grounded '
-          'in the source material.');
+      buffer.write(
+        '$correctAnswer is the option that best answers the question based on the learning material.',
+      );
     }
 
     if (hasAnswer && !isCorrect) {
-      buffer.write(' The selected answer "$userAnswerText" does not match the '
-          'correct option.');
+      buffer.write(
+        ' "$userAnswerText" is incorrect because it refers to a different concept that does not satisfy the question.',
+      );
     }
-
-    buffer.write('\n\n');
-    buffer.write('Summary: $correctAnswer is the correct answer per the '
-        'learning material.');
 
     return buffer.toString();
   }
@@ -114,26 +108,18 @@ class FallbackExplanationGenerator {
     final buffer = StringBuffer();
 
     if (definition != null) {
-      buffer.write('Definition: $definition');
-      buffer.write('\n\n');
-      buffer.write('Why it is correct: The description in the question matches '
-          '"$correctAnswer" as defined in the learning material.');
+      buffer.write(definition);
     } else {
-      buffer.write('Definition: "$correctAnswer" is the term that matches the '
-          'description in the question, based on the learning material.');
-      buffer.write('\n\n');
-      buffer.write('Why it is correct: The description fits the concept '
-          'represented by this answer.');
+      buffer.write(
+        '"$correctAnswer" is the term that matches the description in the question, based on the learning material.',
+      );
     }
 
     if (hasAnswer && !isCorrect) {
-      buffer.write(' The submitted answer "$userAnswerText" does not match the '
-          'concept described in the question.');
+      buffer.write(
+        ' "$userAnswerText" is a different concept that does not match what the question describes.',
+      );
     }
-
-    buffer.write('\n\n');
-    buffer.write('Summary: $correctAnswer is the correct answer per the '
-        'learning material.');
 
     return buffer.toString();
   }
@@ -148,30 +134,23 @@ class FallbackExplanationGenerator {
       return 'The correct items could not be determined for this question.';
     }
 
-    final definition = _definitionFromSource(question, correctItems.first);
     final buffer = StringBuffer();
+    buffer.write('The correct items are ${correctItems.join(", ")}. ');
 
+    final definition = _definitionFromSource(question, correctItems.first);
     if (definition != null) {
-      buffer.write('Definition: $definition');
-      buffer.write('\n\n');
+      buffer.write(definition);
     } else {
-      buffer.write('Definition: The expected items belong to the concept '
-          'described in the learning material.');
-      buffer.write('\n\n');
+      buffer.write(
+        'These items represent the expected concepts identified in the learning material.',
+      );
     }
-
-    buffer.write('Why it is correct: The correct items are '
-        '${correctItems.join(", ")}. These items represent the expected '
-        'concepts identified in the learning material.');
 
     if (hasAnswer && !isCorrect) {
-      buffer.write(' Some items may be missing or incorrect in the submitted '
-          'answer.');
+      buffer.write(
+        ' Some items may be missing or incorrect in the submitted answer.',
+      );
     }
-
-    buffer.write('\n\n');
-    buffer.write('Summary: ${correctItems.length} correct item(s) are '
-        'expected from the learning material.');
 
     return buffer.toString();
   }
